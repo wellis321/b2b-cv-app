@@ -8,6 +8,7 @@
 	import { supabase } from '$lib/supabase';
 	import { page } from '$app/stores';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import ResponsibilitiesEditor from './ResponsibilitiesEditor.svelte';
 
 	// Define type for form values
 	type FormValues = {
@@ -60,6 +61,9 @@
 	let editingExperience = $state<WorkExperience | null>(null);
 	let isEditing = $state(false);
 	let deleteConfirmId = $state<string | null>(null);
+	let editResponsibilitiesEditor = $state<any>(null);
+	let displayResponsibilitiesEditors = $state<Record<string, any>>({});
+	let editingResponsibilities = $state(false);
 
 	// Function to format dates with Temporal
 	function formatDate(dateString: string | null): string {
@@ -234,11 +238,26 @@
 	function editExperience(exp: WorkExperience) {
 		isEditing = true;
 		editingExperience = exp;
+		editingResponsibilities = false;
+
+		// Parse description to separate out key responsibilities
+		let descriptionText = exp.description || '';
+
+		// Check if the description contains the "Key Responsibilities:" section
+		const keyResponsibilitiesIndex = descriptionText.indexOf('Key Responsibilities:');
+
+		if (keyResponsibilitiesIndex !== -1) {
+			// Split the description at the key responsibilities section
+			description = descriptionText.substring(0, keyResponsibilitiesIndex).trim();
+			// The responsibilities will be loaded by the component from the database
+		} else {
+			description = descriptionText;
+		}
+
 		companyName = exp.company_name;
 		position = exp.position;
 		startDate = exp.start_date;
 		endDate = exp.end_date || '';
-		description = exp.description;
 		showAddForm = true;
 
 		// Scroll to the form
@@ -388,6 +407,13 @@
 				return;
 			}
 
+			// Get formatted responsibilities text if available
+			const responsibilitiesText = editResponsibilitiesEditor?.getFormattedText?.() || '';
+
+			// If we have responsibilities text, append it to the description
+			const fullDescription =
+				description + (responsibilitiesText ? '\n\n' + responsibilitiesText : '');
+
 			let result;
 
 			if (isEditing && editingExperience) {
@@ -399,7 +425,7 @@
 						position,
 						start_date: startDate,
 						end_date: endDate || null,
-						description
+						description: fullDescription
 					})
 					.eq('id', editingExperience.id)
 					.select();
@@ -413,7 +439,7 @@
 						position,
 						start_date: startDate,
 						end_date: endDate || null,
-						description
+						description: fullDescription
 					})
 					.select();
 			}
@@ -429,6 +455,8 @@
 
 				// Clear any error first
 				error = null;
+
+				// Display success message
 				success = isEditing
 					? 'Work experience updated successfully!'
 					: 'Work experience saved successfully!';
@@ -442,21 +470,36 @@
 						workExperiences = workExperiences.map((exp) =>
 							exp.id === savedExperience.id ? savedExperience : exp
 						);
+
+						// If we're actively editing responsibilities, stay in edit mode
+						// Otherwise, return to the list view
+						if (editingResponsibilities) {
+							// Stay in edit mode for responsibilities
+							editingExperience = savedExperience;
+						} else {
+							// Close the form after updating
+							resetForm();
+							isEditing = false;
+							editingExperience = null;
+							showAddForm = false;
+						}
 					} else {
 						// Add new experience to the list
 						workExperiences = sortExperiences([savedExperience, ...workExperiences]);
+
+						// Switch to editing the newly created experience
+						isEditing = true;
+						editingExperience = savedExperience;
+						editingResponsibilities = true; // Flag that we're actively editing responsibilities
+
+						// Scroll to the form
+						if (browser) {
+							setTimeout(() => {
+								document.getElementById('experienceForm')?.scrollIntoView({ behavior: 'smooth' });
+							}, 100);
+						}
 					}
 				}
-
-				// Reset the form
-				resetForm();
-
-				// Reset editing state
-				isEditing = false;
-				editingExperience = null;
-
-				// Hide the form after successful submission
-				showAddForm = false;
 
 				// Clear success message after 3 seconds
 				setTimeout(() => {
@@ -579,6 +622,17 @@
 						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 					></textarea>
 				</div>
+
+				{#if isEditing && editingExperience}
+					<div class="mt-4 border-t pt-4">
+						<ResponsibilitiesEditor
+							workExperienceId={editingExperience.id}
+							bind:this={editResponsibilitiesEditor}
+							on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
+						/>
+					</div>
+				{/if}
+
 				<div class="flex gap-2">
 					<button
 						type="submit"
@@ -674,6 +728,15 @@
 					{#if exp.description}
 						<div class="mt-2 text-gray-700">{exp.description}</div>
 					{/if}
+
+					<!-- Show responsibilities in read-only view -->
+					<div class="mt-3">
+						<ResponsibilitiesEditor
+							workExperienceId={exp.id}
+							readOnly={true}
+							bind:this={displayResponsibilitiesEditors[exp.id]}
+						/>
+					</div>
 				</li>
 			{/each}
 		</ul>
