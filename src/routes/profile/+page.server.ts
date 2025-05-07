@@ -1,46 +1,44 @@
 import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
+import { requireAuth } from '$lib/auth';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async (event) => {
     try {
-        const { data: { session } } = await locals.supabase.auth.getSession();
-        console.log('Session in load:', session ? 'Session exists' : 'No session');
+        // First verify the user is authenticated
+        const authUser = await requireAuth(event);
+        const { locals } = event;
 
-        if (!session) {
-            console.log('No session found, returning empty profile');
-            return { profile: null, session: null };
-        }
+        // At this point we know the user is authenticated and the profile exists
+        console.log('User authenticated:', authUser.userId);
 
-        console.log('User ID:', session.user.id);
-
-        // Check if the user has a profile already
+        // Fetch the complete profile data
         const { data, error } = await locals.supabase
             .from('profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('id', authUser.userId)
             .maybeSingle();
 
         console.log('Profile load result:', { data, error });
 
         if (error) {
             console.error('Error loading profile:', error);
-            return { profile: null, error: error.message, session };
+            return { profile: null, error: error.message, session: locals.session };
         }
 
         if (!data) {
-            console.log('No profile found for user, this may be a new user');
+            console.log('No profile found but user is authenticated - creating default profile');
             // Create default profile data with email from session
             const defaultProfile = {
-                id: session.user.id,
-                email: session.user.email,
+                id: authUser.userId,
+                email: authUser.email,
                 full_name: '',
                 phone: '',
                 location: ''
             };
-            return { profile: defaultProfile, session };
+            return { profile: defaultProfile, session: locals.session };
         }
 
-        return { profile: data, session };
+        return { profile: data, session: locals.session };
     } catch (error) {
         console.error('Unexpected error in profile load:', error);
         return { profile: null, error: 'An unexpected error occurred', session: null };
@@ -48,15 +46,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-    default: async ({ request, locals }) => {
+    default: async (event) => {
         try {
-            const { data: { session } } = await locals.supabase.auth.getSession();
-            console.log('Session in action:', session ? 'Session exists' : 'No session');
+            // First verify the user is authenticated
+            const authUser = await requireAuth(event);
+            const { request, locals } = event;
 
-            if (!session) {
-                console.error('No session found during profile save');
-                return fail(401, { error: 'Not authenticated' });
-            }
+            // At this point we know the user is authenticated
+            console.log('User authenticated for profile update:', authUser.userId);
 
             const formData = await request.formData();
             const fullName = formData.get('fullName') as string;
@@ -66,11 +63,10 @@ export const actions: Actions = {
 
             // Log form data
             console.log('Form data:', { fullName, email, phone, location });
-            console.log('User ID for profile save:', session.user.id);
 
             // Create the profile data object
             const profileData = {
-                id: session.user.id,
+                id: authUser.userId,
                 full_name: fullName || null,
                 email: email || null,
                 phone: phone || null,

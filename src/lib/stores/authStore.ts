@@ -1,20 +1,57 @@
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase';
 import type { Session } from '@supabase/supabase-js';
+import { browser } from '$app/environment';
 
 // Create a writable store with initial value of null
 export const session = writable<Session | null>(null);
 
+// Flag to track if we've initialized the session
+let sessionInitialized = false;
+
 // Initialize the store with the current session
 export const initializeSession = async () => {
     try {
+        // Don't try to initialize twice
+        if (sessionInitialized && browser) {
+            return;
+        }
+
+        // Clear any existing session first to avoid stale data
+        session.set(null);
+
+        // Get the session from Supabase
         const { data, error } = await supabase.auth.getSession();
+
         if (error) {
             console.error('Error getting session:', error);
-        } else {
-            console.log('Session initialized:', data.session ? 'Session present' : 'No session');
-            session.set(data.session);
+            return;
         }
+
+        console.log('Session initialized:', data.session ? 'Session present' : 'No session');
+
+        if (data.session) {
+            // Set the session in the store
+            session.set(data.session);
+
+            // Force refresh token to ensure it's valid
+            try {
+                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+                if (refreshError) {
+                    console.error('Error refreshing token:', refreshError);
+                    // Force logout if refresh fails
+                    await logout();
+                } else if (refreshData.session) {
+                    console.log('Session refreshed successfully');
+                    session.set(refreshData.session);
+                }
+            } catch (refreshErr) {
+                console.error('Error during token refresh:', refreshErr);
+            }
+        }
+
+        sessionInitialized = true;
     } catch (err) {
         console.error('Error initializing session:', err);
     }
@@ -22,11 +59,22 @@ export const initializeSession = async () => {
 
 // Subscribe to auth changes
 export const setupAuthListener = () => {
+    if (!browser) {
+        return () => { };
+    }
+
     try {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, currentSession) => {
                 console.log('Auth state changed in store:', event, 'Session:', currentSession ? 'Present' : 'None');
-                session.set(currentSession);
+
+                if (event === 'SIGNED_OUT') {
+                    // Make sure we completely reset the session
+                    session.set(null);
+                    sessionInitialized = false;
+                } else {
+                    session.set(currentSession);
+                }
             }
         );
 
@@ -68,7 +116,7 @@ export const signup = async (email: string, password: string) => {
             email,
             password,
             options: {
-                emailRedirectTo: window.location.origin
+                emailRedirectTo: browser ? window.location.origin : undefined
             }
         });
 
@@ -94,11 +142,13 @@ export const logout = async () => {
         } else {
             console.log('Logout successful');
             session.set(null);
+            sessionInitialized = false;
         }
     } catch (err) {
         console.error('Unexpected error during logout:', err);
         // Still set session to null in case of error
         session.set(null);
+        sessionInitialized = false;
     }
 };
 

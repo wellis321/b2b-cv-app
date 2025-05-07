@@ -1,4 +1,40 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
+
+	let errorMessage = $state('');
+
+	// Error messages
+	const errorMap = {
+		session: 'There was a problem with your authentication session.',
+		profile: 'Your user profile could not be found.',
+		'create-profile': "We couldn't create your profile.",
+		unexpected: 'An unexpected error occurred.',
+		verification: "We couldn't verify your account.",
+		auth: 'Authentication error. Please log in again.'
+	};
+
+	// Handle error query parameter
+	onMount(() => {
+		if (browser && $page.url.searchParams.has('error')) {
+			const errorCode = $page.url.searchParams.get('error');
+			if (errorCode && errorCode in errorMap) {
+				errorMessage = errorMap[errorCode as keyof typeof errorMap];
+
+				// Clean up URL after displaying error
+				const url = new URL(window.location.href);
+				url.searchParams.delete('error');
+				history.replaceState({}, document.title, url.toString());
+
+				// Clear error after 5 seconds
+				setTimeout(() => {
+					errorMessage = '';
+				}, 5000);
+			}
+		}
+	});
+
 	const sections = [
 		{
 			title: 'Profile',
@@ -31,6 +67,25 @@
 
 <div class="py-12">
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+		{#if errorMessage}
+			<div class="mb-8 rounded-md bg-red-50 p-4">
+				<div class="flex">
+					<div class="flex-shrink-0">
+						<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</div>
+					<div class="ml-3">
+						<p class="text-sm font-medium text-red-800">{errorMessage}</p>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<div class="text-center">
 			<h1 class="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
 				Build Your Professional CV

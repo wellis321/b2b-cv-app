@@ -16,6 +16,9 @@ export const supabase = createClient<Database>(PUBLIC_SUPABASE_URL, PUBLIC_SUPAB
     auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        // Instead of a custom cookie implementation, rely on Supabase's storage
+        // This ensures compatibility between client and server
+        storageKey: 'sb-authstate',
     }
 });

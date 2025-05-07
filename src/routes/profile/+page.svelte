@@ -10,10 +10,11 @@
 	let email = $state(data.profile?.email ?? '');
 	let phone = $state(data.profile?.phone ?? '');
 	let location = $state(data.profile?.location ?? '');
-	let error = $state(data.error || null);
+	let error = $state<string | null>(null); // Don't initialize with server error
 	let success = $state<string | null>(null);
 	let loading = $state(false);
 	let initialCheckDone = $state(false);
+	let loadingProfile = $state(true); // Add loading state for profile
 
 	// Check authentication on mount and try to initialize data
 	onMount(async () => {
@@ -25,6 +26,7 @@
 		if (!data.session && !$session) {
 			console.log('No session found on profile page mount');
 			error = 'Not authenticated. Please login first.';
+			loadingProfile = false;
 
 			// If in browser, redirect to home
 			if (browser) {
@@ -34,7 +36,7 @@
 			}
 		} else {
 			// We have a session, try to load profile if it wasn't loaded from server
-			if (!data.profile && ($session || data.session)) {
+			if ((!data.profile || data.error) && ($session || data.session)) {
 				try {
 					console.log('Trying to load profile from client');
 					const userId = $session?.user.id || data.session?.user.id;
@@ -66,13 +68,17 @@
 								}
 							} else {
 								console.error('Error loading profile from client:', profileError);
+								error = 'Error loading profile. Please try again.';
 							}
 						} else if (profileData) {
 							console.log('Profile loaded from client:', profileData);
+							// Update form fields with profile data
 							fullName = profileData.full_name || '';
 							email = profileData.email || '';
 							phone = profileData.phone || '';
 							location = profileData.location || '';
+							// Clear any error
+							error = null;
 						} else {
 							console.log('No profile data found, but no error either');
 							// Set email from session if available
@@ -83,7 +89,14 @@
 					}
 				} catch (err) {
 					console.error('Error in client-side profile load:', err);
+					error = 'Error loading profile. Please refresh the page.';
+				} finally {
+					loadingProfile = false;
 				}
+			} else if (data.profile) {
+				// Profile was loaded from server
+				loadingProfile = false;
+				error = null; // Clear any errors from the server
 			}
 		}
 
@@ -186,9 +199,6 @@
 	{#if success}
 		<div class="rounded bg-green-100 p-4 text-green-700">{success}</div>
 	{/if}
-	{#if form?.error}
-		<div class="rounded bg-red-100 p-4 text-red-700">{form.error}</div>
-	{/if}
 
 	{#if (!data.session && !$session) || loading}
 		<div class="rounded bg-yellow-100 p-4">
@@ -203,6 +213,10 @@
 					Go to Login
 				</button>
 			{/if}
+		</div>
+	{:else if loadingProfile}
+		<div class="rounded bg-blue-100 p-4">
+			<p class="font-medium">Loading your profile...</p>
 		</div>
 	{:else}
 		<form onsubmit={saveProfile} class="space-y-6">
@@ -248,13 +262,15 @@
 					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 				/>
 			</div>
-			<button
-				type="submit"
-				class="w-full rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
-				disabled={loading}
-			>
-				{loading ? 'Saving...' : 'Save Profile'}
-			</button>
+			<div>
+				<button
+					type="submit"
+					disabled={loading}
+					class="w-full rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				>
+					{loading ? 'Saving...' : 'Save Profile'}
+				</button>
+			</div>
 		</form>
 	{/if}
 </div>

@@ -5,6 +5,9 @@ import type { Handle } from '@sveltejs/kit';
 console.log('SUPABASE_URL:', PUBLIC_SUPABASE_URL);
 console.log('SUPABASE_ANON_KEY:', PUBLIC_SUPABASE_ANON_KEY);
 
+// List of public routes that don't require authentication
+const publicRoutes = ['/', '/login', '/signup'];
+
 export const handle: Handle = async ({ event, resolve }) => {
     // Debug: log cookies received in the request
     const cookieHeader = event.request.headers.get('cookie');
@@ -30,25 +33,9 @@ export const handle: Handle = async ({ event, resolve }) => {
             console.log('Server hook session:', session ? `User ID: ${session.user.id}` : 'No session');
 
             if (session) {
-                // Check if the session has an expired access token but valid refresh token
-                const nowInSeconds = Math.floor(Date.now() / 1000);
-                if (session.expires_at && session.expires_at < nowInSeconds) {
-                    console.log('Session access token expired, attempting refresh...');
-                    try {
-                        const { data: refreshData, error: refreshError } = await event.locals.supabase.auth.refreshSession();
-                        if (refreshError) {
-                            console.error('Error refreshing session:', refreshError);
-                        } else if (refreshData.session) {
-                            console.log('Session refreshed successfully');
-                            event.locals.session = refreshData.session;
-                        }
-                    } catch (refreshErr) {
-                        console.error('Error during session refresh:', refreshErr);
-                    }
-                } else {
-                    // Session is valid
-                    event.locals.session = session;
-                }
+                // Basic session validation - we'll do more thorough checks
+                // on protected routes via requireAuth
+                event.locals.session = session;
             } else {
                 // No session
                 event.locals.session = null;
