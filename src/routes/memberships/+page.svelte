@@ -1,4 +1,12 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { supabase } from '$lib/supabase';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
+	import { session as authSession } from '$lib/stores/authStore';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+
 	let { data } = $props();
 	let organisation = $state('');
 	let role = $state('');
@@ -28,6 +36,8 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<SectionNavigation />
 </div>
 
 <form method="POST" class="mx-auto max-w-xl space-y-6 rounded bg-white p-8 shadow">

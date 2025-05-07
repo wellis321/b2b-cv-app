@@ -7,6 +7,7 @@
 	import { session, authLoading } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
 	import { page } from '$app/stores';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 
 	// Define type for form values
 	type FormValues = {
@@ -677,4 +678,6 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<SectionNavigation />
 </div>

@@ -7,6 +7,7 @@
 	// @ts-ignore - The Temporal polyfill doesn't have proper TypeScript definitions
 	import { Temporal } from '@js-temporal/polyfill';
 	import { session as authSession } from '$lib/stores/authStore';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 
 	interface PageData {
 		educationList: Education[];
@@ -728,4 +729,6 @@
 			{/each}
 		</ul>
 	{/if}
+
+	<SectionNavigation />
 </div>

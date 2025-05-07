@@ -4,6 +4,8 @@
 	import { browser } from '$app/environment';
 	import { session, updateProfile } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import { updateSectionStatus } from '$lib/cv-sections';
 
 	let { data, form } = $props();
 	let fullName = $state(data.profile?.full_name ?? '');
@@ -181,6 +183,9 @@
 					phone = savedProfile.phone || phone;
 					location = savedProfile.location || location;
 				}
+
+				// Update section status to reflect the profile completion
+				await updateSectionStatus();
 			}
 		} catch (err) {
 			console.error('Error saving profile:', err);
@@ -273,4 +278,6 @@
 			</div>
 		</form>
 	{/if}
+
+	<SectionNavigation />
 </div>

@@ -5,6 +5,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { session as authSession } from '$lib/stores/authStore';
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 
 	interface PageData {
 		skills: Skill[];
@@ -559,4 +560,6 @@
 			{/each}
 		</div>
 	{/if}
+
+	<SectionNavigation />
 </div>

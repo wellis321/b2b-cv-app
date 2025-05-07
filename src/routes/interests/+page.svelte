@@ -4,6 +4,7 @@
 	let description = $state('');
 	let interests = data.interests || [];
 	let error = data.error;
+	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
 </script>
 
 <div class="mx-auto mb-8 max-w-xl">
@@ -56,3 +57,7 @@
 		>Save Interest</button
 	>
 </form>
+
+<div class="mx-auto mt-10 max-w-xl">
+	<SectionNavigation />
+</div>
