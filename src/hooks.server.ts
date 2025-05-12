@@ -2,9 +2,15 @@ import { createSupabaseServerClient } from '@supabase/auth-helpers-sveltekit';
 import config, { safeLog } from '$lib/config';
 import type { Handle } from '@sveltejs/kit';
 import { redirect, error } from '@sveltejs/kit';
+import { getCsrfToken, validateCsrfToken, requiresCsrfCheck } from '$lib/security/csrf';
 
 // List of public routes that don't require authentication
 const publicRoutes = ['/', '/login', '/signup', '/security-review-client'];
+
+// List of API routes that are exempt from CSRF checks (e.g., webhooks)
+const csrfExemptRoutes = [
+    '/api/verify-session' // This is a read-only endpoint to verify a session
+];
 
 export const handle: Handle = async ({ event, resolve }) => {
     try {
@@ -82,6 +88,38 @@ export const handle: Handle = async ({ event, resolve }) => {
             safeLog('debug', `[${requestId}] No session found`, { path });
         }
 
+        // Always get or create a CSRF token regardless of auth status
+        // This ensures CSRF protection for both authenticated and unauthenticated users
+        const csrfToken = getCsrfToken(event.cookies);
+        event.locals.csrfToken = csrfToken;
+
+        // Check for CSRF token for API routes with state-changing methods
+        const isApiRoute = path.startsWith('/api');
+        const isExemptFromCsrf = csrfExemptRoutes.some(route => path === route || path.startsWith(`${route}/`));
+        const method = event.request.method;
+
+        if (isApiRoute && !isExemptFromCsrf && requiresCsrfCheck(method)) {
+            const isValidCsrf = validateCsrfToken(event.request, csrfToken);
+
+            if (!isValidCsrf) {
+                safeLog('warn', `[${requestId}] CSRF token validation failed`, {
+                    path,
+                    method
+                });
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: 'CSRF validation failed'
+                }), {
+                    status: 403,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+
+            safeLog('debug', `[${requestId}] CSRF token validation passed`, { path });
+        }
+
         // Check if this is a protected route and redirect if needed
         const isPublicRoute = publicRoutes.some(route => path === route || path.startsWith(`${route}/`));
 
@@ -93,7 +131,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
         if (!isPublicRoute && !event.locals.session) {
             // Only redirect if not an API route
-            if (!path.startsWith('/api')) {
+            if (!isApiRoute) {
                 safeLog('info', `[${requestId}] Redirecting unauthenticated user`, { from: path });
                 // Add current path to redirect back after login
                 const returnTo = encodeURIComponent(path);
@@ -111,7 +149,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     // Process the request and get the response
-    const response = await resolve(event);
+    const response = await resolve(event, {
+        transformPageChunk: ({ html }) => {
+            // If a CSRF token exists in locals, inject it into the page
+            // This makes it available to client-side scripts
+            if (event.locals.csrfToken) {
+                return html.replace(
+                    '</head>',
+                    `<meta name="csrf-token" content="${event.locals.csrfToken}"></head>`
+                );
+            }
+            return html;
+        }
+    });
 
     // Add security headers if enabled
     if (config.security.strictHeaders) {

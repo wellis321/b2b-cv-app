@@ -37,7 +37,7 @@
 				{
 					id: 'csrf-protection',
 					description: 'Add proper CSRF protection in API routes',
-					completed: false
+					completed: true
 				},
 				{
 					id: 'cors-config',

@@ -17,6 +17,56 @@ export const supabase = createClient<Database>(
     }
 );
 
+// Function to check if current token is about to expire (within 5 minutes)
+export const isSessionExpiringSoon = async (): Promise<boolean> => {
+    try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return true;
+
+        const expiresAt = data.session.expires_at;
+        if (!expiresAt) return true;
+
+        // Check if token expires within the next 5 minutes (300 seconds)
+        const expiresAtDate = new Date(expiresAt * 1000);
+        const now = new Date();
+        const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+        return expiresAtDate < fiveMinutesFromNow;
+    } catch (error) {
+        safeLog('error', 'Error checking token expiration', error);
+        return true; // Assume token is expiring if we can't check
+    }
+};
+
+// Function to clear all Supabase session data from storage
+export const clearAllSessionData = (): void => {
+    try {
+        if (typeof window === 'undefined') return;
+
+        // Remove Supabase token from localStorage
+        window.localStorage.removeItem('sb-auth-token');
+
+        // Clear any other auth-related items
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+                keysToRemove.push(key);
+            }
+        }
+
+        // Remove all found keys
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+
+        safeLog('debug', 'All session data cleared', {
+            count: keysToRemove.length,
+            time: new Date().toISOString()
+        });
+    } catch (error) {
+        safeLog('error', 'Error clearing session data', error);
+    }
+};
+
 // Initialize and validate the Supabase client on startup
 try {
     safeLog('debug', 'Supabase client initialized', {

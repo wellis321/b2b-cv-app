@@ -9,6 +9,7 @@ declare global {
         interface Locals {
             supabase: SupabaseClient<Database>;
             session: Session | null;
+            csrfToken?: string;
         }
         // interface PageData {}
         // interface PageState {}
