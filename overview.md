@@ -90,3 +90,4 @@ The completed CV can be:
 - Photo upload and camera integration
 - Responsive design for all device sizes
 - PDF generation capability with customizable sections
+- User has their own cv page with a URL that is unique for them
