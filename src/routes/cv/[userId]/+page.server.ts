@@ -86,10 +86,14 @@ export const load: PageServerLoad = async ({ params }) => {
                 .from('certifications')
                 .select('*')
                 .eq('profile_id', userId)
-                .order('date_issued', { ascending: false });
+                .order('date_obtained', { ascending: false });
 
             if (!certError && certData) {
-                certifications = certData;
+                // Map database fields to expected fields in the UI
+                certifications = certData.map(cert => ({
+                    ...cert,
+                    date_issued: cert.date_obtained // Map for consistency
+                }));
             }
         } catch (err) {
             console.log('Certifications table might not exist yet or error fetching:', err);

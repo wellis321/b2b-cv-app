@@ -284,9 +284,9 @@
 											</a>
 										{/if}
 									</div>
-									{#if cert.date_issued}
+									{#if cert.date_issued || cert.date_obtained}
 										<div class="text-sm text-gray-600">
-											Issued: {formatDate(cert.date_issued)}
+											Issued: {formatDate(cert.date_issued || cert.date_obtained)}
 											{#if cert.expiry_date}
 												<br />Expires: {formatDate(cert.expiry_date)}
 											{/if}

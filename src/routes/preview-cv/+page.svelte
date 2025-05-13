@@ -4,7 +4,13 @@
 	import { session } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
-	import { generateCvPdf, formatDate, type CvData } from '$lib/pdfGenerator';
+	import {
+		generateCvPdf,
+		formatDate,
+		type CvData,
+		type PdfExportConfig,
+		defaultPdfConfig
+	} from '$lib/pdfGenerator';
 
 	// CV data
 	let profile = $state<any>(null);
@@ -19,6 +25,11 @@
 	let error = $state<string | null>(null);
 	let loading = $state(true);
 	let generatingPdf = $state(false);
+	let photoLoadError = $state(false);
+
+	// PDF export configuration
+	let pdfConfig = $state<PdfExportConfig>({ ...defaultPdfConfig });
+	let showPdfOptions = $state(false);
 
 	// Shareable URL
 	let shareableUrl = $state<string | null>(null);
@@ -28,6 +39,20 @@
 		name: string;
 		level?: string;
 		category?: string;
+	}
+
+	// Format section name for display
+	function formatSectionName(section: string): string {
+		// Convert camelCase to Title Case with spaces
+		const formatted = section
+			.replace(/([A-Z])/g, ' $1') // Add space before capital letters
+			.replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
+
+		// Special cases
+		if (section === 'workExperience') return 'Work Experience';
+		if (section === 'qualificationEquivalence') return 'Qualification Equivalence';
+
+		return formatted;
 	}
 
 	// Load all CV data
@@ -58,6 +83,20 @@
 			}
 
 			profile = profileData;
+
+			// Check if the profile photo is valid
+			if (profile.photo_url) {
+				try {
+					const response = await fetch(profile.photo_url, { method: 'HEAD' });
+					if (!response.ok) {
+						photoLoadError = true;
+						console.warn('Profile photo might not be accessible:', response.status);
+					}
+				} catch (err) {
+					photoLoadError = true;
+					console.warn('Error checking profile photo:', err);
+				}
+			}
 
 			// Load work experiences
 			const { data: workData, error: workError } = await supabase
@@ -118,13 +157,29 @@
 					.from('certifications')
 					.select('*')
 					.eq('profile_id', userId)
-					.order('date_issued', { ascending: false });
+					.order('date_obtained', { ascending: false });
 
-				if (!certError) {
-					certifications = certData || [];
+				console.log('Certifications data from Supabase:', certData);
+				console.log('Certifications error from Supabase:', certError);
+
+				if (!certError && Array.isArray(certData)) {
+					// Ensure all certifications have required fields and map database field names to PDF field names
+					certifications = certData.map((cert) => ({
+						id: cert.id || '',
+						name: cert.name || 'Unnamed Certification',
+						issuer: cert.issuer,
+						date_issued: cert.date_obtained, // Map date_obtained to date_issued for PDF
+						expiry_date: cert.expiry_date,
+						url: cert.url || null,
+						description: cert.description || null
+					}));
+					console.log('Loaded and formatted certifications:', certifications);
+				} else {
+					certifications = [];
 				}
 			} catch (err) {
 				console.log('Certifications table might not exist yet', err);
+				certifications = [];
 			}
 
 			// Load memberships
@@ -188,6 +243,7 @@
 		if (!browser || !profile) return;
 
 		generatingPdf = true;
+		error = null; // Clear any previous errors
 
 		try {
 			// Prepare CV data for the PDF generator
@@ -203,15 +259,90 @@
 				qualificationEquivalence
 			};
 
-			// Generate and download the PDF
-			await generateCvPdf(cvData);
+			console.log('Certifications being sent to PDF generator:', certifications);
+			console.log('With certifications section enabled:', pdfConfig.sections.certifications);
+
+			// Create a clean copy of the configuration
+			const configCopy: PdfExportConfig = JSON.parse(JSON.stringify(pdfConfig));
+
+			// Check if any sections are selected
+			const hasSections = Object.values(configCopy.sections).some((value) => value);
+			if (!hasSections) {
+				error = 'Please select at least one section to include in the PDF';
+				generatingPdf = false;
+				return;
+			}
+
+			// Ensure certifications data is properly formatted for PDF generation
+			if (configCopy.sections.certifications && certifications.length > 0) {
+				console.log('Certifications is enabled and has data:', certifications);
+				// Double-check each certification has the minimum required fields
+				const validCertifications = certifications.filter((cert) => cert && cert.name);
+				if (validCertifications.length === 0) {
+					console.warn('No valid certifications found, disabling certifications section');
+					configCopy.sections.certifications = false;
+				}
+			} else if (configCopy.sections.certifications) {
+				console.log('Certifications is enabled but has no data');
+				configCopy.sections.certifications = false;
+			}
+
+			// Log the configuration being used
+			console.log('Generating PDF with config:', JSON.stringify(configCopy, null, 2));
+
+			// Generate and download the PDF with the current configuration
+			await generateCvPdf(cvData, configCopy);
 		} catch (err: unknown) {
 			console.error('Error generating PDF:', err);
 			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to generate PDF: ${errorMessage}`;
+
+			// Provide specific advice based on the error
+			if (errorMessage.includes('image') && pdfConfig.includePhoto) {
+				photoLoadError = true;
+				error = `Failed to generate PDF with photo. Try disabling the "Include Profile Photo" option.`;
+			} else {
+				error = `Failed to generate PDF: ${errorMessage}`;
+			}
 		} finally {
 			generatingPdf = false;
 		}
+	}
+
+	// Toggle PDF customization options
+	function togglePdfOptions() {
+		showPdfOptions = !showPdfOptions;
+	}
+
+	// Toggle all sections on/off
+	function toggleAllSections(checked: boolean) {
+		pdfConfig = {
+			...pdfConfig,
+			sections: {
+				profile: checked,
+				workExperience: checked,
+				projects: checked,
+				skills: checked,
+				education: checked,
+				certifications: checked,
+				memberships: checked,
+				interests: checked,
+				qualificationEquivalence: checked
+			}
+		};
+		console.log('Updated sections config:', JSON.stringify(pdfConfig.sections, null, 2));
+	}
+
+	// Update section visibility in preview
+	function updateSectionVisibility(section: string, value: boolean) {
+		console.log(`Setting section ${section} to ${value}`);
+		// Update the pdfConfig with the new value
+		pdfConfig = {
+			...pdfConfig,
+			sections: {
+				...pdfConfig.sections,
+				[section]: value
+			}
+		};
 	}
 
 	// Copy shareable URL to clipboard
@@ -266,6 +397,13 @@
 		<h1 class="text-2xl font-bold">CV Preview</h1>
 		<div class="flex gap-2">
 			<button
+				onclick={togglePdfOptions}
+				class="rounded bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-300 focus:outline-none"
+			>
+				{showPdfOptions ? 'Hide PDF Options' : 'PDF Options'}
+			</button>
+
+			<button
 				onclick={generatePdf}
 				disabled={loading || generatingPdf || !profile}
 				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
@@ -306,6 +444,222 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- PDF Options Panel -->
+	{#if showPdfOptions}
+		<div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 shadow-sm">
+			<h2 class="mb-3 text-lg font-medium">PDF Export Options</h2>
+
+			<div class="mb-4 border-b border-gray-200 pb-3">
+				<div class="flex justify-between">
+					<span class="font-medium">Include Sections</span>
+					<div>
+						<button
+							class="mr-2 text-sm text-indigo-600 hover:underline"
+							onclick={() => toggleAllSections(true)}
+						>
+							Select all
+						</button>
+						<button
+							class="text-sm text-indigo-600 hover:underline"
+							onclick={() => toggleAllSections(false)}
+						>
+							Deselect all
+						</button>
+					</div>
+				</div>
+
+				<div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.profile}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() => updateSectionVisibility('profile', !pdfConfig.sections.profile)}
+						/>
+						<span class={pdfConfig.sections.profile ? 'font-medium' : 'text-gray-500'}
+							>Personal Profile</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.workExperience}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() =>
+								updateSectionVisibility('workExperience', !pdfConfig.sections.workExperience)}
+						/>
+						<span class={pdfConfig.sections.workExperience ? 'font-medium' : 'text-gray-500'}
+							>Work Experience</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.projects}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() => updateSectionVisibility('projects', !pdfConfig.sections.projects)}
+						/>
+						<span class={pdfConfig.sections.projects ? 'font-medium' : 'text-gray-500'}
+							>Projects</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.skills}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() => updateSectionVisibility('skills', !pdfConfig.sections.skills)}
+						/>
+						<span class={pdfConfig.sections.skills ? 'font-medium' : 'text-gray-500'}>Skills</span>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.education}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() => updateSectionVisibility('education', !pdfConfig.sections.education)}
+						/>
+						<span class={pdfConfig.sections.education ? 'font-medium' : 'text-gray-500'}
+							>Education</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.certifications}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() =>
+								updateSectionVisibility('certifications', !pdfConfig.sections.certifications)}
+						/>
+						<span class={pdfConfig.sections.certifications ? 'font-medium' : 'text-gray-500'}
+							>Certifications</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.memberships}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() =>
+								updateSectionVisibility('memberships', !pdfConfig.sections.memberships)}
+						/>
+						<span class={pdfConfig.sections.memberships ? 'font-medium' : 'text-gray-500'}
+							>Professional Memberships</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.interests}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() => updateSectionVisibility('interests', !pdfConfig.sections.interests)}
+						/>
+						<span class={pdfConfig.sections.interests ? 'font-medium' : 'text-gray-500'}
+							>Interests & Activities</span
+						>
+					</label>
+					<label
+						class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+					>
+						<input
+							type="checkbox"
+							bind:checked={pdfConfig.sections.qualificationEquivalence}
+							class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+							onclick={() =>
+								updateSectionVisibility(
+									'qualificationEquivalence',
+									!pdfConfig.sections.qualificationEquivalence
+								)}
+						/>
+						<span
+							class={pdfConfig.sections.qualificationEquivalence ? 'font-medium' : 'text-gray-500'}
+							>Qualification Equivalence</span
+						>
+					</label>
+				</div>
+			</div>
+
+			<div class="mb-4">
+				<label
+					class="flex cursor-pointer items-center rounded p-1 transition-colors hover:bg-gray-100"
+				>
+					<input
+						type="checkbox"
+						bind:checked={pdfConfig.includePhoto}
+						class="mr-2 h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
+					/>
+					<span class={pdfConfig.includePhoto ? 'font-medium' : 'text-gray-500'}>
+						Include Profile Photo
+						{#if photoLoadError}
+							<span class="ml-2 text-xs text-red-600">
+								(There may be issues loading your photo. If PDF generation fails, try disabling this
+								option)
+							</span>
+						{/if}
+					</span>
+				</label>
+			</div>
+
+			<!-- Configuration Summary -->
+			<div class="mb-4 rounded border border-gray-200 bg-white p-3">
+				<h3 class="mb-2 text-sm font-medium">Selected Options:</h3>
+				<div class="space-y-1 text-xs">
+					<p>
+						<span class="font-medium">Sections:</span>
+						{Object.entries(pdfConfig.sections)
+							.filter(([_, included]) => included)
+							.map(([section]) => formatSectionName(section))
+							.join(', ') || 'None'}
+					</p>
+					<p>
+						<span class="font-medium">Profile Photo:</span>
+						{pdfConfig.includePhoto ? 'Included' : 'Hidden'}
+					</p>
+					<p><span class="font-medium">Template:</span> {pdfConfig.template}</p>
+				</div>
+			</div>
+
+			<!-- Future feature: Template selection -->
+			<div class="mb-4">
+				<label class="mb-2 block">Template</label>
+				<select
+					bind:value={pdfConfig.template}
+					class="w-full rounded border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500 focus:outline-none"
+				>
+					<option value="standard">Standard</option>
+					<option value="minimal" disabled>Minimal (Coming soon)</option>
+					<option value="professional" disabled>Professional (Coming soon)</option>
+				</select>
+			</div>
+
+			<div class="mt-4 text-right">
+				<button
+					onclick={generatePdf}
+					disabled={generatingPdf}
+					class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+				>
+					Generate PDF with Current Settings
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	{#if error}
 		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>

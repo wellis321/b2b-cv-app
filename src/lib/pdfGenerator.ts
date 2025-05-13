@@ -88,6 +88,42 @@ export interface CvData {
     qualificationEquivalence?: PdfQualificationEquivalence[];
 }
 
+export interface PdfExportConfig {
+    sections: {
+        profile: boolean;
+        workExperience: boolean;
+        projects: boolean;
+        skills: boolean;
+        education: boolean;
+        certifications: boolean;
+        memberships: boolean;
+        interests: boolean;
+        qualificationEquivalence: boolean;
+    };
+    includePhoto: boolean;
+    // Layout templates could be added in the future
+    template?: 'standard' | 'minimal' | 'professional';
+    // Custom section order could be added in the future
+    sectionOrder?: string[];
+}
+
+// Default config with all sections enabled
+export const defaultPdfConfig: PdfExportConfig = {
+    sections: {
+        profile: true,
+        workExperience: true,
+        projects: true,
+        skills: true,
+        education: true,
+        certifications: true,
+        memberships: true,
+        interests: true,
+        qualificationEquivalence: true
+    },
+    includePhoto: true,
+    template: 'standard'
+};
+
 /**
  * Formats a date string for display
  */
@@ -108,7 +144,10 @@ export function formatDate(dateString: string | null): string {
 /**
  * Creates a PDF document definition from CV data
  */
-export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDefinitions> {
+export async function createCvDocDefinition(
+    cvData: CvData,
+    config: PdfExportConfig = defaultPdfConfig
+): Promise<TDocumentDefinitions> {
     const { profile } = cvData;
 
     // Define document styles
@@ -162,90 +201,104 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     // Initialize document content
     const content: Content[] = [];
 
-    // Add header with profile information
-    const headerContent = [
-        {
-            text: profile.full_name || 'Your Name',
-            style: 'header'
+    // Only add profile if enabled in config
+    if (config.sections.profile) {
+        // Add header with profile information
+        const headerContent = [
+            {
+                text: profile.full_name || 'Your Name',
+                style: 'header'
+            }
+        ];
+
+        if (profile.location) {
+            headerContent.push({ text: profile.location, style: 'normal' });
         }
-    ];
 
-    if (profile.location) {
-        headerContent.push({ text: profile.location, style: 'normal' });
-    }
+        if (profile.email) {
+            headerContent.push({ text: profile.email, style: 'normal' });
+        }
 
-    if (profile.email) {
-        headerContent.push({ text: profile.email, style: 'normal' });
-    }
+        if (profile.phone) {
+            headerContent.push({ text: profile.phone, style: 'normal' });
+        }
 
-    if (profile.phone) {
-        headerContent.push({ text: profile.phone, style: 'normal' });
-    }
+        // Profile header layout with optional photo (if enabled)
+        if (profile.photo_url && config.includePhoto) {
+            try {
+                // Fetch the image
+                const response = await fetch(profile.photo_url);
 
-    // Profile header layout with optional photo
-    if (profile.photo_url) {
-        try {
-            // Fetch the image
-            const response = await fetch(profile.photo_url);
-            const blob = await response.blob();
+                // Check if the response is valid
+                if (!response.ok) {
+                    throw new Error(`Failed to load image: ${response.status} ${response.statusText}`);
+                }
 
-            // Convert to base64
-            const reader = new FileReader();
-            const imgDataPromise = new Promise<string>((resolve, reject) => {
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
+                const blob = await response.blob();
 
-            const imgData = await imgDataPromise;
+                // Check if the blob is a valid image
+                if (!blob.type.startsWith('image/')) {
+                    throw new Error(`Invalid image format: ${blob.type}`);
+                }
 
-            // Add header with image
-            content.push({
-                columns: [
-                    {
-                        width: '*',
-                        stack: headerContent
-                    },
-                    {
-                        width: 'auto',
-                        image: imgData,
-                        fit: [70, 70],
-                        alignment: 'right'
-                    }
-                ]
-            });
-        } catch (err) {
-            console.warn('Could not add profile photo to PDF:', err);
-            // Continue without photo
+                // Convert to base64
+                const reader = new FileReader();
+                const imgDataPromise = new Promise<string>((resolve, reject) => {
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+
+                const imgData = await imgDataPromise;
+
+                // Add header with image
+                content.push({
+                    columns: [
+                        {
+                            width: '*',
+                            stack: headerContent
+                        },
+                        {
+                            width: 'auto',
+                            image: imgData,
+                            fit: [70, 70],
+                            alignment: 'right'
+                        }
+                    ]
+                });
+            } catch (err) {
+                console.warn('Could not add profile photo to PDF:', err);
+                // Continue without photo
+                content.push({
+                    stack: headerContent
+                });
+            }
+        } else {
+            // No photo, just add the text
             content.push({
                 stack: headerContent
             });
         }
-    } else {
-        // No photo, just add the text
+
+        // Add separator
         content.push({
-            stack: headerContent
+            canvas: [
+                {
+                    type: 'line',
+                    x1: 0,
+                    y1: 5,
+                    x2: 515,
+                    y2: 5,
+                    lineWidth: 1,
+                    lineColor: '#CCCCCC'
+                }
+            ],
+            margin: [0, 10, 0, 10]
         });
     }
 
-    // Add separator
-    content.push({
-        canvas: [
-            {
-                type: 'line',
-                x1: 0,
-                y1: 5,
-                x2: 515,
-                y2: 5,
-                lineWidth: 1,
-                lineColor: '#CCCCCC'
-            }
-        ],
-        margin: [0, 10, 0, 10]
-    });
-
     // Work Experience
-    if (cvData.workExperiences.length > 0) {
+    if (config.sections.workExperience && cvData.workExperiences.length > 0) {
         content.push({ text: 'Work Experience', style: 'subheader' });
 
         cvData.workExperiences.forEach((job) => {
@@ -290,7 +343,7 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Projects
-    if (cvData.projects.length > 0) {
+    if (config.sections.projects && cvData.projects.length > 0) {
         content.push({ text: 'Projects', style: 'subheader' });
 
         cvData.projects.forEach((project) => {
@@ -343,7 +396,7 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Skills
-    if (cvData.skills.length > 0) {
+    if (config.sections.skills && cvData.skills.length > 0) {
         content.push({ text: 'Skills', style: 'subheader' });
 
         // Group skills by category
@@ -379,7 +432,7 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Education
-    if (cvData.education.length > 0) {
+    if (config.sections.education && cvData.education.length > 0) {
         content.push({ text: 'Education', style: 'subheader' });
 
         cvData.education.forEach((edu) => {
@@ -426,67 +479,112 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Certifications
+    console.log('CERTIFICATIONS CHECK:');
+    console.log('- config.sections.certifications =', config.sections.certifications);
+    console.log('- cvData.certifications exists =', !!cvData.certifications);
+    console.log('- cvData.certifications is array =', cvData.certifications ? Array.isArray(cvData.certifications) : false);
+    console.log('- cvData.certifications length =', cvData.certifications ? (Array.isArray(cvData.certifications) ? cvData.certifications.length : 'not array') : 'undefined');
     if (cvData.certifications && cvData.certifications.length > 0) {
+        console.log('- Sample certification:', JSON.stringify(cvData.certifications[0]));
+    }
+
+    // Fix for potential issues with certifications array
+    const certsToProcess = (cvData.certifications && Array.isArray(cvData.certifications))
+        ? cvData.certifications.filter(c => c && typeof c === 'object' && c.name)
+        : [];
+    console.log('- Valid certifications to process:', certsToProcess.length);
+
+    if (config.sections.certifications && certsToProcess.length > 0) {
+        console.log('Adding certifications to PDF:', certsToProcess);
         content.push({ text: 'Certifications', style: 'subheader' });
 
-        cvData.certifications.forEach((cert) => {
-            // Certification header
-            const certHeader = {
-                columns: [
-                    {
-                        width: '*',
-                        text: cert.name,
-                        style: 'jobPosition'
-                    },
-                    {
-                        width: 'auto',
-                        text: cert.date_issued ? `Issued: ${formatDate(cert.date_issued)}` : '',
-                        style: 'dates'
+        certsToProcess.forEach((cert) => {
+            try {
+                console.log('Processing certification:', cert);
+
+                // Validate cert has the required 'name' field
+                if (!cert || !cert.name) {
+                    console.warn('Invalid certification data found, skipping', cert);
+                    return;
+                }
+
+                // Check date formatting
+                let dateText = '';
+                if (cert.date_issued) {
+                    try {
+                        dateText = `Issued: ${formatDate(cert.date_issued)}`;
+                    } catch (err) {
+                        console.warn('Error formatting date_issued:', err);
+                        dateText = cert.date_issued;
                     }
-                ]
-            };
+                }
 
-            content.push(certHeader);
+                // Certification header
+                const certHeader = {
+                    columns: [
+                        {
+                            width: '*',
+                            text: cert.name,
+                            style: 'jobPosition'
+                        },
+                        {
+                            width: 'auto',
+                            text: dateText,
+                            style: 'dates'
+                        }
+                    ]
+                };
 
-            // Issuer
-            if (cert.issuer) {
-                content.push({
-                    text: cert.issuer,
-                    style: 'institution',
-                    margin: [0, 3, 0, 3]
-                });
-            }
+                content.push(certHeader);
 
-            // URL if available
-            if (cert.url) {
-                content.push({
-                    text: cert.url.replace(/^https?:\/\//, ''),
-                    style: 'company',
-                    margin: [0, 3, 0, 3],
-                    color: '#3366cc',
-                    decoration: 'underline'
-                });
-            }
+                // Issuer
+                if (cert.issuer) {
+                    content.push({
+                        text: cert.issuer,
+                        style: 'institution',
+                        margin: [0, 3, 0, 3]
+                    });
+                }
 
-            // Description if available
-            if (cert.description) {
-                content.push({
-                    text: cert.description,
-                    style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                // Add spacing if no description
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
-                });
+                // URL if available
+                if (cert.url) {
+                    content.push({
+                        text: cert.url.replace(/^https?:\/\//, ''),
+                        style: 'company',
+                        margin: [0, 3, 0, 3],
+                        color: '#3366cc',
+                        decoration: 'underline'
+                    });
+                }
+
+                // Description if available
+                if (cert.description) {
+                    content.push({
+                        text: cert.description,
+                        style: 'normal',
+                        margin: [0, 5, 0, 10] as [number, number, number, number]
+                    });
+                } else {
+                    // Add spacing if no description
+                    content.push({
+                        text: '',
+                        margin: [0, 0, 0, 10] as [number, number, number, number]
+                    });
+                }
+            } catch (err) {
+                console.error('Error processing certification in PDF:', err, cert);
+                // Continue with next certification
             }
         });
+    } else {
+        console.log('Certifications section conditions not met:',
+            'config.sections.certifications:', config.sections.certifications,
+            'cvData.certifications exists:', !!cvData.certifications,
+            'cvData.certifications length (if exists):', cvData.certifications ? cvData.certifications.length : 0);
     }
 
     // Professional Memberships
-    if (cvData.memberships && cvData.memberships.length > 0) {
+    if (config.sections.memberships && cvData.memberships && cvData.memberships.length > 0) {
         content.push({ text: 'Professional Memberships', style: 'subheader' });
 
         cvData.memberships.forEach((membership) => {
@@ -537,7 +635,7 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Qualification Equivalence
-    if (cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0) {
+    if (config.sections.qualificationEquivalence && cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0) {
         content.push({ text: 'Professional Qualification Equivalence', style: 'subheader' });
 
         cvData.qualificationEquivalence.forEach((qualification) => {
@@ -574,7 +672,7 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
     }
 
     // Interests
-    if (cvData.interests && cvData.interests.length > 0) {
+    if (config.sections.interests && cvData.interests && cvData.interests.length > 0) {
         content.push({ text: 'Interests & Activities', style: 'subheader' });
 
         cvData.interests.forEach((interest) => {
@@ -627,7 +725,37 @@ export async function createCvDocDefinition(cvData: CvData): Promise<TDocumentDe
 /**
  * Generates and downloads a PDF CV
  */
-export async function generateCvPdf(cvData: CvData): Promise<void> {
+export async function generateCvPdf(cvData: CvData, config: PdfExportConfig = defaultPdfConfig): Promise<void> {
+    // Log the received configuration
+    console.log('PDF Generator received config:', JSON.stringify(config, null, 2));
+
+    // Normalize certification data to ensure correct field mappings
+    if (cvData.certifications && Array.isArray(cvData.certifications) && cvData.certifications.length > 0) {
+        cvData.certifications = cvData.certifications.map((cert: any) => {
+            // Ensure all required fields exist with proper mappings
+            return {
+                id: cert.id || '',
+                name: cert.name || 'Unnamed Certification',
+                issuer: cert.issuer || null,
+                // Use date_issued if available, fall back to date_obtained
+                date_issued: cert.date_issued || cert.date_obtained || null,
+                expiry_date: cert.expiry_date || null,
+                url: cert.url || null,
+                description: cert.description || null
+            };
+        });
+    }
+
+    // Specifically check certifications data and config
+    console.log('Certifications config enabled:', config.sections.certifications);
+    console.log('Certifications data exists:', !!cvData.certifications);
+    console.log('Certifications data array?', Array.isArray(cvData.certifications));
+    console.log('Certifications data length:', cvData.certifications ? cvData.certifications.length : 0);
+
+    if (config.sections.certifications && cvData.certifications && cvData.certifications.length > 0) {
+        console.log('First certification in data:', JSON.stringify(cvData.certifications[0], null, 2));
+    }
+
     // Import pdfmake
     const pdfMake = await import('pdfmake/build/pdfmake');
     const pdfFonts = await import('pdfmake/build/vfs_fonts');
@@ -635,8 +763,8 @@ export async function generateCvPdf(cvData: CvData): Promise<void> {
     // Set virtual font directory - this is the correct way to assign fonts
     pdfMake.default.vfs = pdfFonts.default.pdfmake ? pdfFonts.default.pdfmake.vfs : pdfFonts.default;
 
-    // Create document definition
-    const docDefinition = await createCvDocDefinition(cvData);
+    // Create document definition with config
+    const docDefinition = await createCvDocDefinition(cvData, config);
 
     // Generate and download the PDF
     pdfMake.default.createPdf(docDefinition).download(`${cvData.profile.full_name || 'CV'}.pdf`);
