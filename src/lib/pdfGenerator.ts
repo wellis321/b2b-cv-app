@@ -301,9 +301,9 @@ export async function createCvDocDefinition(
     if (config.sections.workExperience && cvData.workExperiences.length > 0) {
         content.push({ text: 'Work Experience', style: 'subheader' });
 
-        cvData.workExperiences.forEach((job) => {
-            // Add position and dates
-            content.push({
+        for (const job of cvData.workExperiences) {
+            // Work experience header with company and date
+            const jobHeader = {
                 columns: [
                     {
                         width: '*',
@@ -316,30 +316,82 @@ export async function createCvDocDefinition(
                         style: 'dates'
                     }
                 ]
-            });
+            };
 
-            // Add company name
+            content.push(jobHeader);
+
+            // Company name
             content.push({
                 text: job.company_name,
                 style: 'company',
-                margin: [0, 3, 0, 3] as [number, number, number, number]
+                margin: [0, 3, 0, 3]
             });
 
             // Description if available
             if (job.description) {
+                // Strip out Key Responsibilities section if it exists
+                let descriptionText = job.description;
+                if (descriptionText.includes('Key Responsibilities:')) {
+                    descriptionText = descriptionText.split('Key Responsibilities:')[0].trim();
+                }
+
                 content.push({
-                    text: job.description,
+                    text: descriptionText,
                     style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                // Add spacing if no description
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
+                    margin: [0, 5, 0, 3]
                 });
             }
-        });
+
+            // Try to get responsibilities for this job
+            try {
+                // Dynamically import to avoid server-side issues
+                const { getResponsibilitiesForExperience } = await import('../routes/work-experience/responsibilities');
+                const categories = await getResponsibilitiesForExperience(job.id);
+
+                if (categories && categories.length > 0) {
+                    // Add responsibilities header
+                    content.push({
+                        text: 'Key Responsibilities:',
+                        style: 'normal',
+                        bold: true,
+                        margin: [0, 5, 0, 3]
+                    });
+
+                    // For each category
+                    categories.forEach((category) => {
+                        // Add category name
+                        content.push({
+                            text: category.name,
+                            style: 'normal',
+                            italics: true,
+                            margin: [0, 5, 0, 2]
+                        });
+
+                        // Add items as bullet points
+                        if (category.items && category.items.length > 0) {
+                            const itemsContent = category.items.map(item => ({
+                                text: item.content,
+                                style: 'normal'
+                            }));
+
+                            content.push({
+                                ul: itemsContent,
+                                margin: [10, 0, 0, 5]
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error loading responsibilities for PDF:', err);
+                // Continue without responsibilities if there's an error
+            }
+
+            // Add spacing at the end of each job
+            content.push({
+                text: '',
+                margin: [0, 0, 0, 10]
+            });
+        }
     }
 
     // Projects

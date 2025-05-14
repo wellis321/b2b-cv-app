@@ -4,6 +4,7 @@
 	import { session } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
 	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import ResponsibilitiesEditor from '../work-experience/ResponsibilitiesEditor.svelte';
 	import {
 		generateCvPdf,
 		formatDate,
@@ -12,6 +13,7 @@
 		defaultPdfConfig
 	} from '$lib/pdfGenerator';
 	import { cvStore } from '$lib/stores/cvDataStore';
+	import { page } from '$app/stores';
 
 	// CV data
 	let profile = $state<any>(null);
@@ -28,6 +30,9 @@
 	let generatingPdf = $state(false);
 	let photoLoadError = $state(false);
 	let dataLoaded = $state(false);
+
+	// Get username from URL query params if available
+	const urlUsername = $page.url.searchParams.get('username');
 
 	// PDF export configuration
 	let pdfConfig = $state<PdfExportConfig>({ ...defaultPdfConfig });
@@ -113,20 +118,23 @@
 	onMount(async () => {
 		if (!browser) return;
 
-		if (!$session || !$session.user) {
-			error = 'Please log in to view your CV';
-			loading = false;
-			return;
-		}
-
 		try {
-			// Use the CV data store to load all data
-			const data = await cvStore.loadCurrentUserData();
+			// Data should already be loaded by +page.ts, so we just need to extract it
+			const data = $cvStore;
 
 			if (!data || !data.profile) {
-				error = 'Failed to load your CV data. Please complete your profile.';
+				error = urlUsername
+					? `Failed to load CV data for user ${urlUsername}.`
+					: 'Failed to load your CV data. Please complete your profile.';
 				loading = false;
 				return;
+			}
+
+			// Set the shareable URL based on the loaded profile
+			if (data.profile.username) {
+				shareableUrl = `${window.location.origin}/cv/@${data.profile.username}`;
+			} else if ($session && $session.user) {
+				shareableUrl = `${window.location.origin}/cv/${$session.user.id}`;
 			}
 
 			// Update the local variables with data from the store
@@ -149,13 +157,6 @@
 				if (photoLoadError) {
 					console.warn('Profile photo inaccessible:', profile.photo_url);
 				}
-			}
-
-			// Generate shareable URL
-			if (profile.username) {
-				shareableUrl = `${window.location.origin}/cv/@${profile.username}`;
-			} else {
-				shareableUrl = `${window.location.origin}/cv/${$session.user.id}`;
 			}
 		} catch (err) {
 			console.error('Error loading CV data:', err);
@@ -249,18 +250,32 @@
 			</button>
 
 			{#if shareableUrl}
-				<div class="relative ml-2">
-					<input
-						type="text"
-						readonly
-						value={shareableUrl}
-						class="w-60 rounded border px-3 py-2 text-sm"
-					/>
+				<div class="ml-2 flex items-center gap-2">
+					<a
+						href={shareableUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center gap-1 rounded bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-800 hover:bg-indigo-200"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-4 w-4"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+						>
+							<path
+								d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"
+							/>
+							<path
+								d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"
+							/>
+						</svg>
+						View Public CV
+					</a>
 					<button
 						onclick={copyToClipboard}
-						class="absolute top-1/2 right-2 -translate-y-1/2 rounded text-indigo-600 hover:text-indigo-800"
-						title="Copy to clipboard"
-						aria-label="Copy shareable URL to clipboard"
+						title="Copy link to clipboard"
+						class="rounded bg-gray-100 p-2 text-gray-700 hover:bg-gray-200"
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -308,8 +323,8 @@
 					</div>
 				</div>
 				<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-					{#each ['profile', 'workExperience', 'projects', 'skills', 'education', 'certifications', 'memberships', 'qualificationEquivalence', 'interests'] as section}
-						{@const sectionName = section as SectionName}
+					{#each Object.keys(pdfConfig.sections) as section}
+						{@const sectionName = section as keyof typeof pdfConfig.sections}
 						<div class="flex items-center rounded p-1 hover:bg-gray-100">
 							<input
 								type="checkbox"
@@ -471,9 +486,20 @@
 								</div>
 								{#if job.description}
 									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{job.description}</p>
+										<p class="whitespace-pre-line">
+											{#if job.description.includes('Key Responsibilities:')}
+												{job.description.split('Key Responsibilities:')[0].trim()}
+											{:else}
+												{job.description}
+											{/if}
+										</p>
 									</div>
 								{/if}
+
+								<!-- Display job responsibilities -->
+								<div class="mt-3">
+									<ResponsibilitiesEditor workExperienceId={job.id} readOnly={true} />
+								</div>
 							</div>
 						{/each}
 					</div>

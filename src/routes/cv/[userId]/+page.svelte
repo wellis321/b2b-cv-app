@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { formatDate } from '$lib/pdfGenerator';
+	import ResponsibilitiesEditor from '../../work-experience/ResponsibilitiesEditor.svelte';
 
 	// Get CV data from server load
 	let { data } = $props();
@@ -27,8 +28,8 @@
 	// Interface for skill objects
 	interface Skill {
 		name: string;
-		level?: string;
-		category?: string;
+		level?: string | null;
+		category?: string | null;
 	}
 
 	// Group skills by category
@@ -144,9 +145,20 @@
 								</div>
 								{#if job.description}
 									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{job.description}</p>
+										<p class="whitespace-pre-line">
+											{#if job.description.includes('Key Responsibilities:')}
+												{job.description.split('Key Responsibilities:')[0].trim()}
+											{:else}
+												{job.description}
+											{/if}
+										</p>
 									</div>
 								{/if}
+
+								<!-- Display job responsibilities -->
+								<div class="mt-3">
+									<ResponsibilitiesEditor workExperienceId={job.id} readOnly={true} />
+								</div>
 							</div>
 						{/each}
 					</div>

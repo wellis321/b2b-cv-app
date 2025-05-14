@@ -4,6 +4,7 @@
 	import { browser } from '$app/environment';
 	import { formatDate } from '$lib/pdfGenerator';
 	import { cvStore } from '$lib/stores/cvDataStore';
+	import ResponsibilitiesEditor from '../../work-experience/ResponsibilitiesEditor.svelte';
 
 	// Get username from the URL
 	const username = $page.params.username;
@@ -112,7 +113,8 @@
 
 	// Handle print function
 	function handlePrint() {
-		window.print();
+		// Navigate to the preview-cv page which has better print options
+		window.location.href = `/preview-cv?username=${username}`;
 	}
 </script>
 
@@ -262,7 +264,7 @@
 										clip-rule="evenodd"
 									/>
 								</svg>
-								Print CV
+								View PDF Version
 							</button>
 						</div>
 					</div>
@@ -503,9 +505,20 @@
 
 												{#if job.description}
 													<div class="mt-3 text-gray-700">
-														<p class="whitespace-pre-line">{job.description}</p>
+														<p class="whitespace-pre-line">
+															{#if job.description.includes('Key Responsibilities:')}
+																{job.description.split('Key Responsibilities:')[0].trim()}
+															{:else}
+																{job.description}
+															{/if}
+														</p>
 													</div>
 												{/if}
+
+												<!-- Display job responsibilities -->
+												<div class="mt-3">
+													<ResponsibilitiesEditor workExperienceId={job.id} readOnly={true} />
+												</div>
 											</div>
 										</div>
 									{/each}
