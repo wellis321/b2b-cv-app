@@ -5,7 +5,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { session as authSession } from '$lib/stores/authStore';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 
 	interface PageData {
 		skills: Skill[];
@@ -19,7 +19,7 @@
 
 	interface Skill {
 		id: string;
-		profile_id: string;
+		profile_id: string | null;
 		name: string;
 		level: string | null;
 		category: string | null;
@@ -362,204 +362,214 @@
 	});
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Skills</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Skill'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Skills</h1>
+	<p class="text-gray-700">
+		Add your technical and professional skills. These can be organized into categories on your CV.
+	</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
-
-	<!-- Add/Edit form -->
-	{#if showAddForm && session}
-		<div id="skillForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Skill' : 'Add New Skill'}
-			</h3>
-
-			<form
-				onsubmit={handleSubmit}
-				method="POST"
-				action={isEditing ? '?/update' : '?/create'}
-				class="space-y-4"
-			>
-				{#if data.form?.error}
-					<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{data.form.error}</div>
-				{/if}
-
-				{#if isEditing && editingSkill}
-					<input type="hidden" name="id" value={editingSkill.id} />
-				{/if}
-
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="name">Skill Name</label>
-					<input
-						id="name"
-						name="name"
-						type="text"
-						bind:value={name}
-						placeholder="e.g. JavaScript, Project Management, Adobe Photoshop"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="level">Skill Level</label
-					>
-					<select
-						id="level"
-						name="level"
-						bind:value={level}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					>
-						<option value="">Select Level (Optional)</option>
-						{#each SKILL_LEVELS as skillLevel}
-							<option value={skillLevel.value}>{skillLevel.label}</option>
-						{/each}
-					</select>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="category">Category</label
-					>
-					<select
-						id="category"
-						name="category"
-						bind:value={category}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					>
-						<option value="">Select Category (Optional)</option>
-						{#each COMMON_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
-						{/each}
-					</select>
-					<p class="mt-1 text-xs text-gray-500">
-						Categorizing your skills helps organize them on your CV.
-					</p>
-				</div>
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Skill' : 'Save Skill'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if loadingSkills}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your skills...</p>
-		</div>
-	{:else if !session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your skills.</p>
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Skills</h2>
 			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 			>
-				Go to Login
+				{showAddForm ? 'Cancel' : 'Add Skill'}
 			</button>
 		</div>
-	{:else if skills.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No skills added yet. Use the button above to add your skills.</p>
-		</div>
-	{:else}
-		<!-- Group skills by category -->
-		{@const skillsByCategory = getSkillsByCategory(skills)}
 
-		<div class="space-y-6">
-			{#each Object.entries(skillsByCategory) as [category, categorySkills]}
-				<div class="rounded bg-white p-4 shadow">
-					<h3 class="mb-3 text-lg font-semibold text-gray-800">{category}</h3>
-					<ul class="grid grid-cols-1 gap-3 md:grid-cols-2">
-						{#each categorySkills as skill}
-							<li class="rounded border bg-gray-50 p-3">
-								{#if deleteConfirmId === skill.id}
-									<div class="mb-2 rounded bg-red-50 p-2 text-red-800">
-										<p class="text-sm font-medium">Delete this skill?</p>
-										<div class="mt-1 flex gap-2">
-											<form method="POST" action="?/delete" class="inline">
-												<input type="hidden" name="id" value={skill.id} />
-												<button
-													type="button"
-													class="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700"
-													disabled={loading}
-													onclick={() => deleteSkill(skill.id)}
-												>
-													{loading ? 'Deleting...' : 'Yes, Delete'}
-												</button>
-											</form>
-											<button
-												onclick={cancelDelete}
-												class="rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
-											>
-												Cancel
-											</button>
-										</div>
-									</div>
-								{:else}
-									<div class="flex items-center justify-between">
-										<div>
-											<div class="font-semibold">{skill.name}</div>
-											{#if skill.level}
-												<div class="mt-1">
-													<span
-														class="inline-block rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800"
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
+
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		<!-- Add/Edit form -->
+		{#if showAddForm && session}
+			<div id="skillForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Skill' : 'Add New Skill'}
+				</h3>
+
+				<form
+					onsubmit={handleSubmit}
+					method="POST"
+					action={isEditing ? '?/update' : '?/create'}
+					class="space-y-4"
+				>
+					{#if data.form?.error}
+						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{data.form.error}</div>
+					{/if}
+
+					{#if isEditing && editingSkill}
+						<input type="hidden" name="id" value={editingSkill.id} />
+					{/if}
+
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="name">Skill Name</label
+						>
+						<input
+							id="name"
+							name="name"
+							type="text"
+							bind:value={name}
+							placeholder="e.g. JavaScript, Project Management, Adobe Photoshop"
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="level"
+							>Skill Level</label
+						>
+						<select
+							id="level"
+							name="level"
+							bind:value={level}
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						>
+							<option value="">Select Level (Optional)</option>
+							{#each SKILL_LEVELS as skillLevel}
+								<option value={skillLevel.value}>{skillLevel.label}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="category"
+							>Category</label
+						>
+						<select
+							id="category"
+							name="category"
+							bind:value={category}
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						>
+							<option value="">Select Category (Optional)</option>
+							{#each COMMON_CATEGORIES as cat}
+								<option value={cat.value}>{cat.label}</option>
+							{/each}
+						</select>
+						<p class="mt-1 text-xs text-gray-500">
+							Categorizing your skills helps organize them on your CV.
+						</p>
+					</div>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Skill' : 'Save Skill'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if loadingSkills}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your skills...</p>
+			</div>
+		{:else if !session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your skills.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if skills.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No skills added yet. Use the button above to add your skills.</p>
+			</div>
+		{:else}
+			<!-- Group skills by category -->
+			{@const skillsByCategory = getSkillsByCategory(skills)}
+
+			<div class="space-y-6">
+				{#each Object.entries(skillsByCategory) as [category, categorySkills]}
+					<div class="rounded bg-white p-4 shadow">
+						<h3 class="mb-3 text-lg font-semibold text-gray-800">{category}</h3>
+						<ul class="grid grid-cols-1 gap-3 md:grid-cols-2">
+							{#each categorySkills as skill}
+								<li class="rounded border bg-gray-50 p-3">
+									{#if deleteConfirmId === skill.id}
+										<div class="mb-2 rounded bg-red-50 p-2 text-red-800">
+											<p class="text-sm font-medium">Delete this skill?</p>
+											<div class="mt-1 flex gap-2">
+												<form method="POST" action="?/delete" class="inline">
+													<input type="hidden" name="id" value={skill.id} />
+													<button
+														type="button"
+														class="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700"
+														disabled={loading}
+														onclick={() => deleteSkill(skill.id)}
 													>
-														{skill.level}
-													</span>
-												</div>
-											{/if}
+														{loading ? 'Deleting...' : 'Yes, Delete'}
+													</button>
+												</form>
+												<button
+													onclick={cancelDelete}
+													class="rounded bg-gray-200 px-2 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-300"
+												>
+													Cancel
+												</button>
+											</div>
 										</div>
-										<div class="flex gap-1">
-											<button
-												onclick={() => editSkill(skill)}
-												class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-												title="Edit"
-											>
-												Edit
-											</button>
-											<button
-												onclick={() => confirmDelete(skill.id)}
-												class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-												title="Delete"
-											>
-												Delete
-											</button>
+									{:else}
+										<div class="flex items-center justify-between">
+											<div>
+												<div class="font-semibold">{skill.name}</div>
+												{#if skill.level}
+													<div class="mt-1">
+														<span
+															class="inline-block rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800"
+														>
+															{skill.level}
+														</span>
+													</div>
+												{/if}
+											</div>
+											<div class="flex gap-1">
+												<button
+													onclick={() => editSkill(skill)}
+													class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+													title="Edit"
+												>
+													Edit
+												</button>
+												<button
+													onclick={() => confirmDelete(skill.id)}
+													class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+													title="Delete"
+												>
+													Delete
+												</button>
+											</div>
 										</div>
-									</div>
-								{/if}
-							</li>
-						{/each}
-					</ul>
-				</div>
-			{/each}
-		</div>
-	{/if}
-
-	<SectionNavigation />
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</div>
 </div>

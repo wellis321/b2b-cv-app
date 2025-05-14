@@ -5,11 +5,11 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { session as authSession } from '$lib/stores/authStore';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 
 	interface Interest {
 		id: string;
-		profile_id: string;
+		profile_id: string | null;
 		name: string;
 		description?: string | null;
 		created_at?: string;
@@ -332,154 +332,162 @@
 	});
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Interests & Activities</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Interest'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Interests & Activities</h1>
+	<p class="text-gray-700">
+		Add your hobbies, personal interests, and leisure activities to show a more complete picture of
+		yourself.
+	</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
-
-	<!-- Add/Edit form -->
-	{#if showAddForm && session}
-		<div id="interestForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Interest' : 'Add New Interest'}
-			</h3>
-
-			<form onsubmit={handleSubmit} method="POST" class="space-y-4">
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="name"
-						>Interest Name</label
-					>
-					<input
-						id="name"
-						name="name"
-						type="text"
-						bind:value={name}
-						placeholder="e.g. Photography, Hiking, Reading, Volunteering"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="description">
-						Description <span class="text-xs text-gray-500">(Optional)</span>
-					</label>
-					<textarea
-						id="description"
-						name="description"
-						bind:value={description}
-						placeholder="Add details about your interest or activity"
-						rows="3"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					></textarea>
-				</div>
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Interest' : 'Save Interest'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if loadingInterests}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your interests...</p>
-		</div>
-	{:else if !session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your interests.</p>
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Interests & Activities</h2>
 			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 			>
-				Go to Login
+				{showAddForm ? 'Cancel' : 'Add Interest'}
 			</button>
 		</div>
-	{:else if interests.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No interests or activities added yet. Use the button above to add your interests.</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each interests as interest}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === interest.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this interest?</p>
-							<div class="mt-2 flex gap-2">
-								<button
-									type="button"
-									class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-									disabled={loading}
-									onclick={() => deleteInterest(interest.id)}
-								>
-									{loading ? 'Deleting...' : 'Yes, Delete'}
-								</button>
-								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
-								>
-									Cancel
-								</button>
-							</div>
-						</div>
-					{:else}
-						<div class="flex items-center justify-between">
-							<div class="flex-1">
-								<div class="font-semibold">{interest.name}</div>
-								{#if interest.description}
-									<div class="mt-1 text-sm text-gray-600">{interest.description}</div>
-								{/if}
-							</div>
-							<div class="flex gap-2">
-								<button
-									onclick={() => editInterest(interest)}
-									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-									title="Edit"
-								>
-									Edit
-								</button>
-								<button
-									onclick={() => confirmDelete(interest.id)}
-									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-									title="Delete"
-								>
-									Delete
-								</button>
-							</div>
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
 
-	<SectionNavigation />
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
+
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		<!-- Add/Edit form -->
+		{#if showAddForm && session}
+			<div id="interestForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Interest' : 'Add New Interest'}
+				</h3>
+
+				<form onsubmit={handleSubmit} method="POST" class="space-y-4">
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="name"
+							>Interest Name</label
+						>
+						<input
+							id="name"
+							name="name"
+							type="text"
+							bind:value={name}
+							placeholder="e.g. Photography, Hiking, Reading, Volunteering"
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="description">
+							Description <span class="text-xs text-gray-500">(Optional)</span>
+						</label>
+						<textarea
+							id="description"
+							name="description"
+							bind:value={description}
+							placeholder="Add details about your interest or activity"
+							rows="3"
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						></textarea>
+					</div>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Interest' : 'Save Interest'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if loadingInterests}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your interests...</p>
+			</div>
+		{:else if !session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your interests.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if interests.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No interests or activities added yet. Use the button above to add your interests.</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each interests as interest}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === interest.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this interest?</p>
+								<div class="mt-2 flex gap-2">
+									<button
+										type="button"
+										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+										disabled={loading}
+										onclick={() => deleteInterest(interest.id)}
+									>
+										{loading ? 'Deleting...' : 'Yes, Delete'}
+									</button>
+									<button
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									>
+										Cancel
+									</button>
+								</div>
+							</div>
+						{:else}
+							<div class="flex items-center justify-between">
+								<div class="flex-1">
+									<div class="font-semibold">{interest.name}</div>
+									{#if interest.description}
+										<div class="mt-1 text-sm text-gray-600">{interest.description}</div>
+									{/if}
+								</div>
+								<div class="flex gap-2">
+									<button
+										onclick={() => editInterest(interest)}
+										class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+										title="Edit"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => confirmDelete(interest.id)}
+										class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+										title="Delete"
+									>
+										Delete
+									</button>
+								</div>
+							</div>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>

@@ -7,7 +7,7 @@
 	// @ts-ignore - The Temporal polyfill doesn't have proper TypeScript definitions
 	import { Temporal } from '@js-temporal/polyfill';
 	import { session as authSession } from '$lib/stores/authStore';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 
 	interface PageData {
 		educationList: Education[];
@@ -374,219 +374,226 @@
 	}
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Education</h2>
-		<div class="flex gap-2">
-			<button
-				onclick={toggleAddForm}
-				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-			>
-				{showAddForm ? 'Cancel' : 'Add Education'}
-			</button>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
+
+	<h1 class="text-2xl font-bold">Education</h1>
+	<p class="text-gray-700">
+		Add your educational background, including degrees, courses, and certifications.
+	</p>
+
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Education</h2>
+			<div class="flex gap-2">
+				<button
+					onclick={toggleAddForm}
+					class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+				>
+					{showAddForm ? 'Cancel' : 'Add Education'}
+				</button>
+			</div>
 		</div>
-	</div>
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
 
-	<!-- Add/Edit form -->
-	{#if showAddForm && session}
-		<div id="educationForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Education' : 'Add New Education'}
-			</h3>
+		<!-- Add/Edit form -->
+		{#if showAddForm && session}
+			<div id="educationForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Education' : 'Add New Education'}
+				</h3>
 
-			<form
-				onsubmit={handleSubmit}
-				method="POST"
-				action={isEditing ? '?/update' : '?/create'}
-				class="space-y-4"
-			>
-				{#if data.form?.error}
-					<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{data.form.error}</div>
-				{/if}
+				<form
+					onsubmit={handleSubmit}
+					method="POST"
+					action={isEditing ? '?/update' : '?/create'}
+					class="space-y-4"
+				>
+					{#if data.form?.error}
+						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{data.form.error}</div>
+					{/if}
 
-				{#if isEditing && editingEducation}
-					<input type="hidden" name="id" value={editingEducation.id} />
-				{/if}
+					{#if isEditing && editingEducation}
+						<input type="hidden" name="id" value={editingEducation.id} />
+					{/if}
 
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="institution"
-						>Institution</label
-					>
-					<input
-						id="institution"
-						name="institution"
-						type="text"
-						bind:value={institution}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="qualification"
-						>Qualification</label
-					>
-					<input
-						id="qualification"
-						name="qualification"
-						type="text"
-						bind:value={qualification}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="fieldOfStudy"
-						>Field of Study</label
-					>
-					<input
-						id="fieldOfStudy"
-						name="fieldOfStudy"
-						type="text"
-						bind:value={fieldOfStudy}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					/>
-				</div>
-				<div class="flex gap-4">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
-							>Start Date</label
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="institution"
+							>Institution</label
 						>
 						<input
-							id="startDate"
-							name="startDate"
-							type="date"
-							bind:value={startDate}
+							id="institution"
+							name="institution"
+							type="text"
+							bind:value={institution}
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 							required
 						/>
 					</div>
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate"
-							>End Date <span class="text-xs text-gray-500">(Leave blank if ongoing)</span></label
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="qualification"
+							>Qualification</label
 						>
 						<input
-							id="endDate"
-							name="endDate"
-							type="date"
-							bind:value={endDate}
+							id="qualification"
+							name="qualification"
+							type="text"
+							bind:value={qualification}
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
+						/>
+					</div>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="fieldOfStudy"
+							>Field of Study</label
+						>
+						<input
+							id="fieldOfStudy"
+							name="fieldOfStudy"
+							type="text"
+							bind:value={fieldOfStudy}
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 						/>
 					</div>
-				</div>
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Education' : 'Save Education'}
-					</button>
-					{#if isEditing}
+					<div class="flex gap-4">
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
+								>Start Date</label
+							>
+							<input
+								id="startDate"
+								name="startDate"
+								type="date"
+								bind:value={startDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+								required
+							/>
+						</div>
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate"
+								>End Date <span class="text-xs text-gray-500">(Leave blank if ongoing)</span></label
+							>
+							<input
+								id="endDate"
+								name="endDate"
+								type="date"
+								bind:value={endDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							/>
+						</div>
+					</div>
+					<div class="flex gap-2">
 						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 						>
-							Cancel
+							{loading ? 'Saving...' : isEditing ? 'Update Education' : 'Save Education'}
 						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
 
-	{#if loadingEducation}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your education...</p>
-		</div>
-	{:else if !session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your education.</p>
-			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-			>
-				Go to Login
-			</button>
-		</div>
-	{:else if educationList.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No education added yet. Use the button above to add your education history.</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each educationList as edu}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === edu.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this education entry?</p>
-							<div class="mt-2 flex gap-2">
-								<form method="POST" action="?/delete" class="inline">
-									<input type="hidden" name="id" value={edu.id} />
+		{#if loadingEducation}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your education...</p>
+			</div>
+		{:else if !session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your education.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if educationList.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No education added yet. Use the button above to add your education history.</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each educationList as edu}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === edu.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this education entry?</p>
+								<div class="mt-2 flex gap-2">
+									<form method="POST" action="?/delete" class="inline">
+										<input type="hidden" name="id" value={edu.id} />
+										<button
+											type="submit"
+											class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+											disabled={loading}
+											onclick={(e) => {
+												e.preventDefault();
+												deleteEducation(edu.id);
+											}}
+										>
+											{loading ? 'Deleting...' : 'Yes, Delete'}
+										</button>
+									</form>
 									<button
-										type="submit"
-										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-										disabled={loading}
-										onclick={(e) => {
-											e.preventDefault();
-											deleteEducation(edu.id);
-										}}
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
 									>
-										{loading ? 'Deleting...' : 'Yes, Delete'}
+										Cancel
 									</button>
-								</form>
+								</div>
+							</div>
+						{/if}
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="font-semibold">
+									{edu.qualification || edu.degree || 'No qualification specified'} at {edu.institution}
+								</div>
+								<div class="text-sm text-gray-500">
+									{edu.start_date ? formatDate(edu.start_date) : ''}
+									{edu.start_date ? '-' : ''}
+									{edu.end_date ? formatDate(edu.end_date) : 'Present'}
+								</div>
+							</div>
+							<div class="flex gap-2">
 								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									onclick={() => editEducation(edu)}
+									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+									title="Edit"
 								>
-									Cancel
+									Edit
+								</button>
+								<button
+									onclick={() => confirmDelete(edu.id)}
+									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+									title="Delete"
+								>
+									Delete
 								</button>
 							</div>
 						</div>
-					{/if}
-					<div class="flex items-center justify-between">
-						<div>
-							<div class="font-semibold">
-								{edu.qualification || edu.degree || 'No qualification specified'} at {edu.institution}
-							</div>
-							<div class="text-sm text-gray-500">
-								{edu.start_date ? formatDate(edu.start_date) : ''}
-								{edu.start_date ? '-' : ''}
-								{edu.end_date ? formatDate(edu.end_date) : 'Present'}
-							</div>
-						</div>
-						<div class="flex gap-2">
-							<button
-								onclick={() => editEducation(edu)}
-								class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-								title="Edit"
-							>
-								Edit
-							</button>
-							<button
-								onclick={() => confirmDelete(edu.id)}
-								class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-								title="Delete"
-							>
-								Delete
-							</button>
-						</div>
-					</div>
-					{#if edu.field_of_study}
-						<div class="mt-2 text-gray-700">Field: {edu.field_of_study}</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
-
-	<SectionNavigation />
+						{#if edu.field_of_study}
+							<div class="mt-2 text-gray-700">Field: {edu.field_of_study}</div>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>

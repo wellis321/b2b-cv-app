@@ -7,7 +7,7 @@
 	// @ts-ignore - The Temporal polyfill doesn't have proper TypeScript definitions
 	import { Temporal } from '@js-temporal/polyfill';
 	import { session as authSession } from '$lib/stores/authStore';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 
 	interface Membership {
 		id: string;
@@ -376,186 +376,193 @@
 	});
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Professional Memberships</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Membership'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Professional Memberships</h1>
+	<p class="text-gray-700">
+		Add your memberships in professional organisations and industry associations.
+	</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Professional Memberships</h2>
+			<button
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			>
+				{showAddForm ? 'Cancel' : 'Add Membership'}
+			</button>
+		</div>
 
-	<!-- Add/Edit form -->
-	{#if showAddForm && session}
-		<div id="membershipForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Membership' : 'Add New Membership'}
-			</h3>
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
 
-			<form onsubmit={handleSubmit} method="POST" class="space-y-4">
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="organisation"
-						>Organisation</label
-					>
-					<input
-						id="organisation"
-						name="organisation"
-						type="text"
-						bind:value={organisation}
-						placeholder="e.g. IEEE, ACM, BCS"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="role">
-						Role <span class="text-xs text-gray-500">(Optional)</span>
-					</label>
-					<input
-						id="role"
-						name="role"
-						type="text"
-						bind:value={role}
-						placeholder="e.g. Member, Committee Member, Fellow"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					/>
-				</div>
-				<div class="flex gap-4">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
-							>Start Date</label
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		<!-- Add/Edit form -->
+		{#if showAddForm && session}
+			<div id="membershipForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Membership' : 'Add New Membership'}
+				</h3>
+
+				<form onsubmit={handleSubmit} method="POST" class="space-y-4">
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="organisation"
+							>Organisation</label
 						>
 						<input
-							id="startDate"
-							name="startDate"
-							type="date"
-							bind:value={startDate}
+							id="organisation"
+							name="organisation"
+							type="text"
+							bind:value={organisation}
+							placeholder="e.g. IEEE, ACM, BCS"
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 							required
 						/>
 					</div>
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate">
-							End Date <span class="text-xs text-gray-500">(Leave blank if current)</span>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="role">
+							Role <span class="text-xs text-gray-500">(Optional)</span>
 						</label>
 						<input
-							id="endDate"
-							name="endDate"
-							type="date"
-							bind:value={endDate}
+							id="role"
+							name="role"
+							type="text"
+							bind:value={role}
+							placeholder="e.g. Member, Committee Member, Fellow"
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 						/>
 					</div>
-				</div>
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Membership' : 'Save Membership'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if loadingMemberships}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your memberships...</p>
-		</div>
-	{:else if !session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your memberships.</p>
-			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-			>
-				Go to Login
-			</button>
-		</div>
-	{:else if memberships.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No professional memberships added yet. Use the button above to add your memberships.</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each memberships as mem}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === mem.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this membership?</p>
-							<div class="mt-2 flex gap-2">
-								<button
-									type="button"
-									class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-									disabled={loading}
-									onclick={() => deleteMembership(mem.id)}
-								>
-									{loading ? 'Deleting...' : 'Yes, Delete'}
-								</button>
-								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
-								>
-									Cancel
-								</button>
-							</div>
+					<div class="flex gap-4">
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
+								>Start Date</label
+							>
+							<input
+								id="startDate"
+								name="startDate"
+								type="date"
+								bind:value={startDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+								required
+							/>
 						</div>
-					{:else}
-						<div class="flex items-center justify-between">
-							<div>
-								<div class="font-semibold">{mem.organisation}</div>
-								{#if mem.role}
-									<div class="text-sm text-gray-600">Role: {mem.role}</div>
-								{/if}
-								<div class="text-sm text-gray-500">
-									{formatDate(mem.start_date)} - {mem.end_date
-										? formatDate(mem.end_date)
-										: 'Present'}
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate">
+								End Date <span class="text-xs text-gray-500">(Leave blank if current)</span>
+							</label>
+							<input
+								id="endDate"
+								name="endDate"
+								type="date"
+								bind:value={endDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							/>
+						</div>
+					</div>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Membership' : 'Save Membership'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if loadingMemberships}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your memberships...</p>
+			</div>
+		{:else if !session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your memberships.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if memberships.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No professional memberships added yet. Use the button above to add your memberships.</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each memberships as mem}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === mem.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this membership?</p>
+								<div class="mt-2 flex gap-2">
+									<button
+										type="button"
+										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+										disabled={loading}
+										onclick={() => deleteMembership(mem.id)}
+									>
+										{loading ? 'Deleting...' : 'Yes, Delete'}
+									</button>
+									<button
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									>
+										Cancel
+									</button>
 								</div>
 							</div>
-							<div class="flex gap-2">
-								<button
-									onclick={() => editMembership(mem)}
-									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-									title="Edit"
-								>
-									Edit
-								</button>
-								<button
-									onclick={() => confirmDelete(mem.id)}
-									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-									title="Delete"
-								>
-									Delete
-								</button>
+						{:else}
+							<div class="flex items-center justify-between">
+								<div>
+									<div class="font-semibold">{mem.organisation}</div>
+									{#if mem.role}
+										<div class="text-sm text-gray-600">Role: {mem.role}</div>
+									{/if}
+									<div class="text-sm text-gray-500">
+										{formatDate(mem.start_date)} - {mem.end_date
+											? formatDate(mem.end_date)
+											: 'Present'}
+									</div>
+								</div>
+								<div class="flex gap-2">
+									<button
+										onclick={() => editMembership(mem)}
+										class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+										title="Edit"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => confirmDelete(mem.id)}
+										class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+										title="Delete"
+									>
+										Delete
+									</button>
+								</div>
 							</div>
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
-
-	<SectionNavigation />
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>

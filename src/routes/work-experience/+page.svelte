@@ -7,7 +7,7 @@
 	import { session, authLoading } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
 	import { page } from '$app/stores';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 	import ResponsibilitiesEditor from './ResponsibilitiesEditor.svelte';
 	import { getResponsibilitiesForExperience, addCategory, addItem } from './responsibilities';
 
@@ -588,245 +588,251 @@
 	}
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Work Experience</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Experience'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Work Experience</h1>
+	<p class="text-gray-700">Add your work history, including past and current positions.</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
-
-	{#if warning}
-		<div class="mb-4 rounded bg-yellow-100 p-4 text-yellow-700">{warning}</div>
-	{/if}
-
-	<!-- Add/Edit form moved to the top and toggleable -->
-	{#if showAddForm && ($session || data.session)}
-		<div id="experienceForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Experience' : 'Add New Experience'}
-			</h3>
-
-			<form
-				onsubmit={handleSubmit}
-				method="POST"
-				action={isEditing ? '?/update' : '?/create'}
-				class="space-y-4"
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Work Experience</h2>
+			<button
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 			>
-				{#if form?.error}
-					<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{form.error}</div>
-				{/if}
+				{showAddForm ? 'Cancel' : 'Add Experience'}
+			</button>
+		</div>
 
-				{#if isEditing && editingExperience}
-					<input type="hidden" name="id" value={editingExperience.id} />
-				{/if}
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
 
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="companyName"
-						>Company Name</label
-					>
-					<input
-						id="companyName"
-						name="companyName"
-						type="text"
-						bind:value={companyName}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="position">Position</label
-					>
-					<input
-						id="position"
-						name="position"
-						type="text"
-						bind:value={position}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div class="flex gap-4">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
-							>Start Date</label
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		{#if warning}
+			<div class="mb-4 rounded bg-yellow-100 p-4 text-yellow-700">{warning}</div>
+		{/if}
+
+		<!-- Add/Edit form moved to the top and toggleable -->
+		{#if showAddForm && ($session || data.session)}
+			<div id="experienceForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Experience' : 'Add New Experience'}
+				</h3>
+
+				<form
+					onsubmit={handleSubmit}
+					method="POST"
+					action={isEditing ? '?/update' : '?/create'}
+					class="space-y-4"
+				>
+					{#if form?.error}
+						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{form.error}</div>
+					{/if}
+
+					{#if isEditing && editingExperience}
+						<input type="hidden" name="id" value={editingExperience.id} />
+					{/if}
+
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="companyName"
+							>Company Name</label
 						>
 						<input
-							id="startDate"
-							name="startDate"
-							type="date"
-							bind:value={startDate}
+							id="companyName"
+							name="companyName"
+							type="text"
+							bind:value={companyName}
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 							required
 						/>
 					</div>
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate"
-							>End Date <span class="text-xs text-gray-500">(Leave blank for current job)</span
-							></label
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="position"
+							>Position</label
 						>
 						<input
-							id="endDate"
-							name="endDate"
-							type="date"
-							bind:value={endDate}
+							id="position"
+							name="position"
+							type="text"
+							bind:value={position}
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
 						/>
 					</div>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="description"
-						>Description</label
-					>
-					<textarea
-						id="description"
-						name="description"
-						bind:value={description}
-						rows="4"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					></textarea>
-				</div>
-
-				{#if isEditing && editingExperience}
-					<div class="mt-4 border-t pt-4">
-						<ResponsibilitiesEditor
-							workExperienceId={editingExperience.id}
-							bind:this={editResponsibilitiesEditor}
-							on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
-						/>
+					<div class="flex gap-4">
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
+								>Start Date</label
+							>
+							<input
+								id="startDate"
+								name="startDate"
+								type="date"
+								bind:value={startDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+								required
+							/>
+						</div>
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate"
+								>End Date <span class="text-xs text-gray-500">(Leave blank for current job)</span
+								></label
+							>
+							<input
+								id="endDate"
+								name="endDate"
+								type="date"
+								bind:value={endDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							/>
+						</div>
 					</div>
-				{/if}
-
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Experience' : 'Save Experience'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="description"
+							>Description</label
 						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
+						<textarea
+							id="description"
+							name="description"
+							bind:value={description}
+							rows="4"
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+						></textarea>
+					</div>
 
-	{#if loadingExperiences}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your work experiences...</p>
-		</div>
-	{:else if !$session && !data.session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your work experiences.</p>
-			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-			>
-				Go to Login
-			</button>
-		</div>
-	{:else if workExperiences.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No work experience added yet. Use the button above to add your work history.</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each workExperiences as exp}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === exp.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this experience?</p>
-							<div class="mt-2 flex gap-2">
-								<form method="POST" action="?/delete" class="inline">
-									<input type="hidden" name="id" value={exp.id} />
+					{#if isEditing && editingExperience}
+						<div class="mt-4 border-t pt-4">
+							<ResponsibilitiesEditor
+								workExperienceId={editingExperience.id}
+								bind:this={editResponsibilitiesEditor}
+								on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
+							/>
+						</div>
+					{/if}
+
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Experience' : 'Save Experience'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if loadingExperiences}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your work experiences...</p>
+			</div>
+		{:else if !$session && !data.session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your work experiences.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if workExperiences.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No work experience added yet. Use the button above to add your work history.</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each workExperiences as exp}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === exp.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this experience?</p>
+								<div class="mt-2 flex gap-2">
+									<form method="POST" action="?/delete" class="inline">
+										<input type="hidden" name="id" value={exp.id} />
+										<button
+											type="submit"
+											class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+											disabled={loading}
+											onclick={() => deleteExperience(exp.id)}
+										>
+											{loading ? 'Deleting...' : 'Yes, Delete'}
+										</button>
+									</form>
 									<button
-										type="submit"
-										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-										disabled={loading}
-										onclick={() => deleteExperience(exp.id)}
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
 									>
-										{loading ? 'Deleting...' : 'Yes, Delete'}
+										Cancel
 									</button>
-								</form>
+								</div>
+							</div>
+						{/if}
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="font-semibold">{exp.position} at {exp.company_name}</div>
+								<div class="text-sm text-gray-500">
+									{formatDate(exp.start_date)} - {formatDate(exp.end_date)}
+								</div>
+							</div>
+							<div class="flex gap-2">
 								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									onclick={() => editExperience(exp)}
+									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+									title="Edit"
 								>
-									Cancel
+									Edit
+								</button>
+								<button
+									onclick={() => confirmDelete(exp.id)}
+									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+									title="Delete"
+								>
+									Delete
 								</button>
 							</div>
 						</div>
-					{/if}
-					<div class="flex items-center justify-between">
-						<div>
-							<div class="font-semibold">{exp.position} at {exp.company_name}</div>
-							<div class="text-sm text-gray-500">
-								{formatDate(exp.start_date)} - {formatDate(exp.end_date)}
+
+						<!-- Description section (if exists) -->
+						{#if exp.description && exp.description.trim()}
+							<div class="mt-2">
+								<h4 class="mb-1 text-sm font-medium text-gray-700">Description</h4>
+								<div class="whitespace-pre-line text-gray-700">
+									{#if exp.description.includes('Key Responsibilities:')}
+										{exp.description.split('Key Responsibilities:')[0].trim()}
+									{:else}
+										{exp.description}
+									{/if}
+								</div>
 							</div>
-						</div>
-						<div class="flex gap-2">
-							<button
-								onclick={() => editExperience(exp)}
-								class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-								title="Edit"
-							>
-								Edit
-							</button>
-							<button
-								onclick={() => confirmDelete(exp.id)}
-								class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-								title="Delete"
-							>
-								Delete
-							</button>
-						</div>
-					</div>
+						{/if}
 
-					<!-- Description section (if exists) -->
-					{#if exp.description && exp.description.trim()}
-						<div class="mt-2">
-							<h4 class="mb-1 text-sm font-medium text-gray-700">Description</h4>
-							<div class="whitespace-pre-line text-gray-700">
-								{#if exp.description.includes('Key Responsibilities:')}
-									{exp.description.split('Key Responsibilities:')[0].trim()}
-								{:else}
-									{exp.description}
-								{/if}
-							</div>
+						<!-- Show responsibilities in read-only view -->
+						<div class="mt-3">
+							<ResponsibilitiesEditor
+								workExperienceId={exp.id}
+								readOnly={true}
+								bind:this={displayResponsibilitiesEditors[exp.id]}
+							/>
 						</div>
-					{/if}
-
-					<!-- Show responsibilities in read-only view -->
-					<div class="mt-3">
-						<ResponsibilitiesEditor
-							workExperienceId={exp.id}
-							readOnly={true}
-							bind:this={displayResponsibilitiesEditors[exp.id]}
-						/>
-					</div>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-
-	<SectionNavigation />
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>

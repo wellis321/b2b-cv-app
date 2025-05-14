@@ -861,11 +861,7 @@
 
 				{#if username && !usernameError && browser}
 					<p class="mt-1 text-sm text-gray-500">
-						Your web based digital CV will be available at: <a
-							href="/cv/@{username}"
-							class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
-							>{window.location.origin}/cv/@{username}</a
-						>
+						A public version of your CV will be available once you save your profile.
 					</p>
 				{/if}
 			</div>
@@ -914,21 +910,36 @@
 		{#if username && !usernameError}
 			<div class="mt-8 rounded-lg bg-indigo-50 p-4">
 				<h3 class="mb-2 text-lg font-medium text-indigo-700">Public CV Link</h3>
-				<p class="mb-3 text-indigo-800">Your public CV is available at:</p>
+				<p class="mb-3 text-indigo-800">
+					Share your CV with recruiters or include it in your resume.
+				</p>
 				{#if browser}
-					<div class="flex items-center space-x-2">
-						<input
-							type="text"
-							readonly
-							value="{window.location.origin}/cv/@{username}"
-							class="w-full rounded border-gray-300 bg-white px-3 py-2 text-gray-800 shadow-sm"
-						/>
+					<div class="flex flex-wrap items-center gap-3">
+						<a
+							href="/cv/@{username}"
+							class="flex items-center gap-2 rounded-md bg-white px-4 py-2 text-indigo-600 shadow-sm hover:bg-indigo-50 hover:text-indigo-800"
+							target="_blank"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"
+								/>
+								<path
+									d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"
+								/>
+							</svg>
+							View Your Public CV
+						</a>
+
 						<button
 							type="button"
-							class="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+							class="flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
 							onclick={() => copyPublicCvLink()}
-							title="Copy link to clipboard"
-							aria-label="Copy CV link to clipboard"
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -941,12 +952,10 @@
 									d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
 								/>
 							</svg>
+							Copy Link to Clipboard
 						</button>
 					</div>
 				{/if}
-				<p class="mt-2 text-sm text-indigo-700">
-					Share this link with recruiters or include it in your resume.
-				</p>
 			</div>
 		{/if}
 	{/if}

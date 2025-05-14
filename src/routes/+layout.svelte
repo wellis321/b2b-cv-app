@@ -97,9 +97,10 @@
 					>
 					{#if $session}
 						<a href="/profile" class="text-gray-600 hover:text-gray-900">Profile</a>
-						<a href="/preview-cv" class="text-gray-600 hover:text-gray-900">Preview CV</a>
+						<a href="/" class="text-gray-600 hover:text-gray-900">Edit CV Sections</a>
+						<a href="/preview-cv" class="text-gray-600 hover:text-gray-900">Preview & PDF</a>
 						{#if username}
-							<a href="/cv/@{username}" class="text-gray-600 hover:text-gray-900">Public CV</a>
+							<a href="/cv/@{username}" class="text-gray-600 hover:text-gray-900">View CV</a>
 						{/if}
 						<button on:click={signOut} class="text-gray-600 hover:text-gray-900">Sign Out</button>
 					{/if}

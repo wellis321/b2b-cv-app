@@ -5,7 +5,7 @@
 	import { session, authLoading } from '$lib/stores/authStore';
 	import { supabase } from '$lib/supabase';
 	import { page } from '$app/stores';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 	import EvidenceEditor from './EvidenceEditor.svelte';
 	import {
 		type QualificationWithEvidence,
@@ -447,242 +447,249 @@
 	}
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Professional Qualification Equivalence</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Qualification'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Professional Qualification Equivalence</h1>
+	<p class="text-gray-700">
+		Show how your international and other qualifications are equivalent to local standards.
+	</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
-
-	<!-- Add/Edit form -->
-	{#if showAddForm && ($session || data.session)}
-		<div id="qualificationForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Qualification Equivalence' : 'Add New Qualification Equivalence'}
-			</h3>
-
-			<form
-				onsubmit={handleSubmit}
-				method="POST"
-				action={isEditing ? '?/update' : '?/create'}
-				class="space-y-4"
-			>
-				{#if form?.error}
-					<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{form.error}</div>
-				{/if}
-
-				{#if isEditing && editingQualification}
-					<input type="hidden" name="id" value={editingQualification.id} />
-				{/if}
-
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="level">
-						Level/Name <span class="text-red-600">*</span>
-					</label>
-					<input
-						id="level"
-						name="level"
-						type="text"
-						bind:value={level}
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-						placeholder="e.g., Master's Degree, Professional Certification"
-					/>
-				</div>
-
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="description">
-						Description
-					</label>
-					<textarea
-						id="description"
-						name="description"
-						bind:value={description}
-						rows="4"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						placeholder="Describe what this qualification is equivalent to"
-					></textarea>
-				</div>
-
-				{#if isEditing && editingQualification}
-					<div class="mt-4 border-t pt-4">
-						<EvidenceEditor
-							qualificationId={editingQualification.id}
-							bind:this={evidenceEditors[editingQualification.id]}
-							on:editingEvidence={handleEvidenceEditing}
-						/>
-					</div>
-				{:else}
-					<!-- Supporting evidence section for new qualifications -->
-					<div class="mt-4 border-t pt-4">
-						<h3 class="mb-4 text-lg font-medium text-gray-700">Supporting Evidence</h3>
-
-						{#if tempEvidenceItems.length === 0}
-							<p class="mb-4 text-gray-500 italic">No supporting evidence added yet.</p>
-						{:else}
-							<ul class="mb-4 list-disc space-y-2 pl-6">
-								{#each tempEvidenceItems as evidence, index}
-									<li class="group flex items-start">
-										<span class="flex-1">{evidence.content}</span>
-										<button
-											onclick={() => removeTempEvidence(index)}
-											class="ml-2 text-xs text-red-600 hover:text-red-800"
-											title="Remove"
-										>
-											Remove
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-
-						<!-- Add new evidence input -->
-						<div class="flex items-center">
-							<input
-								type="text"
-								bind:value={newEvidenceContent}
-								class="flex-1 rounded-md border-gray-300"
-								placeholder="Add supporting evidence"
-							/>
-							<button
-								onclick={addTempEvidence}
-								class="ml-2 rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-700 disabled:opacity-50"
-								disabled={!newEvidenceContent.trim()}
-							>
-								Add
-							</button>
-						</div>
-					</div>
-				{/if}
-
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Qualification' : 'Save Qualification'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if loadingQualifications}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your qualification equivalences...</p>
-		</div>
-	{:else if !$session && !data.session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your qualification equivalences.</p>
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Qualification Equivalences</h2>
 			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 			>
-				Go to Login
+				{showAddForm ? 'Cancel' : 'Add Qualification'}
 			</button>
 		</div>
-	{:else if qualifications.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>
-				No qualification equivalences added yet. Use the button above to add your professional
-				qualification equivalence information.
-			</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each qualifications as qualification}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === qualification.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this qualification?</p>
-							<div class="mt-2 flex gap-2">
-								<button
-									type="button"
-									class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-									disabled={loading}
-									onclick={() => handleDeleteQualification(qualification.id)}
-								>
-									{loading ? 'Deleting...' : 'Yes, Delete'}
-								</button>
-								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
-								>
-									Cancel
-								</button>
-							</div>
-						</div>
+
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
+
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		<!-- Add/Edit form -->
+		{#if showAddForm && ($session || data.session)}
+			<div id="qualificationForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Qualification Equivalence' : 'Add New Qualification Equivalence'}
+				</h3>
+
+				<form
+					onsubmit={handleSubmit}
+					method="POST"
+					action={isEditing ? '?/update' : '?/create'}
+					class="space-y-4"
+				>
+					{#if form?.error}
+						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{form.error}</div>
 					{/if}
 
-					<div class="flex items-center justify-between">
-						<div>
-							<div class="text-lg font-semibold">{qualification.level}</div>
-						</div>
-						<div class="flex gap-2">
-							<button
-								onclick={() => editQualification(qualification)}
-								class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-								title="Edit"
-							>
-								Edit
-							</button>
-							<button
-								onclick={() => confirmDelete(qualification.id)}
-								class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-								title="Delete"
-							>
-								Delete
-							</button>
-						</div>
+					{#if isEditing && editingQualification}
+						<input type="hidden" name="id" value={editingQualification.id} />
+					{/if}
+
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="level">
+							Level/Name <span class="text-red-600">*</span>
+						</label>
+						<input
+							id="level"
+							name="level"
+							type="text"
+							bind:value={level}
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
+							placeholder="e.g., Master's Degree, Professional Certification"
+						/>
 					</div>
 
-					<!-- Description section (if exists) -->
-					{#if qualification.description && qualification.description.trim()}
-						<div class="mt-2">
-							<h4 class="mb-1 text-sm font-medium text-gray-700">Description</h4>
-							<div class="whitespace-pre-line text-gray-700">
-								{qualification.description}
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="description">
+							Description
+						</label>
+						<textarea
+							id="description"
+							name="description"
+							bind:value={description}
+							rows="4"
+							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							placeholder="Describe what this qualification is equivalent to"
+						></textarea>
+					</div>
+
+					{#if isEditing && editingQualification}
+						<div class="mt-4 border-t pt-4">
+							<EvidenceEditor
+								qualificationId={editingQualification.id}
+								bind:this={evidenceEditors[editingQualification.id]}
+								on:editingEvidence={handleEvidenceEditing}
+							/>
+						</div>
+					{:else}
+						<!-- Supporting evidence section for new qualifications -->
+						<div class="mt-4 border-t pt-4">
+							<h3 class="mb-4 text-lg font-medium text-gray-700">Supporting Evidence</h3>
+
+							{#if tempEvidenceItems.length === 0}
+								<p class="mb-4 text-gray-500 italic">No supporting evidence added yet.</p>
+							{:else}
+								<ul class="mb-4 list-disc space-y-2 pl-6">
+									{#each tempEvidenceItems as evidence, index}
+										<li class="group flex items-start">
+											<span class="flex-1">{evidence.content}</span>
+											<button
+												onclick={() => removeTempEvidence(index)}
+												class="ml-2 text-xs text-red-600 hover:text-red-800"
+												title="Remove"
+											>
+												Remove
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+
+							<!-- Add new evidence input -->
+							<div class="flex items-center">
+								<input
+									type="text"
+									bind:value={newEvidenceContent}
+									class="flex-1 rounded-md border-gray-300"
+									placeholder="Add supporting evidence"
+								/>
+								<button
+									onclick={addTempEvidence}
+									class="ml-2 rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-700 disabled:opacity-50"
+									disabled={!newEvidenceContent.trim()}
+								>
+									Add
+								</button>
 							</div>
 						</div>
 					{/if}
 
-					<!-- Supporting Evidence section (if exists) -->
-					{#if qualification.evidence && qualification.evidence.length > 0}
-						<div class="mt-3">
-							<h4 class="mb-1 text-sm font-medium text-gray-700">Supporting Evidence</h4>
-							<ul class="list-disc pl-5">
-								{#each qualification.evidence as evidence}
-									<li>{evidence.content}</li>
-								{/each}
-							</ul>
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Qualification' : 'Save Qualification'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
 
-	<SectionNavigation />
+		{#if loadingQualifications}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your qualification equivalences...</p>
+			</div>
+		{:else if !$session && !data.session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your qualification equivalences.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if qualifications.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>
+					No qualification equivalences added yet. Use the button above to add your professional
+					qualification equivalence information.
+				</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each qualifications as qualification}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === qualification.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this qualification?</p>
+								<div class="mt-2 flex gap-2">
+									<button
+										type="button"
+										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+										disabled={loading}
+										onclick={() => handleDeleteQualification(qualification.id)}
+									>
+										{loading ? 'Deleting...' : 'Yes, Delete'}
+									</button>
+									<button
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									>
+										Cancel
+									</button>
+								</div>
+							</div>
+						{/if}
+
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="text-lg font-semibold">{qualification.level}</div>
+							</div>
+							<div class="flex gap-2">
+								<button
+									onclick={() => editQualification(qualification)}
+									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+									title="Edit"
+								>
+									Edit
+								</button>
+								<button
+									onclick={() => confirmDelete(qualification.id)}
+									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+									title="Delete"
+								>
+									Delete
+								</button>
+							</div>
+						</div>
+
+						<!-- Description section (if exists) -->
+						{#if qualification.description && qualification.description.trim()}
+							<div class="mt-2">
+								<h4 class="mb-1 text-sm font-medium text-gray-700">Description</h4>
+								<div class="whitespace-pre-line text-gray-700">
+									{qualification.description}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Supporting Evidence section (if exists) -->
+						{#if qualification.evidence && qualification.evidence.length > 0}
+							<div class="mt-3">
+								<h4 class="mb-1 text-sm font-medium text-gray-700">Supporting Evidence</h4>
+								<ul class="list-disc pl-5">
+									{#each qualification.evidence as evidence}
+										<li>{evidence.content}</li>
+									{/each}
+								</ul>
+							</div>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>

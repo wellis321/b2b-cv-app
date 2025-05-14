@@ -7,11 +7,11 @@
 	// @ts-ignore - The Temporal polyfill doesn't have proper TypeScript definitions
 	import { Temporal } from '@js-temporal/polyfill';
 	import { session as authSession } from '$lib/stores/authStore';
-	import SectionNavigation from '$lib/components/SectionNavigation.svelte';
+	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 
 	interface Certification {
 		id: string;
-		profile_id: string;
+		profile_id: string | null;
 		name: string;
 		issuer: string;
 		date_obtained: string;
@@ -372,188 +372,195 @@
 	});
 </script>
 
-<div class="mx-auto max-w-xl">
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-2xl font-bold">Your Certifications</h2>
-		<button
-			onclick={toggleAddForm}
-			class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-		>
-			{showAddForm ? 'Cancel' : 'Add Certification'}
-		</button>
-	</div>
+<div class="mx-auto max-w-4xl space-y-6">
+	<BreadcrumbNavigation />
 
-	{#if error}
-		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
-	{/if}
+	<h1 class="text-2xl font-bold">Certifications</h1>
+	<p class="text-gray-700">
+		Add your professional certifications and credentials to showcase your expertise.
+	</p>
 
-	{#if success}
-		<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
-	{/if}
+	<div class="mx-auto max-w-xl">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-2xl font-bold">Your Certifications</h2>
+			<button
+				onclick={toggleAddForm}
+				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			>
+				{showAddForm ? 'Cancel' : 'Add Certification'}
+			</button>
+		</div>
 
-	<!-- Add/Edit form -->
-	{#if showAddForm && session}
-		<div id="certForm" class="mb-8 rounded bg-white p-6 shadow">
-			<h3 class="mb-4 text-xl font-semibold">
-				{isEditing ? 'Edit Certification' : 'Add New Certification'}
-			</h3>
+		{#if error}
+			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+		{/if}
 
-			<form onsubmit={handleSubmit} method="POST" class="space-y-4">
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="name"
-						>Certification Name</label
-					>
-					<input
-						id="name"
-						name="name"
-						type="text"
-						bind:value={name}
-						placeholder="e.g. AWS Certified Developer, CCNA, PMP"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700" for="issuer">Issuer</label>
-					<input
-						id="issuer"
-						name="issuer"
-						type="text"
-						bind:value={issuer}
-						placeholder="e.g. Amazon Web Services, Cisco, PMI"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						required
-					/>
-				</div>
-				<div class="flex gap-4">
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="dateObtained"
-							>Date Obtained</label
+		{#if success}
+			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+		{/if}
+
+		<!-- Add/Edit form -->
+		{#if showAddForm && session}
+			<div id="certForm" class="mb-8 rounded bg-white p-6 shadow">
+				<h3 class="mb-4 text-xl font-semibold">
+					{isEditing ? 'Edit Certification' : 'Add New Certification'}
+				</h3>
+
+				<form onsubmit={handleSubmit} method="POST" class="space-y-4">
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="name"
+							>Certification Name</label
 						>
 						<input
-							id="dateObtained"
-							name="dateObtained"
-							type="date"
-							bind:value={dateObtained}
+							id="name"
+							name="name"
+							type="text"
+							bind:value={name}
+							placeholder="e.g. AWS Certified Developer, CCNA, PMP"
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 							required
 						/>
 					</div>
-					<div class="flex-1">
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="expiryDate">
-							Expiry Date <span class="text-xs text-gray-500">(Optional)</span>
-						</label>
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="issuer">Issuer</label>
 						<input
-							id="expiryDate"
-							name="expiryDate"
-							type="date"
-							bind:value={expiryDate}
+							id="issuer"
+							name="issuer"
+							type="text"
+							bind:value={issuer}
+							placeholder="e.g. Amazon Web Services, Cisco, PMI"
 							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							required
 						/>
 					</div>
-				</div>
-				<div class="flex gap-2">
-					<button
-						type="submit"
-						disabled={loading}
-						class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-					>
-						{loading ? 'Saving...' : isEditing ? 'Update Certification' : 'Save Certification'}
-					</button>
-					{#if isEditing}
-						<button
-							type="button"
-							onclick={cancelEdit}
-							class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-						>
-							Cancel
-						</button>
-					{/if}
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if loadingCertifications}
-		<div class="mb-4 rounded bg-blue-100 p-4">
-			<p class="font-medium">Loading your certifications...</p>
-		</div>
-	{:else if !session}
-		<div class="mb-4 rounded bg-yellow-100 p-4">
-			<p class="font-medium">You need to be logged in to view your certifications.</p>
-			<button
-				onclick={() => goto('/')}
-				class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-			>
-				Go to Login
-			</button>
-		</div>
-	{:else if certifications.length === 0}
-		<div class="rounded bg-gray-100 p-4 text-gray-700">
-			<p>No certifications added yet. Use the button above to add your certifications.</p>
-		</div>
-	{:else}
-		<ul class="space-y-4">
-			{#each certifications as cert}
-				<li class="rounded border bg-white p-4 shadow">
-					{#if deleteConfirmId === cert.id}
-						<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-							<p class="font-medium">Are you sure you want to delete this certification?</p>
-							<div class="mt-2 flex gap-2">
-								<button
-									type="button"
-									class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-									disabled={loading}
-									onclick={() => deleteCertification(cert.id)}
-								>
-									{loading ? 'Deleting...' : 'Yes, Delete'}
-								</button>
-								<button
-									onclick={cancelDelete}
-									class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
-								>
-									Cancel
-								</button>
-							</div>
+					<div class="flex gap-4">
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="dateObtained"
+								>Date Obtained</label
+							>
+							<input
+								id="dateObtained"
+								name="dateObtained"
+								type="date"
+								bind:value={dateObtained}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+								required
+							/>
 						</div>
-					{:else}
-						<div class="flex items-center justify-between">
-							<div>
-								<div class="font-semibold">{cert.name}</div>
-								<div class="text-sm text-gray-600">Issued by: {cert.issuer}</div>
-								<div class="text-sm text-gray-500">
-									Obtained: {formatDate(cert.date_obtained)}
-									{#if cert.expiry_date}
-										<span class="ml-2">
-											{new Date(cert.expiry_date) < new Date()
-												? '(Expired: '
-												: '(Expires: '}{formatDate(cert.expiry_date)})
-										</span>
-									{/if}
+						<div class="flex-1">
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="expiryDate">
+								Expiry Date <span class="text-xs text-gray-500">(Optional)</span>
+							</label>
+							<input
+								id="expiryDate"
+								name="expiryDate"
+								type="date"
+								bind:value={expiryDate}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							/>
+						</div>
+					</div>
+					<div class="flex gap-2">
+						<button
+							type="submit"
+							disabled={loading}
+							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+						>
+							{loading ? 'Saving...' : isEditing ? 'Update Certification' : 'Save Certification'}
+						</button>
+						{#if isEditing}
+							<button
+								type="button"
+								onclick={cancelEdit}
+								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+							>
+								Cancel
+							</button>
+						{/if}
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if loadingCertifications}
+			<div class="mb-4 rounded bg-blue-100 p-4">
+				<p class="font-medium">Loading your certifications...</p>
+			</div>
+		{:else if !session}
+			<div class="mb-4 rounded bg-yellow-100 p-4">
+				<p class="font-medium">You need to be logged in to view your certifications.</p>
+				<button
+					onclick={() => goto('/')}
+					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+				>
+					Go to Login
+				</button>
+			</div>
+		{:else if certifications.length === 0}
+			<div class="rounded bg-gray-100 p-4 text-gray-700">
+				<p>No certifications added yet. Use the button above to add your certifications.</p>
+			</div>
+		{:else}
+			<ul class="space-y-4">
+				{#each certifications as cert}
+					<li class="rounded border bg-white p-4 shadow">
+						{#if deleteConfirmId === cert.id}
+							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
+								<p class="font-medium">Are you sure you want to delete this certification?</p>
+								<div class="mt-2 flex gap-2">
+									<button
+										type="button"
+										class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
+										disabled={loading}
+										onclick={() => deleteCertification(cert.id)}
+									>
+										{loading ? 'Deleting...' : 'Yes, Delete'}
+									</button>
+									<button
+										onclick={cancelDelete}
+										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+									>
+										Cancel
+									</button>
 								</div>
 							</div>
-							<div class="flex gap-2">
-								<button
-									onclick={() => editCertification(cert)}
-									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-									title="Edit"
-								>
-									Edit
-								</button>
-								<button
-									onclick={() => confirmDelete(cert.id)}
-									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-									title="Delete"
-								>
-									Delete
-								</button>
+						{:else}
+							<div class="flex items-center justify-between">
+								<div>
+									<div class="font-semibold">{cert.name}</div>
+									<div class="text-sm text-gray-600">Issued by: {cert.issuer}</div>
+									<div class="text-sm text-gray-500">
+										Obtained: {formatDate(cert.date_obtained)}
+										{#if cert.expiry_date}
+											<span class="ml-2">
+												{new Date(cert.expiry_date) < new Date()
+													? '(Expired: '
+													: '(Expires: '}{formatDate(cert.expiry_date)})
+											</span>
+										{/if}
+									</div>
+								</div>
+								<div class="flex gap-2">
+									<button
+										onclick={() => editCertification(cert)}
+										class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
+										title="Edit"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => confirmDelete(cert.id)}
+										class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
+										title="Delete"
+									>
+										Delete
+									</button>
+								</div>
 							</div>
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
-
-	<SectionNavigation />
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 </div>
