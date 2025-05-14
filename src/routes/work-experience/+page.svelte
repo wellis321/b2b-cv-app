@@ -29,12 +29,12 @@
 	// Define type for work experience
 	type WorkExperience = {
 		id: string;
-		profile_id: string;
+		profile_id: string | null;
 		company_name: string;
 		position: string;
 		start_date: string;
 		end_date: string | null;
-		description: string;
+		description: string | null;
 		created_at: string;
 	};
 
@@ -73,10 +73,12 @@
 		if (!dateString) return 'Present';
 		try {
 			const plainDate = Temporal.PlainDate.from(dateString);
-			return plainDate.toString();
+			// Format as DD/MM/YYYY instead of the default ISO format
+			return `${plainDate.day.toString().padStart(2, '0')}/${plainDate.month.toString().padStart(2, '0')}/${plainDate.year}`;
 		} catch (e) {
 			// Fallback to basic formatting if Temporal fails
-			return new Date(dateString).toLocaleDateString();
+			const date = new Date(dateString);
+			return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 		}
 	}
 

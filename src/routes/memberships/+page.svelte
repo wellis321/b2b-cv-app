@@ -11,7 +11,7 @@
 
 	interface Membership {
 		id: string;
-		profile_id: string;
+		profile_id: string | null;
 		organisation: string;
 		role?: string | null;
 		start_date: string;
@@ -48,10 +48,13 @@
 
 		try {
 			const date = Temporal.PlainDate.from(dateStr);
-			return date.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+			// Format as DD/MM/YYYY
+			return `${date.day.toString().padStart(2, '0')}/${date.month.toString().padStart(2, '0')}/${date.year}`;
 		} catch (err) {
 			console.error('Error formatting date:', err);
-			return dateStr;
+			// Fallback to basic formatting
+			const date = new Date(dateStr);
+			return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 		}
 	}
 

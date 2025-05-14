@@ -27,7 +27,7 @@
 		field_of_study: string | null;
 		start_date: string | null;
 		end_date: string | null;
-		profile_id: string;
+		profile_id: string | null;
 	}
 
 	// Form state
@@ -60,10 +60,13 @@
 
 		try {
 			const date = Temporal.PlainDate.from(dateStr);
-			return date.toLocaleString('en-GB', { month: 'short', year: 'numeric' });
+			// Format as DD/MM/YYYY
+			return `${date.day.toString().padStart(2, '0')}/${date.month.toString().padStart(2, '0')}/${date.year}`;
 		} catch (err) {
 			console.error('Error formatting date:', err);
-			return dateStr;
+			// Fallback to basic formatting
+			const date = new Date(dateStr);
+			return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 		}
 	}
 
