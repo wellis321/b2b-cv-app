@@ -4,17 +4,6 @@
         "enabled": true,
         "silent": true
     },
-    "git": {
-        "deploymentEnabled": {
-            "main": true
-        }
-    },
-    "buildCommand": "npm run build",
-    "installCommand": "npm install",
-    "framework": "sveltekit",
-    "regions": [
-        "iad1"
-    ],
     "headers": [
         {
             "source": "/(.*)",
