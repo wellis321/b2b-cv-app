@@ -441,6 +441,7 @@
 			// Use session from store
 			const userId = $session.user.id;
 			const accessToken = $session.access_token;
+			const authEmail = $session.user.email; // Get email from auth session
 
 			// Ensure we have a user ID and token
 			if (!userId || !accessToken) {
@@ -454,7 +455,7 @@
 				id: userId,
 				full_name: fullName,
 				username,
-				email,
+				email: authEmail || email, // Prioritize auth email
 				phone,
 				location,
 				photo_url: photoUrl
@@ -895,6 +896,20 @@
 					bind:value={location}
 					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 				/>
+			</div>
+			<div class="mt-4 text-sm text-gray-600">
+				<p>Having trouble with your profile data?</p>
+				<a href="/admin/fix-profile" class="text-indigo-600 hover:text-indigo-800">
+					Run Profile Repair Tool
+				</a>
+				<span class="mx-2">|</span>
+				<a
+					href="/api/profile-diagnostics"
+					target="_blank"
+					class="text-indigo-600 hover:text-indigo-800"
+				>
+					View Profile Diagnostics
+				</a>
 			</div>
 			<div>
 				<button

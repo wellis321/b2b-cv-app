@@ -51,9 +51,30 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
         // Create a new profile record using the admin client (bypasses RLS)
         console.log('Creating new profile for user:', userId);
+
+        // Validate email is the one from auth.user() if possible
+        let profileEmail = email;
+
+        // If email is missing or looks like a placeholder, try to get it from auth user
+        if (!email || email === 'user@example.com') {
+            try {
+                // Get the user's email from auth (this is more reliable)
+                const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+                if (!userError && userData && userData.user.email) {
+                    console.log(`Found user email ${userData.user.email} from auth, using instead of ${email}`);
+                    profileEmail = userData.user.email;
+                }
+            } catch (err) {
+                console.error('Error getting user email from auth:', err);
+                // Continue with the provided email if we can't get it from auth
+            }
+        }
+
         const { data: insertedData, error } = await supabaseAdmin.from('profiles').insert({
             id: userId,
-            email,
+            email: profileEmail,
+            username: `user${userId.substring(0, 8)}`,  // Generate a default username from user ID
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         }).select();

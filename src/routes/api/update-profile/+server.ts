@@ -209,19 +209,29 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             }
 
             // Add optional profile fields if they are provided
-            if ('full_name' in profileData) {
+            if ('full_name' in profileData && profileData.full_name !== undefined) {
                 simplifiedData.full_name = profileData.full_name;
             }
 
-            if ('email' in profileData) {
-                simplifiedData.email = profileData.email;
+            if ('email' in profileData && profileData.email !== undefined) {
+                // Prioritize user's email from authentication if possible
+                if (session.user.email && (!profileData.email || profileData.email === 'user@example.com')) {
+                    simplifiedData.email = session.user.email;
+                    safeLog('info', `[${requestId}] Using authenticated email (${session.user.email}) instead of provided email (${profileData.email})`);
+                } else {
+                    simplifiedData.email = profileData.email;
+                }
+            } else if (session.user.email) {
+                // If no email provided but we have one in the session, use that
+                simplifiedData.email = session.user.email;
+                safeLog('info', `[${requestId}] Adding missing email from session: ${session.user.email}`);
             }
 
-            if ('phone' in profileData) {
+            if ('phone' in profileData && profileData.phone !== undefined) {
                 simplifiedData.phone = profileData.phone;
             }
 
-            if ('location' in profileData) {
+            if ('location' in profileData && profileData.location !== undefined) {
                 simplifiedData.location = profileData.location;
             }
 
