@@ -36,3 +36,46 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+
+# CV App
+
+A modern CV builder application built with SvelteKit, Supabase, and Tailwind CSS.
+
+## Features
+
+- Create a professional CV with sections for personal details, work experience, education, skills, projects, and more
+- Customize which sections to display
+- Generate a PDF export of your CV
+- Shareable public URL for your CV (e.g., `yourdomain.com/cv/@username`)
+- Responsive design that works on any device
+
+## User-Friendly Public URLs
+
+The CV App now supports user-friendly URLs for sharing your CV. When you set a username in your profile settings, you'll automatically get a public URL for your CV in the format:
+
+```
+https://yourdomain.com/cv/@username
+```
+
+This makes it easy to share your CV with employers, add it to your email signature, or include it on your business card. Your username must be:
+
+- At least 3 characters long
+- Contain only lowercase letters, numbers, hyphens, and underscores
+- Start with a letter or number
+
+The legacy UUID-based URLs (e.g., `https://yourdomain.com/cv/123e4567-e89b-12d3-a456-426614174000`) will continue to work for backward compatibility.
+
+## PDF Export
+
+The app provides a customizable PDF export feature that allows you to select which sections of your CV to include in the export.
+
+## Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up your Supabase project and add the URL and anon key to `.env`
+4. Run the development server: `npm run dev`
+
+## Deployment
+
+The app can be deployed to any platform that supports SvelteKit applications. For more information, see the [SvelteKit deployment documentation](https://kit.svelte.dev/docs/deployment).

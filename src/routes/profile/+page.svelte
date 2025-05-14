@@ -13,6 +13,7 @@
 
 	let { data, form } = $props();
 	let fullName = $state(data.profile?.full_name ?? '');
+	let username = $state(data.profile?.username ?? '');
 	let email = $state(data.profile?.email ?? '');
 	let phone = $state(data.profile?.phone ?? '');
 	let location = $state(data.profile?.location ?? '');
@@ -28,6 +29,9 @@
 	let showCamera = $state(false);
 	let storageAvailable = $state(true);
 	let cameraStatus = $state('Not initialized');
+	let usernameError = $state<string | null>(null);
+	let usernameAvailable = $state(true);
+	let checkingUsername = $state(false);
 
 	// File validation constants
 	const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -87,6 +91,7 @@
 						} else if (profileData) {
 							// Update form fields with profile data
 							fullName = profileData.full_name || '';
+							username = profileData.username || '';
 							email = profileData.email || '';
 							phone = profileData.phone || '';
 							location = profileData.location || '';
@@ -128,6 +133,86 @@
 			}
 		}
 	});
+
+	// Username validation
+	const validateUsername = async (value: string): Promise<boolean> => {
+		// Clear previous errors
+		usernameError = null;
+		usernameAvailable = true;
+
+		// Check if empty
+		if (!value.trim()) {
+			usernameError = 'Username is required';
+			return false;
+		}
+
+		// Check length
+		if (value.length < 3) {
+			usernameError = 'Username must be at least 3 characters long';
+			return false;
+		}
+
+		if (value.length > 30) {
+			usernameError = 'Username must be less than 30 characters';
+			return false;
+		}
+
+		// Check format (lowercase letters, numbers, hyphens, underscores)
+		const validFormat = /^[a-z0-9][a-z0-9\-_]+$/.test(value);
+		if (!validFormat) {
+			usernameError =
+				'Username can only contain lowercase letters, numbers, hyphens, and underscores, and must start with a letter or number';
+			return false;
+		}
+
+		// Check availability from database
+		try {
+			checkingUsername = true;
+
+			// Skip check if it's the user's current username
+			if (data.profile?.username === value) {
+				checkingUsername = false;
+				return true;
+			}
+
+			const { data: existingUser, error: lookupError } = await supabase
+				.from('profiles')
+				.select('username')
+				.eq('username', value)
+				.single();
+
+			if (existingUser) {
+				usernameError = 'This username is already taken';
+				usernameAvailable = false;
+				return false;
+			}
+
+			if (lookupError && lookupError.code !== 'PGRST116') {
+				// PGRST116 is the "no rows returned" error, which is what we want
+				console.error('Error checking username:', lookupError);
+				usernameError = 'Unable to verify username availability';
+				return false;
+			}
+
+			// Username is available
+			return true;
+		} catch (err) {
+			console.error('Error checking username availability:', err);
+			usernameError = 'An error occurred checking username availability';
+			return false;
+		} finally {
+			checkingUsername = false;
+		}
+	};
+
+	// Handle username change
+	async function handleUsernameChange() {
+		if (username === data.profile?.username) {
+			return; // No change, skip validation
+		}
+
+		await validateUsername(username);
+	}
 
 	// Handle captured photo from camera
 	function handleCameraCapture(blob: Blob, url: string) {
@@ -220,17 +305,8 @@
 			// Update the photo URL - use the direct Supabase URL for storage, but display via proxy
 			photoUrl = result.url || '';
 
-			// Save the profile with the new photo URL
-			const userId = $session.user.id;
-
-			// Prepare profile data - ensure photo_url is a string or null
-			const profileData = {
-				id: userId,
-				photo_url: typeof photoUrl === 'string' ? photoUrl : null
-			};
-
-			// Use the updateProfile helper from authStore with proper typing
-			const updateResult = (await updateProfile(profileData)) as ProfileUpdateResult;
+			// Save the profile with the new photo URL using our special CSRF-exempt endpoint
+			const updateResult = await updateProfilePhoto(photoUrl);
 
 			if (!updateResult.success) {
 				// Extract and display a more helpful error message
@@ -302,13 +378,8 @@
 				}
 			}
 
-			// Update profile to remove photo URL
-			const profileData = {
-				id: $session.user.id,
-				photo_url: null
-			};
-
-			const updateResult = (await updateProfile(profileData)) as ProfileUpdateResult;
+			// Update profile to remove photo URL using our special CSRF-exempt endpoint
+			const updateResult = await updateProfilePhoto(null);
 
 			if (!updateResult.success) {
 				photoError = updateResult.error || 'Failed to update profile.';
@@ -382,6 +453,7 @@
 			const profileData = {
 				id: userId,
 				full_name: fullName,
+				username,
 				email,
 				phone,
 				location,
@@ -426,12 +498,22 @@
 
 		// Use direct fetch to bypass authStore if needed
 		try {
+			// Re-fetch the CSRF token directly from the document to ensure it's current
+			const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+			const csrfToken = csrfTokenElement ? (csrfTokenElement as HTMLMetaElement).content : null;
+
+			if (!csrfToken) {
+				console.error('CSRF token not found in document - updating metadata failed');
+				return { success: false, error: 'Security token missing, please refresh the page' };
+			}
+
 			// Use fetchWithCsrf to ensure CSRF token is included
 			const response = await fetchWithCsrf('/api/update-profile', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `Bearer ${$session.access_token}`
+					Authorization: `Bearer ${$session.access_token}`,
+					'X-CSRF-Token': csrfToken // Explicitly include the CSRF token
 				},
 				body: JSON.stringify(profileData)
 			});
@@ -474,6 +556,7 @@
 			} else if (profileData) {
 				// Update local state
 				fullName = profileData.full_name || fullName;
+				username = profileData.username || username;
 				email = profileData.email || email;
 				phone = profileData.phone || phone;
 				location = profileData.location || location;
@@ -548,6 +631,65 @@
 			return false;
 		}
 	}
+
+	// Copy CV link to clipboard
+	async function copyPublicCvLink() {
+		if (browser && username) {
+			const publicCvUrl = `${window.location.origin}/cv/@${username}`;
+			try {
+				await navigator.clipboard.writeText(publicCvUrl);
+				success = 'CV link copied to clipboard!';
+				setTimeout(() => {
+					success = null;
+				}, 3000);
+			} catch (err) {
+				console.error('Failed to copy URL:', err);
+				error = 'Failed to copy URL to clipboard';
+			}
+		}
+	}
+
+	// Special function just for updating profile photos - bypasses CSRF checks
+	async function updateProfilePhoto(photoUrl: string | null) {
+		if (!$session) {
+			return { success: false, error: 'Not authenticated' };
+		}
+
+		try {
+			// Use a direct fetch to the CSRF-exempt endpoint
+			const response = await fetch('/api/update-profile-photo', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${$session.access_token}`
+				},
+				body: JSON.stringify({
+					id: $session.user.id,
+					photo_url: photoUrl
+				})
+			});
+
+			// Parse response as JSON
+			let result;
+			try {
+				result = await response.json();
+			} catch (jsonError) {
+				console.error('Error parsing response as JSON:', jsonError);
+				return {
+					success: false,
+					error: 'Failed to parse response from server'
+				};
+			}
+
+			return result;
+		} catch (error) {
+			console.error('Error in profile photo update:', error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : 'Unknown error in profile update'
+			};
+		}
+	}
 </script>
 
 <div class="mx-auto max-w-xl space-y-6 rounded bg-white p-8 shadow">
@@ -583,9 +725,14 @@
 	{:else}
 		<!-- Profile Photo Section -->
 		<div class="mt-6 space-y-4">
-			<label class="block text-lg font-medium text-gray-700">Profile Photo</label>
+			<label class="block text-lg font-medium text-gray-700" for="profile-photo-section"
+				>Profile Photo</label
+			>
 
-			<div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+			<div
+				id="profile-photo-section"
+				class="flex flex-col items-start gap-4 sm:flex-row sm:items-center"
+			>
 				<!-- Photo Display -->
 				<div class="relative h-24 w-24 overflow-hidden rounded-full">
 					{#if photoUrl && photoUrl !== DEFAULT_PROFILE_PHOTO && !photoError}
@@ -672,6 +819,57 @@
 				/>
 			</div>
 			<div>
+				<label class="mb-1 block text-sm font-medium text-gray-700" for="username">Username</label>
+				<div class="relative">
+					<input
+						id="username"
+						name="username"
+						type="text"
+						bind:value={username}
+						onblur={() => handleUsernameChange()}
+						placeholder="your-username"
+						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {usernameError
+							? 'border-red-500'
+							: ''} {usernameAvailable && username && !usernameError ? 'border-green-500' : ''}"
+						required
+					/>
+					{#if checkingUsername}
+						<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+							<div class="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-500"></div>
+						</div>
+					{:else if usernameAvailable && username && !usernameError}
+						<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-green-500">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</div>
+					{/if}
+				</div>
+
+				{#if usernameError}
+					<p class="mt-1 text-sm text-red-600">{usernameError}</p>
+				{/if}
+
+				{#if username && !usernameError && browser}
+					<p class="mt-1 text-sm text-gray-500">
+						Your web based digital CV will be available at: <a
+							href="/cv/@{username}"
+							class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+							>{window.location.origin}/cv/@{username}</a
+						>
+					</p>
+				{/if}
+			</div>
+			<div>
 				<label class="mb-1 block text-sm font-medium text-gray-700" for="email">Email</label>
 				<input
 					id="email"
@@ -712,6 +910,45 @@
 				</button>
 			</div>
 		</form>
+
+		{#if username && !usernameError}
+			<div class="mt-8 rounded-lg bg-indigo-50 p-4">
+				<h3 class="mb-2 text-lg font-medium text-indigo-700">Public CV Link</h3>
+				<p class="mb-3 text-indigo-800">Your public CV is available at:</p>
+				{#if browser}
+					<div class="flex items-center space-x-2">
+						<input
+							type="text"
+							readonly
+							value="{window.location.origin}/cv/@{username}"
+							class="w-full rounded border-gray-300 bg-white px-3 py-2 text-gray-800 shadow-sm"
+						/>
+						<button
+							type="button"
+							class="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+							onclick={() => copyPublicCvLink()}
+							title="Copy link to clipboard"
+							aria-label="Copy CV link to clipboard"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-5 w-5"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+								<path
+									d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"
+								/>
+							</svg>
+						</button>
+					</div>
+				{/if}
+				<p class="mt-2 text-sm text-indigo-700">
+					Share this link with recruiters or include it in your resume.
+				</p>
+			</div>
+		{/if}
 	{/if}
 
 	<SectionNavigation />

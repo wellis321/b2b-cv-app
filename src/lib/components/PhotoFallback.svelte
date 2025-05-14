@@ -37,8 +37,8 @@
 			src={photoUrl}
 			alt="Profile"
 			class="h-full w-full object-cover"
-			on:error={handleError}
-			on:load={handleLoad}
+			onerror={handleError}
+			onload={handleLoad}
 		/>
 
 		{#if isLoading}

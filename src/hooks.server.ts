@@ -9,7 +9,8 @@ const publicRoutes = ['/', '/login', '/signup', '/security-review-client'];
 
 // List of API routes that are exempt from CSRF checks (e.g., webhooks)
 const csrfExemptRoutes = [
-    '/api/verify-session' // This is a read-only endpoint to verify a session
+    '/api/verify-session', // This is a read-only endpoint to verify a session
+    '/api/update-profile-photo' // Special endpoint for photo uploads that handles auth separately
 ];
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -69,7 +70,8 @@ export const handle: Handle = async ({ event, resolve }) => {
                         .insert({
                             id: session.user.id,
                             email: session.user.email,
-                            updated_at: new Date().toISOString()
+                            updated_at: new Date().toISOString(),
+                            username: `user${session.user.id.substring(0, 8)}` // Add default username
                         });
 
                     if (insertError) {

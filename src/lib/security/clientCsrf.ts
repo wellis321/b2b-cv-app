@@ -8,7 +8,19 @@ export function getCsrfTokenFromDocument(): string | null {
     if (!browser) return null;
 
     const metaTag = document.querySelector('meta[name="csrf-token"]');
-    return metaTag ? (metaTag as HTMLMetaElement).content : null;
+    const token = metaTag ? (metaTag as HTMLMetaElement).content : null;
+
+    if (!token) {
+        // More detailed logging to help diagnose CSRF token issues
+        console.warn('CSRF token not found in document. Meta tags:',
+            Array.from(document.querySelectorAll('meta')).map(m => ({
+                name: m.getAttribute('name'),
+                content: m.getAttribute('content')?.substring(0, 10) + '...'
+            }))
+        );
+    }
+
+    return token;
 }
 
 /**
@@ -39,11 +51,24 @@ export function addCsrfToFetchConfig(config: RequestInit = {}): RequestInit {
  * Fetch with CSRF protection
  */
 export async function fetchWithCsrf(url: string, config: RequestInit = {}): Promise<Response> {
-    // Add CSRF token to the request
-    const csrfConfig = addCsrfToFetchConfig(config);
+    try {
+        // Add CSRF token to the request
+        const csrfConfig = addCsrfToFetchConfig(config);
 
-    // Perform the fetch with the updated config
-    return fetch(url, csrfConfig);
+        // Check if CSRF token was added successfully
+        if (!csrfConfig.headers || !(csrfConfig.headers instanceof Headers) ||
+            !Array.from((csrfConfig.headers as Headers).keys()).some(h => h.toLowerCase() === getCsrfHeaderName().toLowerCase())) {
+            console.warn(`CSRF token not added to request to ${url}. Headers:`,
+                csrfConfig.headers ? Array.from((csrfConfig.headers as Headers).entries()) : 'No headers'
+            );
+        }
+
+        // Perform the fetch with the updated config
+        return fetch(url, csrfConfig);
+    } catch (error) {
+        console.error(`Error in CSRF-protected fetch to ${url}:`, error);
+        throw error;
+    }
 }
 
 /**

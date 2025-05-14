@@ -6,18 +6,24 @@
 		showCamera = true,
 		oncapture = undefined,
 		onerror = undefined,
-		onclose = undefined
+		onclose = undefined,
+		onCapture = undefined,
+		onError = () => {},
+		constraints = { video: true, audio: false }
 	} = $props<{
 		showCamera?: boolean;
 		oncapture?: (blob: Blob, url: string) => void;
 		onerror?: (error: string) => void;
 		onclose?: () => void;
+		onCapture?: (blob: Blob) => void;
+		onError?: (error: string) => void;
+		constraints?: MediaStreamConstraints;
 	}>();
 
 	// State
 	let canvasEl: HTMLCanvasElement;
 	let videoContainer: HTMLDivElement;
-	let videoEl: HTMLVideoElement | null = null;
+	let videoEl = $state<HTMLVideoElement | null>(null);
 	let stream: MediaStream | null = null;
 	let error = $state<string | null>(null);
 	let loading = $state(true);

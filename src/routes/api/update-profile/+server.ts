@@ -172,16 +172,63 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
         // Use upsert instead of update to create the profile if it doesn't exist
         try {
-            // Log the exact data we're trying to save
-            const simplifiedData = {
+            // Check if we're creating a new profile or updating an existing one
+            const isNewProfile = !existingProfile;
+            if (isNewProfile) {
+                safeLog('info', `[${requestId}] Creating new profile for user ${session.user.id}`);
+            }
+
+            // Use any type to bypass strict TypeScript requirements while maintaining the same functionality
+            const simplifiedData: any = {
                 id: profileData.id,
                 updated_at: profileData.updated_at
             };
 
+            // Generate a default username for new profiles if not provided
+            if (isNewProfile && (!('username' in profileData) || !profileData.username)) {
+                // Generate a default username based on user ID
+                simplifiedData.username = `user${profileData.id.substring(0, 8)}`;
+                safeLog('debug', `[${requestId}] Setting default username: ${simplifiedData.username}`);
+            }
+
+            // If username is included, validate and add it
+            if ('username' in profileData && profileData.username) {
+                // Validate username format using our regex pattern (must match the DB constraint)
+                const usernamePattern = /^[a-z0-9][a-z0-9\-_]+$/;
+                if (typeof profileData.username === 'string' && usernamePattern.test(profileData.username)) {
+                    simplifiedData.username = profileData.username;
+                    safeLog('debug', `[${requestId}] Setting username to ${profileData.username}`);
+                } else {
+                    safeLog('warn', `[${requestId}] Invalid username format: ${profileData.username}`);
+                    return json({
+                        success: false,
+                        error: 'Invalid username format',
+                        message: 'Username can only contain lowercase letters, numbers, hyphens, and underscores, and must start with a letter or number'
+                    }, { status: 400 });
+                }
+            }
+
+            // Add optional profile fields if they are provided
+            if ('full_name' in profileData) {
+                simplifiedData.full_name = profileData.full_name;
+            }
+
+            if ('email' in profileData) {
+                simplifiedData.email = profileData.email;
+            }
+
+            if ('phone' in profileData) {
+                simplifiedData.phone = profileData.phone;
+            }
+
+            if ('location' in profileData) {
+                simplifiedData.location = profileData.location;
+            }
+
             // If photo_url is included, add it safely
             if ('photo_url' in profileData) {
                 if (profileData.photo_url === null) {
-                    (simplifiedData as any).photo_url = null;
+                    simplifiedData.photo_url = null;
                     safeLog('debug', `[${requestId}] Setting photo_url to null`);
                 } else if (typeof profileData.photo_url === 'string') {
                     // Validate URL structure
@@ -200,14 +247,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                         });
 
                         new URL(photoUrl);
-                        (simplifiedData as any).photo_url = photoUrl;
+                        simplifiedData.photo_url = photoUrl;
                     } catch (urlError) {
                         safeLog('warn', `[${requestId}] Invalid URL, not including photo_url:`, {
                             error: urlError instanceof Error ? urlError.message : 'Unknown error',
                             url: profileData.photo_url
                         });
                         // Set to null instead of keeping an invalid URL
-                        (simplifiedData as any).photo_url = null;
+                        simplifiedData.photo_url = null;
                     }
                 } else {
                     safeLog('warn', `[${requestId}] photo_url is not a string or null, type: ${typeof profileData.photo_url}`);

@@ -226,7 +226,11 @@
 			}
 
 			// Generate shareable URL
-			shareableUrl = `${window.location.origin}/cv/${userId}`;
+			if (profile.username) {
+				shareableUrl = `${window.location.origin}/cv/@${profile.username}`;
+			} else {
+				shareableUrl = `${window.location.origin}/cv/${userId}`;
+			}
 
 			// Clear errors
 			error = null;
