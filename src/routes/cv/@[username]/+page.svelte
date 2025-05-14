@@ -1,33 +1,32 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { formatDate } from '$lib/pdfGenerator';
+	import { cvStore } from '$lib/stores/cvDataStore';
 
-	// Get CV data from server load
-	let { data } = $props();
+	// Get username from the URL
+	const username = $page.params.username;
 
-	// Destructure data for easier access
-	const {
-		profile,
-		workExperiences,
-		projects,
-		skills,
-		education,
-		certifications,
-		memberships,
-		interests,
-		qualificationEquivalence
-	} = data;
-
-	// State variables
-	let error = $state<string | null>(null);
-	let loading = $state<boolean>(false);
-	let activeTab = $state<string>('all');
+	// CV data from the store
+	let cvData = $state($cvStore);
+	// Extract the loading state as a separate variable to avoid type issues
+	const { loading } = cvStore;
+	let loadingState = $state($loading);
+	let activeTab = $state('all');
 	let windowWidth = $state<number>(0);
+	let photoLoadError = $state(false);
 
 	// Format profile photo URL or use default
 	const defaultPhotoUrl = '/images/default-profile.svg';
-	const photoUrl = profile?.photo_url || defaultPhotoUrl;
+	let photoUrl = $derived(cvData.profile?.photo_url || defaultPhotoUrl);
+
+	// Log photo URL for debugging when it changes
+	$effect(() => {
+		if (cvData.profile?.photo_url) {
+			console.log('Photo URL from profile:', cvData.profile.photo_url);
+		}
+	});
 
 	// Update window width on mount and resize
 	onMount(() => {
@@ -37,6 +36,13 @@
 				windowWidth = window.innerWidth;
 			};
 			window.addEventListener('resize', handleResize);
+
+			// Load data by username
+			if (username) {
+				console.log('Loading CV data for username:', username);
+				cvStore.loadByUsername(username);
+			}
+
 			return () => {
 				window.removeEventListener('resize', handleResize);
 			};
@@ -53,8 +59,9 @@
 	// Handle image error
 	function handleImageError(event: Event) {
 		const imgElement = event.target as HTMLImageElement;
-		imgElement.onerror = null;
-		imgElement.src = defaultPhotoUrl;
+		console.error('Failed to load image:', imgElement.src);
+		photoLoadError = true;
+		imgElement.style.display = 'none';
 	}
 
 	// Group skills by category
@@ -62,9 +69,9 @@
 
 	// Process skills by category
 	$effect(() => {
-		if (skills && skills.length > 0) {
+		if (cvData.skills && cvData.skills.length > 0) {
 			// Group skills by category
-			const skillsByCategory = skills.reduce<Record<string, Skill[]>>((acc, skill) => {
+			const skillsByCategory = cvData.skills.reduce<Record<string, Skill[]>>((acc, skill) => {
 				const category = skill.category || 'Other';
 				if (!acc[category]) {
 					acc[category] = [];
@@ -96,29 +103,31 @@
 		activeTab = tab;
 	}
 
-	// Debug variables
+	// Subscribe to CV store changes
 	$effect(() => {
-		if (browser) {
-			console.log('Profile:', profile);
-			console.log('Work Experiences:', workExperiences);
-			console.log('Skills:', skills);
-			console.log('Education:', education);
-		}
+		cvData = $cvStore;
+		// No need to update loadingState here since it's directly subscribed to $loading
+		console.log('CV store updated:', $cvStore);
 	});
+
+	// Handle print function
+	function handlePrint() {
+		window.print();
+	}
 </script>
 
 <svelte:head>
-	{#if profile}
-		<title>{profile.full_name}'s CV</title>
-		<meta name="description" content="View {profile.full_name}'s professional CV" />
+	{#if cvData.profile}
+		<title>{cvData.profile.full_name}'s CV</title>
+		<meta name="description" content="View {cvData.profile.full_name}'s professional CV" />
 		<!-- Open Graph meta tags for better social sharing -->
-		<meta property="og:title" content="{profile.full_name}'s Professional CV" />
+		<meta property="og:title" content="{cvData.profile.full_name}'s Professional CV" />
 		<meta
 			property="og:description"
-			content="View the professional CV and qualifications of {profile.full_name}"
+			content="View the professional CV and qualifications of {cvData.profile.full_name}"
 		/>
-		{#if profile.photo_url}
-			<meta property="og:image" content={profile.photo_url} />
+		{#if cvData.profile.photo_url}
+			<meta property="og:image" content={cvData.profile.photo_url} />
 		{/if}
 		<meta property="og:type" content="profile" />
 		{#if browser}
@@ -126,13 +135,13 @@
 		{/if}
 		<!-- Twitter Card meta tags -->
 		<meta name="twitter:card" content="summary" />
-		<meta name="twitter:title" content="{profile.full_name}'s Professional CV" />
+		<meta name="twitter:title" content="{cvData.profile.full_name}'s Professional CV" />
 		<meta
 			name="twitter:description"
-			content="View the professional CV and qualifications of {profile.full_name}"
+			content="View the professional CV and qualifications of {cvData.profile.full_name}"
 		/>
-		{#if profile.photo_url}
-			<meta name="twitter:image" content={profile.photo_url} />
+		{#if cvData.profile.photo_url}
+			<meta name="twitter:image" content={cvData.profile.photo_url} />
 		{/if}
 	{:else}
 		<title>CV</title>
@@ -140,11 +149,11 @@
 	{/if}
 </svelte:head>
 
-{#if error}
+{#if loadingState.error}
 	<div class="container mx-auto max-w-5xl px-4 py-8">
-		<div class="mb-4 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg">{error}</div>
+		<div class="mb-4 rounded-lg bg-red-100 p-4 text-red-700 shadow-lg">{loadingState.error}</div>
 	</div>
-{:else if loading}
+{:else if loadingState.loading}
 	<div class="flex h-screen items-center justify-center">
 		<div class="text-center">
 			<div
@@ -153,7 +162,7 @@
 			<p class="text-xl text-gray-600">Loading CV...</p>
 		</div>
 	</div>
-{:else if !profile}
+{:else if !cvData.profile}
 	<div class="container mx-auto my-16 max-w-2xl px-4">
 		<div class="rounded-lg bg-yellow-50 p-6 shadow-lg">
 			<h2 class="mb-2 text-xl font-semibold text-yellow-800">CV Not Found</h2>
@@ -175,14 +184,14 @@
 			<div class="container mx-auto max-w-5xl">
 				<div class="flex flex-col items-center gap-8 md:flex-row md:items-start md:gap-12">
 					<div class="order-2 flex-1 md:order-1">
-						<h1 class="text-4xl font-bold">{profile.full_name || 'Professional CV'}</h1>
+						<h1 class="text-4xl font-bold">{cvData.profile.full_name || 'Professional CV'}</h1>
 
-						{#if profile.username}
-							<p class="mt-2 text-indigo-200">@{profile.username}</p>
+						{#if cvData.profile.username}
+							<p class="mt-2 text-indigo-200">@{cvData.profile.username}</p>
 						{/if}
 
 						<div class="mt-6 space-y-2">
-							{#if profile.location}
+							{#if cvData.profile.location}
 								<div class="flex items-center gap-2">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -196,11 +205,11 @@
 											clip-rule="evenodd"
 										/>
 									</svg>
-									<span>{profile.location}</span>
+									<span>{cvData.profile.location}</span>
 								</div>
 							{/if}
 
-							{#if profile.email}
+							{#if cvData.profile.email}
 								<div class="flex items-center gap-2">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -213,11 +222,13 @@
 										/>
 										<path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
 									</svg>
-									<a href="mailto:{profile.email}" class="hover:underline">{profile.email}</a>
+									<a href="mailto:{cvData.profile.email}" class="hover:underline"
+										>{cvData.profile.email}</a
+									>
 								</div>
 							{/if}
 
-							{#if profile.phone}
+							{#if cvData.profile.phone}
 								<div class="flex items-center gap-2">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
@@ -229,14 +240,14 @@
 											d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"
 										/>
 									</svg>
-									<span>{profile.phone}</span>
+									<span>{cvData.profile.phone}</span>
 								</div>
 							{/if}
 						</div>
 
 						<div class="mt-8 print:hidden">
 							<button
-								onclick={() => window.print()}
+								onclick={handlePrint}
 								class="inline-flex items-center gap-2 rounded bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
 							>
 								<svg
@@ -258,16 +269,18 @@
 
 					<!-- Profile photo -->
 					<div class="order-1 md:order-2">
-						<div
-							class="h-40 w-40 overflow-hidden rounded-full border-4 border-white shadow-xl md:h-48 md:w-48"
-						>
-							<img
-								src={photoUrl}
-								alt={profile.full_name || 'Profile'}
-								class="h-full w-full object-cover"
-								onerror={(e) => handleImageError(e)}
-							/>
-						</div>
+						{#if cvData.profile.photo_url && !photoLoadError}
+							<div
+								class="h-32 w-32 overflow-hidden rounded-full border-4 border-white shadow-lg md:h-40 md:w-40"
+							>
+								<img
+									src={photoUrl}
+									alt={cvData.profile.full_name}
+									class="h-full w-full object-cover"
+									onerror={handleImageError}
+								/>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -285,7 +298,7 @@
 					>
 						All
 					</button>
-					{#if workExperiences && workExperiences.length > 0}
+					{#if cvData.workExperiences && cvData.workExperiences.length > 0}
 						<button
 							class="px-4 py-2 text-sm font-medium {activeTab === 'work'
 								? 'border-b-2 border-indigo-600 text-indigo-600'
@@ -295,7 +308,7 @@
 							Work
 						</button>
 					{/if}
-					{#if skills && skills.length > 0}
+					{#if cvData.skills && cvData.skills.length > 0}
 						<button
 							class="px-4 py-2 text-sm font-medium {activeTab === 'skills'
 								? 'border-b-2 border-indigo-600 text-indigo-600'
@@ -305,7 +318,7 @@
 							Skills
 						</button>
 					{/if}
-					{#if education && education.length > 0}
+					{#if cvData.education && cvData.education.length > 0}
 						<button
 							class="px-4 py-2 text-sm font-medium {activeTab === 'education'
 								? 'border-b-2 border-indigo-600 text-indigo-600'
@@ -315,7 +328,7 @@
 							Education
 						</button>
 					{/if}
-					{#if (projects && projects.length > 0) || (certifications && certifications.length > 0) || (memberships && memberships.length > 0) || (interests && interests.length > 0)}
+					{#if (cvData.projects && cvData.projects.length > 0) || (cvData.certifications && cvData.certifications.length > 0) || (cvData.memberships && cvData.memberships.length > 0) || (cvData.interests && cvData.interests.length > 0) || (cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0)}
 						<button
 							class="px-4 py-2 text-sm font-medium {activeTab === 'more'
 								? 'border-b-2 border-indigo-600 text-indigo-600'
@@ -336,7 +349,7 @@
 				<aside class="md:col-span-1">
 					<div class="space-y-8">
 						<!-- Skills section (always visible on larger screens) -->
-						{#if skills && skills.length > 0 && (activeTab === 'all' || activeTab === 'skills' || windowWidth >= 768)}
+						{#if cvData.skills && cvData.skills.length > 0 && (activeTab === 'all' || activeTab === 'skills' || windowWidth >= 768)}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Skills
@@ -364,7 +377,7 @@
 									</div>
 								{:else}
 									<div class="mt-4 flex flex-wrap gap-2">
-										{#each skills as skill}
+										{#each cvData.skills as skill}
 											<span class="rounded-full bg-indigo-100 px-3 py-1 text-sm text-indigo-800">
 												{skill.name}
 												{#if skill.level}
@@ -378,14 +391,14 @@
 						{/if}
 
 						<!-- Education section (visible in sidebar on larger screens) -->
-						{#if education && education.length > 0 && (activeTab === 'all' || activeTab === 'education' || windowWidth >= 768)}
+						{#if cvData.education && cvData.education.length > 0 && (activeTab === 'all' || activeTab === 'education' || windowWidth >= 768)}
 							<section class="rounded-lg bg-white p-6 shadow-md md:block print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Education
 								</h2>
 
 								<div class="mt-4 space-y-4">
-									{#each education as edu}
+									{#each cvData.education as edu}
 										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
 											<h3 class="font-semibold text-gray-800">{edu.institution}</h3>
 											<p class="text-gray-700">{edu.qualification || edu.degree}</p>
@@ -406,14 +419,14 @@
 						{/if}
 
 						<!-- Certifications (in sidebar on larger screens) -->
-						{#if certifications && certifications.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
+						{#if cvData.certifications && cvData.certifications.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Certifications
 								</h2>
 
 								<div class="mt-4 space-y-4">
-									{#each certifications as cert}
+									{#each cvData.certifications as cert}
 										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
 											<h3 class="font-semibold text-gray-800">{cert.name}</h3>
 											{#if cert.issuer}
@@ -432,6 +445,28 @@
 								</div>
 							</section>
 						{/if}
+
+						<!-- Qualification Equivalence section -->
+						{#if cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
+							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
+								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
+									Qualification Equivalence
+								</h2>
+
+								<div class="mt-4 space-y-4">
+									{#each cvData.qualificationEquivalence as qualification}
+										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+											<h3 class="font-semibold text-gray-800">{qualification.level}</h3>
+											{#if qualification.description}
+												<p class="mt-1 whitespace-pre-line text-gray-700">
+													{qualification.description}
+												</p>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</section>
+						{/if}
 					</div>
 				</aside>
 
@@ -439,14 +474,14 @@
 				<div class="md:col-span-2">
 					<div class="space-y-8">
 						<!-- Work Experience section -->
-						{#if workExperiences && workExperiences.length > 0 && (activeTab === 'all' || activeTab === 'work')}
+						{#if cvData.workExperiences && cvData.workExperiences.length > 0 && (activeTab === 'all' || activeTab === 'work')}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Work Experience
 								</h2>
 
 								<div class="mt-6 space-y-8">
-									{#each workExperiences as job}
+									{#each cvData.workExperiences as job}
 										<div class="relative border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
 											<!-- Timeline dot for visual appeal (only on larger screens) -->
 											<div
@@ -479,14 +514,14 @@
 						{/if}
 
 						<!-- Projects section -->
-						{#if projects && projects.length > 0 && (activeTab === 'all' || activeTab === 'more')}
+						{#if cvData.projects && cvData.projects.length > 0 && (activeTab === 'all' || activeTab === 'more')}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Projects
 								</h2>
 
 								<div class="mt-6 grid gap-6 sm:grid-cols-2">
-									{#each projects as project}
+									{#each cvData.projects as project}
 										<div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
 											<div class="border-b border-gray-100 bg-gray-50 px-4 py-3">
 												<h3 class="font-semibold text-gray-800">{project.title}</h3>
@@ -537,14 +572,14 @@
 						{/if}
 
 						<!-- Memberships section -->
-						{#if memberships && memberships.length > 0 && (activeTab === 'all' || activeTab === 'more')}
+						{#if cvData.memberships && cvData.memberships.length > 0 && (activeTab === 'all' || activeTab === 'more')}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Professional Memberships
 								</h2>
 
 								<div class="mt-4 space-y-4">
-									{#each memberships as membership}
+									{#each cvData.memberships as membership}
 										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
 											<div class="flex flex-wrap items-start justify-between gap-2">
 												<div>
@@ -568,14 +603,14 @@
 						{/if}
 
 						<!-- Interests section -->
-						{#if interests && interests.length > 0 && (activeTab === 'all' || activeTab === 'more')}
+						{#if cvData.interests && cvData.interests.length > 0 && (activeTab === 'all' || activeTab === 'more')}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
 								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
 									Interests & Activities
 								</h2>
 
 								<div class="mt-4 grid gap-4 sm:grid-cols-2">
-									{#each interests as interest}
+									{#each cvData.interests as interest}
 										<div class="rounded-lg bg-gray-50 p-4">
 											<h3 class="font-semibold text-gray-800">{interest.name}</h3>
 											{#if interest.description}
