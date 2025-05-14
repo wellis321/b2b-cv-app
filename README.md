@@ -99,6 +99,7 @@ The app is configured for deployment on Vercel with a Supabase backend. Follow t
 ### Optimizations
 
 The app has been optimized for production:
+
 - Uses `@sveltejs/adapter-vercel` for optimal deployment on Vercel
 - Implements caching strategies for public CV routes
 - Configures security headers via `vercel.json`

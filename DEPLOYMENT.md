@@ -13,6 +13,7 @@ This document outlines the process for deploying the CV App to production.
 ### 1. Supabase Setup
 
 1. Create a new Supabase project for production:
+
    - Log in to your Supabase account
    - Create a new project with a name like "cv-app-production"
    - Take note of the generated database password
@@ -48,16 +49,19 @@ You'll need to configure the following environment variables for production:
 We've included a `deploy.sh` script to simplify the deployment process:
 
 1. Make sure you have the Vercel CLI installed:
+
    ```bash
    npm i -g vercel
    ```
 
 2. Log in to Vercel:
+
    ```bash
    vercel login
    ```
 
 3. Run the deployment script:
+
    ```bash
    # For a preview deployment
    ./deploy.sh
@@ -69,6 +73,7 @@ We've included a `deploy.sh` script to simplify the deployment process:
 ### Option 3: GitHub CI/CD Integration
 
 Vercel automatically integrates with GitHub to deploy:
+
 - Main branch updates trigger production deployments
 - Pull requests trigger preview deployments
 

@@ -2,17 +2,17 @@
 
 ```json
 {
-    "mcpServers": {
-        "supabase": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@supabase/mcp-server-supabase@latest",
-                "--access-token",
-                "sbp_0c6b9843c34f4cf24d0e1dcd580e9af601fc5df1"
-            ]
-        }
-    }
+	"mcpServers": {
+		"supabase": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@supabase/mcp-server-supabase@latest",
+				"--access-token",
+				"sbp_0c6b9843c34f4cf24d0e1dcd580e9af601fc5df1"
+			]
+		}
+	}
 }
 ```
 
@@ -147,7 +147,6 @@ bun.lockb
 		"@supabase/supabase-js": "^2.49.4"
 	}
 }
-
 ```
 
 # README.md
@@ -162,10 +161,13 @@ Everything you need to build a Svelte project, powered by [`sv`](https://github.
 If you're seeing this, you've probably already done this step. Congrats!
 
 \`\`\`bash
+
 # create a new project in the current directory
+
 npx sv create
 
 # create a new project in my-app
+
 npx sv create my-app
 \`\`\`
 
@@ -177,6 +179,7 @@ Once you've created a project and installed dependencies with `npm install` (or 
 npm run dev
 
 # or start the server and open the app in a new browser tab
+
 npm run dev -- --open
 \`\`\`
 
@@ -191,14 +194,12 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
-
 ```
 
 # src/app.css
 
 ```css
 @import 'tailwindcss';
-
 ```
 
 # src/app.d.ts
@@ -217,7 +218,6 @@ declare global {
 }
 
 export {};
-
 ```
 
 # src/app.html
@@ -235,7 +235,6 @@ export {};
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
-
 ```
 
 # src/lib/auth-form.svelte
@@ -317,14 +316,12 @@ export {};
 		>
 	</form>
 </div>
-
 ```
 
 # src/lib/index.ts
 
 ```ts
 // place files you want to import through the `$lib` alias in this folder.
-
 ```
 
 # src/lib/supabase.ts
@@ -339,7 +336,7 @@ console.log('SUPABASE_URL:', import.meta.env.PUBLIC_SUPABASE_URL);
 console.log('SUPABASE_ANON_KEY:', import.meta.env.PUBLIC_SUPABASE_ANON_KEY);
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
+	throw new Error('Missing Supabase environment variables');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -399,7 +396,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 </div>
 
 console.log('ALL ENV:', import.meta.env);
-
 ```
 
 # src/routes/+page.svelte
@@ -466,7 +462,6 @@ console.log('ALL ENV:', import.meta.env);
 		</div>
 	</div>
 </div>
-
 ```
 
 # src/routes/certifications/+page.server.ts
@@ -475,10 +470,10 @@ console.log('ALL ENV:', import.meta.env);
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Certification saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Certification saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -550,7 +545,6 @@ export const actions: Actions = {
 		>Save Certification</button
 	>
 </form>
-
 ```
 
 # src/routes/education/+page.server.ts
@@ -559,10 +553,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Education saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Education saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -676,7 +670,6 @@ export const actions: Actions = {
 		>Save Education</button
 	>
 </form>
-
 ```
 
 # src/routes/interests/+page.server.ts
@@ -685,10 +678,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Interest saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Interest saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -729,7 +722,6 @@ export const actions: Actions = {
 		>Save Interest</button
 	>
 </form>
-
 ```
 
 # src/routes/memberships/+page.server.ts
@@ -738,10 +730,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Membership saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Membership saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -809,7 +801,6 @@ export const actions: Actions = {
 		>Save Membership</button
 	>
 </form>
-
 ```
 
 # src/routes/profile/+page.server.ts
@@ -819,12 +810,12 @@ import type { Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        // In the future, connect to Supabase here
-        // For now, just return a success message
-        return { success: true, message: 'Profile saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		// In the future, connect to Supabase here
+		// For now, just return a success message
+		return { success: true, message: 'Profile saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -888,7 +879,6 @@ export const actions: Actions = {
 		>Save Profile</button
 	>
 </form>
-
 ```
 
 # src/routes/projects/+page.server.ts
@@ -897,10 +887,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Project saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Project saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -1017,7 +1007,6 @@ export const actions: Actions = {
 		>Save Project</button
 	>
 </form>
-
 ```
 
 # src/routes/skills/+page.server.ts
@@ -1026,10 +1015,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Skill saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Skill saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -1081,7 +1070,6 @@ export const actions: Actions = {
 		>Save Skill</button
 	>
 </form>
-
 ```
 
 # src/routes/work-experience/+page.server.ts
@@ -1090,10 +1078,10 @@ export const actions: Actions = {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
-        const formData = await request.formData();
-        return { success: true, message: 'Work experience saved (not yet connected to database).' };
-    }
+	default: async ({ request }) => {
+		const formData = await request.formData();
+		return { success: true, message: 'Work experience saved (not yet connected to database).' };
+	}
 };
 ```
 
@@ -1207,7 +1195,6 @@ export const actions: Actions = {
 		>Save Experience</button
 	>
 </form>
-
 ```
 
 # static/favicon.png
@@ -1383,7 +1370,6 @@ const config = {
 };
 
 export default config;
-
 ```
 
 # tsconfig.json
@@ -1408,7 +1394,6 @@ export default config;
 	// If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes
 	// from the referenced tsconfig.json - TypeScript does not merge them in
 }
-
 ```
 
 # vite.config.ts
@@ -1421,6 +1406,4 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()]
 });
-
 ```
-

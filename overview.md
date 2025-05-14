@@ -1,20 +1,25 @@
 # CV Builder Application Overview
 
 ## Introduction
+
 The CV Builder application allows users to create their professional CV/resume through a user-friendly interface. The application is built with SvelteKit, offering both frontend and backend capabilities, and uses Supabase for data storage and user authentication.
 
 ## Sections
 
 ### 1. Personal Profile
+
 This section captures the user's basic personal information:
-- **Full Name** (first name, middle name, last name) - *first and last name required*
-- **Email** - *optional*
-- **Phone** - *optional*
-- **Location** - *optional*
-- **Photo** - *optional*, with camera integration for direct capture
+
+- **Full Name** (first name, middle name, last name) - _first and last name required_
+- **Email** - _optional_
+- **Phone** - _optional_
+- **Location** - _optional_
+- **Photo** - _optional_, with camera integration for direct capture
 
 ### 2. Work Experience
+
 Displays professional history in descending date order (most recent first):
+
 - **Experience Title** - Position or role at the company
 - **Experience Start Date** - When the position began
 - **Experience End Date** - When the position ended (or "Present" if current)
@@ -22,7 +27,9 @@ Displays professional history in descending date order (most recent first):
 - **Key Responsibilities** - Categorized responsibilities with ability to create multiple items within each category
 
 ### 3. Education
+
 Details of educational background:
+
 - **Institution Name**
 - **Degree/Qualification**
 - **Field of Study**
@@ -31,7 +38,9 @@ Details of educational background:
 - **Description** - Additional details about courses, achievements, etc.
 
 ### 4. Projects
+
 Showcase of significant projects:
+
 - **Project Name**
 - **Duration/Dates**
 - **Description**
@@ -40,13 +49,17 @@ Showcase of significant projects:
 - **Outcomes/Results**
 
 ### 5. Skills
+
 List of professional skills:
+
 - **Skill Name**
 - **Proficiency Level** - Optional rating
 - **Category** - For organizing skills (e.g., Technical, Soft Skills, Languages)
 
 ### 6. Certifications
+
 Professional certifications and credentials:
+
 - **Certification Name**
 - **Issuing Organization**
 - **Date Obtained**
@@ -54,25 +67,32 @@ Professional certifications and credentials:
 - **Credential ID** (optional)
 
 ### 7. Professional Qualification Equivalence
+
 For international qualifications or degree equivalence:
+
 - **Original Qualification**
 - **Equivalent Qualification**
 - **Accredited By**
 - **Country/Region**
 
 ### 8. Professional Memberships
+
 Affiliations with professional organizations:
+
 - **Organization Name**
 - **Membership Type**
 - **Member Since**
 - **Membership ID** (optional)
 
 ### 9. Interests and Activities
+
 Personal interests that demonstrate character and additional skills:
+
 - **Interest/Activity Name**
 - **Description** - Brief explanation of involvement or relevance
 
 ## Output Options
+
 The completed CV can be:
 
 1. **Viewed as a Website** - Online presentation format
@@ -85,6 +105,7 @@ The completed CV can be:
    - Order of sections can be customized for the PDF
 
 ## Technical Features
+
 - User authentication and profile management
 - Data persistence with Supabase
 - Photo upload and camera integration

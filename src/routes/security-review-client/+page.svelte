@@ -42,7 +42,7 @@
 				{
 					id: 'cors-config',
 					description: 'Implement proper CORS configuration for production',
-					completed: false
+					completed: true
 				}
 			]
 		},
@@ -62,7 +62,7 @@
 				{
 					id: 'error-boundaries',
 					description: 'Add proper error boundaries in Svelte components',
-					completed: false
+					completed: true
 				}
 			]
 		},
@@ -97,12 +97,12 @@
 				{
 					id: 'specific-adapter',
 					description: 'Use a specific adapter for your hosting environment',
-					completed: false
+					completed: true
 				},
 				{
 					id: 'implement-rate-limiting',
 					description: 'Implement rate limiting for authentication and API endpoints',
-					completed: false
+					completed: true
 				},
 				{
 					id: 'add-waf',
@@ -137,12 +137,12 @@
 				{
 					id: 'strong-validation',
 					description: 'Add strong validation for all user inputs using a library like Zod',
-					completed: false
+					completed: true
 				},
 				{
 					id: 'server-side-validation',
 					description: 'Implement server-side validation even if client has validation',
-					completed: false
+					completed: true
 				}
 			]
 		},

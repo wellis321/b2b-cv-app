@@ -1,27 +1,21 @@
 {
-    "mcpServers": {
-        "supabase": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@supabase/mcp-server-supabase@latest",
-                "--access-token",
-                "sbp_0c6b9843c34f4cf24d0e1dcd580e9af601fc5df1"
-            ]
-        },
-        "browser-tools-mcp": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@agentdeskai/browser-tools-mcp@latest"
-            ]
-        },
-        "VercelMCP": {
-            "command": "npx",
-            "args": [
-                "mcp-remote",
-                "https://cv-app-git-main-william-ellis-projects-69da8b96.vercel.app"
-            ]
-        }
-    }
+	"mcpServers": {
+		"supabase": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"@supabase/mcp-server-supabase@latest",
+				"--access-token",
+				"sbp_0c6b9843c34f4cf24d0e1dcd580e9af601fc5df1"
+			]
+		},
+		"browser-tools-mcp": {
+			"command": "npx",
+			"args": ["-y", "@agentdeskai/browser-tools-mcp@latest"]
+		},
+		"VercelMCP": {
+			"command": "npx",
+			"args": ["mcp-remote", "https://cv-app-git-main-william-ellis-projects-69da8b96.vercel.app"]
+		}
+	}
 }

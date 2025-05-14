@@ -5,22 +5,26 @@ This checklist should be completed before deploying the CV application to produc
 ## Security
 
 - [ ] **Environment Variables**
+
   - [ ] Ensure all sensitive values are stored in environment variables
   - [ ] Verify that no secrets are hardcoded or committed to the repository
   - [ ] Set up proper environment variable handling in hosting platform (Vercel)
 
 - [ ] **Authentication**
+
   - [ ] Test user registration flow
   - [ ] Test user login flow
   - [ ] Verify session management and token refresh
   - [ ] Ensure password reset functionality works correctly
 
 - [ ] **Authorization**
+
   - [ ] Verify all Row Level Security (RLS) policies are correctly implemented
   - [ ] Test that users can only access their own data
   - [ ] Ensure admin routes are properly protected
 
 - [ ] **API Security**
+
   - [ ] CSRF protection is enabled for all state-changing operations
   - [ ] Rate limiting is implemented for all API endpoints
   - [ ] Verify that security headers are correctly set
@@ -34,11 +38,13 @@ This checklist should be completed before deploying the CV application to produc
 ## Database
 
 - [ ] **Schema**
+
   - [ ] All required tables and relationships are in place
   - [ ] Database indexes are properly set up for performance
   - [ ] Foreign key constraints are correctly implemented
 
 - [ ] **Migrations**
+
   - [ ] All necessary migrations are applied
   - [ ] Database schema matches production requirements
   - [ ] Verify that development and production schemas match
@@ -50,6 +56,7 @@ This checklist should be completed before deploying the CV application to produc
 ## Performance
 
 - [ ] **Optimization**
+
   - [ ] Assets are properly optimized (images, scripts, styles)
   - [ ] Lazy loading is implemented for non-critical resources
   - [ ] API responses are optimized and paginated where necessary
@@ -61,6 +68,7 @@ This checklist should be completed before deploying the CV application to produc
 ## Monitoring & Logging
 
 - [ ] **Error Tracking**
+
   - [ ] Error boundaries are implemented in all critical components
   - [ ] Server errors are properly logged
 
@@ -71,10 +79,12 @@ This checklist should be completed before deploying the CV application to produc
 ## Deployment
 
 - [ ] **CI/CD**
+
   - [ ] CI pipeline is configured to run tests before deployment
   - [ ] Automated deployment to staging/production is set up
 
 - [ ] **Hosting Configuration**
+
   - [ ] Vercel project is correctly configured
   - [ ] Custom domain is set up with SSL
   - [ ] Network rules and firewalls are configured
@@ -86,10 +96,12 @@ This checklist should be completed before deploying the CV application to produc
 ## Testing
 
 - [ ] **Functional Testing**
+
   - [ ] All core features work as expected
   - [ ] Edge cases are handled properly
 
 - [ ] **Cross-Browser Testing**
+
   - [ ] Application works in all major browsers
   - [ ] Mobile responsiveness is verified
 
@@ -100,6 +112,7 @@ This checklist should be completed before deploying the CV application to produc
 ## Documentation
 
 - [ ] **Technical Documentation**
+
   - [ ] API endpoints are documented
   - [ ] Database schema is documented
   - [ ] Deployment process is documented
@@ -111,6 +124,7 @@ This checklist should be completed before deploying the CV application to produc
 ## Post-Deployment
 
 - [ ] **Verification**
+
   - [ ] All features work in production environment
   - [ ] No unexpected errors in production logs
 
@@ -121,6 +135,7 @@ This checklist should be completed before deploying the CV application to produc
 ## Compliance & Legal
 
 - [ ] **Privacy**
+
   - [ ] Privacy policy is in place and accessible
   - [ ] User data handling complies with relevant regulations
 
@@ -132,12 +147,12 @@ This checklist should be completed before deploying the CV application to produc
 
 ## Final Sign-Off
 
-| Component        | Verified By     | Date       | Notes                |
-|------------------|-----------------|------------|----------------------|
-| Security         |                 |            |                      |
-| Database         |                 |            |                      |
-| Performance      |                 |            |                      |
-| Monitoring       |                 |            |                      |
-| Deployment       |                 |            |                      |
-| Testing          |                 |            |                      |
-| Documentation    |                 |            |                      |
+| Component     | Verified By | Date | Notes |
+| ------------- | ----------- | ---- | ----- |
+| Security      |             |      |       |
+| Database      |             |      |       |
+| Performance   |             |      |       |
+| Monitoring    |             |      |       |
+| Deployment    |             |      |       |
+| Testing       |             |      |       |
+| Documentation |             |      |       |
