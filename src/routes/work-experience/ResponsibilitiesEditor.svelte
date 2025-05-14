@@ -28,6 +28,7 @@
 	let categories = $state<CategoryWithItems[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let isLoadingInProgress = $state(false);
 
 	// Form state
 	let newCategoryName = $state('');
@@ -50,6 +51,7 @@
 		await loadResponsibilities();
 	});
 
+	// Load responsibilities (categories and items)
 	async function loadResponsibilities() {
 		if (!workExperienceId) {
 			console.error('Missing workExperienceId in ResponsibilitiesEditor');
@@ -58,32 +60,38 @@
 			return;
 		}
 
-		loading = true;
-		error = null;
+		// Prevent multiple simultaneous calls
+		if (isLoadingInProgress) return;
 
 		try {
-			console.log('Loading responsibilities for workExperienceId:', workExperienceId);
+			isLoadingInProgress = true;
+			loading = true;
+			error = null;
+
 			categories = await getResponsibilitiesForExperience(workExperienceId);
-			console.log('Loaded categories:', categories);
 
-			// Initialize expanded state for categories
-			categories.forEach((cat) => {
-				if (expandedCategories[cat.id] === undefined) {
-					expandedCategories[cat.id] = true; // Default to expanded
-				}
-			});
+			// Only initialize UI state if not in read-only mode
+			if (!readOnly) {
+				// Initialize expanded state for categories
+				categories.forEach((cat) => {
+					if (expandedCategories[cat.id] === undefined) {
+						expandedCategories[cat.id] = true; // Default to expanded
+					}
+				});
 
-			// Initialize new item text fields
-			categories.forEach((cat) => {
-				if (!newItemValues[cat.id]) {
-					newItemValues[cat.id] = '';
-				}
-			});
+				// Initialize new item text fields
+				categories.forEach((cat) => {
+					if (!newItemValues[cat.id]) {
+						newItemValues[cat.id] = '';
+					}
+				});
+			}
 		} catch (err) {
 			console.error('Error loading responsibilities:', err);
 			error = 'Failed to load responsibilities. Please try again.';
 		} finally {
 			loading = false;
+			isLoadingInProgress = false;
 		}
 	}
 
@@ -192,12 +200,11 @@
 		// Notify parent we're editing responsibilities
 		setEditingResponsibilities(true);
 
-		console.log('Adding item to category:', categoryId);
-		console.log('Content:', content);
+		$inspect({ addingItem: { categoryId, content } });
 
 		try {
 			const result = await addItem(categoryId, content);
-			console.log('Add item result:', result);
+			$inspect({ addItemResult: result });
 
 			if (result) {
 				// Clear the input field

@@ -5,6 +5,7 @@
 	import { formatDate } from '$lib/pdfGenerator';
 	import { cvStore } from '$lib/stores/cvDataStore';
 	import ResponsibilitiesEditor from '../../work-experience/ResponsibilitiesEditor.svelte';
+	import { getProxiedPhotoUrl, DEFAULT_PROFILE_PHOTO } from '$lib/photoUtils';
 
 	// Get username from the URL
 	const username = $page.params.username;
@@ -19,13 +20,31 @@
 	let photoLoadError = $state(false);
 
 	// Format profile photo URL or use default
-	const defaultPhotoUrl = '/images/default-profile.svg';
-	let photoUrl = $derived(cvData.profile?.photo_url || defaultPhotoUrl);
+	let photoUrl = $state(DEFAULT_PROFILE_PHOTO);
 
-	// Log photo URL for debugging when it changes
+	// Update photoUrl when cvData.profile changes, but don't create a derived value
+	// as this causes infinite loop
+	let previousPhotoUrl = $state<string | null>(null);
+	let initialPhotoUrlSet = $state(false);
+
+	// Initial photo URL setup + updates
 	$effect(() => {
-		if (cvData.profile?.photo_url) {
-			console.log('Photo URL from profile:', cvData.profile.photo_url);
+		if (!cvData.profile) return;
+
+		// Initial setup (runs only once)
+		if (!initialPhotoUrlSet && cvData.profile.photo_url) {
+			previousPhotoUrl = cvData.profile.photo_url;
+			photoUrl = getProxiedPhotoUrl(cvData.profile.photo_url);
+			initialPhotoUrlSet = true;
+			return;
+		}
+
+		// Update photo URL only if it changed
+		if (cvData.profile.photo_url && cvData.profile.photo_url !== previousPhotoUrl) {
+			previousPhotoUrl = cvData.profile.photo_url;
+			photoUrl = getProxiedPhotoUrl(cvData.profile.photo_url);
+		} else if (!cvData.profile.photo_url && photoUrl !== DEFAULT_PROFILE_PHOTO) {
+			photoUrl = DEFAULT_PROFILE_PHOTO;
 		}
 	});
 
@@ -104,11 +123,14 @@
 		activeTab = tab;
 	}
 
-	// Subscribe to CV store changes
+	// Subscribe to CV store changes - only set the value when it actually changes
 	$effect(() => {
-		cvData = $cvStore;
-		// No need to update loadingState here since it's directly subscribed to $loading
-		console.log('CV store updated:', $cvStore);
+		// Only update cvData if the store content has actually changed
+		// This prevents unnecessary re-renders
+		const storeValue = $cvStore;
+		if (JSON.stringify(storeValue) !== JSON.stringify(cvData)) {
+			cvData = storeValue;
+		}
 	});
 
 	// Handle print function
@@ -182,9 +204,9 @@
 	<!-- Main CV content when profile exists -->
 	<div class="min-h-screen bg-gray-50">
 		<!-- Hero section with profile info -->
-		<div class="bg-gradient-to-r from-indigo-700 to-purple-700 px-4 py-16 text-white shadow-lg">
+		<div class="bg-gradient-to-r from-indigo-700 to-purple-700 px-4 py-8 text-white shadow-lg">
 			<div class="container mx-auto max-w-5xl">
-				<div class="flex flex-col items-center gap-8 md:flex-row md:items-start md:gap-12">
+				<div class="flex flex-col items-center gap-4 md:flex-row md:items-start md:gap-8">
 					<div class="order-2 flex-1 md:order-1">
 						<h1 class="text-4xl font-bold">{cvData.profile.full_name || 'Professional CV'}</h1>
 

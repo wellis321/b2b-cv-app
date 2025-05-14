@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { formatDate } from '$lib/pdfGenerator';
 	import ResponsibilitiesEditor from '../../work-experience/ResponsibilitiesEditor.svelte';
+	import { getProxiedPhotoUrl, DEFAULT_PROFILE_PHOTO } from '$lib/photoUtils';
 
 	// Get CV data from server load
 	let { data } = $props();
@@ -32,39 +33,71 @@
 		category?: string | null;
 	}
 
-	// Group skills by category
+	// Group skills by category if any
 	let categorizedSkills = $state<{ category: string; skills: Skill[] }[]>([]);
+	let photoLoadError = $state(false);
+	let photoUrl = $state(DEFAULT_PROFILE_PHOTO);
 
-	// Process skills by category
+	// Handle page loading/data population
+	let previousPhotoUrl = $state<string | null>(null);
+	let initialPhotoUrlSet = $state(false);
+
+	// Photo URL effect with initialization and update logic
 	$effect(() => {
-		if (skills && skills.length > 0) {
-			// Group skills by category
-			const skillsByCategory = skills.reduce<Record<string, Skill[]>>((acc, skill) => {
-				const category = skill.category || 'Other';
-				if (!acc[category]) {
-					acc[category] = [];
-				}
-				acc[category].push(skill);
-				return acc;
-			}, {});
+		// Skip if no profile
+		if (!profile) return;
 
-			// Sort skills in each category
-			Object.keys(skillsByCategory).forEach((category) => {
-				skillsByCategory[category].sort((a: Skill, b: Skill) => a.name.localeCompare(b.name));
-			});
+		// Initial setup (runs only once)
+		if (!initialPhotoUrlSet && profile.photo_url) {
+			previousPhotoUrl = profile.photo_url;
+			photoUrl = getProxiedPhotoUrl(profile.photo_url);
+			initialPhotoUrlSet = true;
+			return;
+		}
 
-			// Update categorized skills
-			categorizedSkills = [];
-			Object.keys(skillsByCategory)
-				.sort()
-				.forEach((category) => {
-					categorizedSkills.push({
-						category,
-						skills: skillsByCategory[category]
+		// Update photo URL only if it changed
+		if (profile.photo_url && profile.photo_url !== previousPhotoUrl) {
+			previousPhotoUrl = profile.photo_url;
+			photoUrl = getProxiedPhotoUrl(profile.photo_url);
+		} else if (!profile.photo_url && photoUrl !== DEFAULT_PROFILE_PHOTO) {
+			photoUrl = DEFAULT_PROFILE_PHOTO;
+		}
+
+		// Group skills by category if they have categories
+		if (skills && skills.length) {
+			const hasCategories = skills.some((skill) => skill.category);
+			if (hasCategories) {
+				// Group skills by category
+				const skillsByCategory = skills.reduce<Record<string, Skill[]>>((acc, skill) => {
+					const category = skill.category || 'Other';
+					if (!acc[category]) {
+						acc[category] = [];
+					}
+					acc[category].push(skill as Skill);
+					return acc;
+				}, {});
+
+				// Convert to array and sort
+				categorizedSkills = [];
+				Object.keys(skillsByCategory)
+					.sort()
+					.forEach((category) => {
+						categorizedSkills.push({
+							category,
+							skills: skillsByCategory[category]
+						});
 					});
-				});
+			}
 		}
 	});
+
+	// Handle image error
+	function handleImageError(event: Event) {
+		photoLoadError = true;
+		const img = event.target as HTMLImageElement;
+		img.style.display = 'none';
+		console.error('Failed to load image:', img.src);
+	}
 </script>
 
 <svelte:head>
@@ -77,13 +110,13 @@
 	{/if}
 </svelte:head>
 
-<div class="mx-auto max-w-4xl px-4 py-8">
+<div class="mx-auto max-w-4xl px-4 py-6">
 	{#if error}
 		<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
 	{/if}
 
 	{#if loading}
-		<div class="my-8 flex justify-center">
+		<div class="my-6 flex justify-center">
 			<div class="text-center">
 				<div
 					class="mx-auto mb-2 h-10 w-10 animate-spin rounded-full border-t-2 border-b-2 border-indigo-500"
@@ -115,12 +148,13 @@
 						</div>
 					</div>
 
-					{#if profile.photo_url}
+					{#if !photoLoadError && profile.photo_url}
 						<div class="h-28 w-28 overflow-hidden rounded-full">
 							<img
-								src={profile.photo_url}
+								src={photoUrl}
 								alt={profile.full_name || 'Profile picture'}
 								class="h-full w-full object-cover"
+								onerror={handleImageError}
 							/>
 						</div>
 					{/if}

@@ -14,6 +14,7 @@
 	} from '$lib/pdfGenerator';
 	import { cvStore } from '$lib/stores/cvDataStore';
 	import { page } from '$app/stores';
+	import { getProxiedPhotoUrl, validatePhotoUrl, DEFAULT_PROFILE_PHOTO } from '$lib/photoUtils';
 
 	// CV data
 	let profile = $state<any>(null);
@@ -30,6 +31,8 @@
 	let generatingPdf = $state(false);
 	let photoLoadError = $state(false);
 	let dataLoaded = $state(false);
+	let previousPhotoUrl = $state<string | null>(null);
+	let initialPhotoUrlSet = $state(false);
 
 	// Get username from URL query params if available
 	const urlUsername = $page.url.searchParams.get('username');
@@ -94,26 +97,6 @@
 		};
 	}
 
-	// Check if a photo URL is accessible
-	async function checkPhotoAccessibility(url: string): Promise<boolean> {
-		if (!url) return false;
-
-		try {
-			// Use a HEAD request to check if the photo is accessible
-			const response = await fetch(url, {
-				method: 'HEAD',
-				// Avoid cached responses
-				headers: {
-					'Cache-Control': 'no-cache'
-				}
-			});
-			return response.ok;
-		} catch (err) {
-			console.warn('Error checking profile photo:', err);
-			return false;
-		}
-	}
-
 	// Load all CV data
 	onMount(async () => {
 		if (!browser) return;
@@ -153,10 +136,14 @@
 			// Check if the profile photo is valid - do this after setting all data
 			// to avoid reactive updates during initial data load
 			if (profile?.photo_url) {
-				photoLoadError = !(await checkPhotoAccessibility(profile.photo_url));
+				photoLoadError = !(await validatePhotoUrl(profile.photo_url));
 				if (photoLoadError) {
 					console.warn('Profile photo inaccessible:', profile.photo_url);
 				}
+
+				// Store the initial photo URL
+				previousPhotoUrl = profile.photo_url;
+				initialPhotoUrlSet = true;
 			}
 		} catch (err) {
 			console.error('Error loading CV data:', err);
@@ -220,9 +207,38 @@
 	function handleImageError(event: Event) {
 		photoLoadError = true;
 		const img = event.target as HTMLImageElement;
-		img.style.display = 'none';
 		console.error('Failed to load image:', img.src);
 	}
+
+	// Check photo accessibility
+	async function checkPhotoAccessibility(url?: string) {
+		if (photoLoadError) return;
+
+		const photoUrl = url || profile?.photo_url;
+		if (!photoUrl) return;
+
+		try {
+			const isAccessible = await validatePhotoUrl(photoUrl);
+			photoLoadError = !isAccessible;
+		} catch (err) {
+			console.error('Error checking photo accessibility:', err);
+			photoLoadError = true;
+		}
+	}
+
+	// Check photo URL when it changes
+	$effect(() => {
+		if (!browser || !profile?.photo_url) return;
+
+		// Skip if this is the initial photo URL we already checked
+		if (initialPhotoUrlSet && profile.photo_url === previousPhotoUrl) return;
+
+		// Update the previous photo URL to prevent infinite loops
+		previousPhotoUrl = profile.photo_url;
+
+		// Check accessibility of new photo URL
+		checkPhotoAccessibility(profile.photo_url);
+	});
 </script>
 
 <svelte:head>
@@ -458,7 +474,7 @@
 					{#if profile.photo_url && !photoLoadError}
 						<div class="h-28 w-28 overflow-hidden rounded-full">
 							<img
-								src={profile.photo_url}
+								src={getProxiedPhotoUrl(profile.photo_url)}
 								alt={profile.full_name || 'Profile picture'}
 								class="h-full w-full object-cover"
 								onerror={handleImageError}
@@ -481,7 +497,9 @@
 										<h4 class="text-gray-700">{job.company_name}</h4>
 									</div>
 									<div class="text-sm text-gray-600">
-										{formatDate(job.start_date)} - {formatDate(job.end_date)}
+										{formatDate(job.start_date)} - {job.end_date
+											? formatDate(job.end_date)
+											: 'Present'}
 									</div>
 								</div>
 								{#if job.description}
@@ -529,7 +547,9 @@
 									</div>
 									{#if project.start_date}
 										<div class="text-sm text-gray-600">
-											{formatDate(project.start_date)} - {formatDate(project.end_date)}
+											{formatDate(project.start_date)} - {project.end_date
+												? formatDate(project.end_date)
+												: 'Present'}
 										</div>
 									{/if}
 								</div>
@@ -574,7 +594,9 @@
 										<h4 class="text-gray-700">{edu.institution}</h4>
 									</div>
 									<div class="text-sm text-gray-600">
-										{formatDate(edu.start_date)} - {formatDate(edu.end_date)}
+										{formatDate(edu.start_date)} - {edu.end_date
+											? formatDate(edu.end_date)
+											: 'Present'}
 									</div>
 								</div>
 								{#if edu.description}
@@ -648,7 +670,9 @@
 									</div>
 									{#if membership.start_date}
 										<div class="text-sm text-gray-600">
-											{formatDate(membership.start_date)} - {formatDate(membership.end_date)}
+											{formatDate(membership.start_date)} - {membership.end_date
+												? formatDate(membership.end_date)
+												: 'Present'}
 										</div>
 									{/if}
 								</div>

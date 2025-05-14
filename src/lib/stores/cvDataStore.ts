@@ -135,14 +135,12 @@ const createCvStore = () => {
             // Check if we have this username cached
             const cachedEntry = Object.values(cache).find(entry => entry.username === username);
             if (cachedEntry) {
-                console.log('Using cached data for username:', username);
                 set(cachedEntry);
                 return cachedEntry;
             }
 
             try {
                 loadingState.update(s => ({ ...s, loading: true, error: null }));
-                console.log('Loading CV data for username:', username);
 
                 // Create a new Supabase client for this request
                 // (bypassing auth to ensure public profiles can be viewed by non-authenticated users)
@@ -171,7 +169,6 @@ const createCvStore = () => {
                 }
 
                 const userId = userData.id;
-                console.log('Found user ID for username', username, ':', userId);
 
                 // Load all CV data for this user, using public Supabase instance
                 try {
@@ -180,19 +177,6 @@ const createCvStore = () => {
 
                     // Cache the data
                     cache[userId] = data;
-
-                    // Log the data being loaded
-                    console.log('CV data loaded successfully:', {
-                        profile: !!data.profile,
-                        workExperiences: data.workExperiences?.length || 0,
-                        skills: data.skills?.length || 0,
-                        education: data.education?.length || 0,
-                        projects: data.projects?.length || 0,
-                        interests: data.interests?.length || 0,
-                        certifications: data.certifications?.length || 0,
-                        memberships: data.memberships?.length || 0,
-                        qualificationEquivalence: data.qualificationEquivalence?.length || 0
-                    });
 
                     // Update the store
                     set(data);
@@ -250,7 +234,6 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
         }
 
         data.profile = profile;
-        console.log('Profile loaded successfully:', profile.full_name);
 
         // Load work experiences
         const { data: workData, error: workError } = await client
@@ -261,7 +244,6 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
         if (!workError) {
             data.workExperiences = workData || [];
-            console.log('Work experiences loaded:', data.workExperiences.length);
         } else {
             console.error('Error loading work experiences:', workError);
         }
@@ -275,7 +257,6 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
         if (!projectsError) {
             data.projects = projectsData || [];
-            console.log('Projects loaded:', data.projects.length);
         } else {
             console.error('Error loading projects:', projectsError);
         }
@@ -288,7 +269,6 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
         if (!skillsError) {
             data.skills = skillsData || [];
-            console.log('Skills loaded:', data.skills.length);
         } else {
             console.error('Error loading skills:', skillsError);
         }
@@ -303,12 +283,12 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
             if (!educationError) {
                 data.education = educationData || [];
-                console.log('Education loaded:', data.education.length);
             } else {
                 console.error('Error loading education:', educationError);
             }
         } catch (err) {
-            console.log('Education table might not exist yet');
+            // Silently handle missing table
+            data.education = [];
         }
 
         // Load certifications
@@ -321,12 +301,12 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
             if (!certError) {
                 data.certifications = certData || [];
-                console.log('Certifications loaded:', data.certifications.length);
             } else {
                 console.error('Error loading certifications:', certError);
             }
         } catch (err) {
-            console.log('Certifications table might not exist yet');
+            // Silently handle missing table
+            data.certifications = [];
         }
 
         // Load memberships
@@ -339,12 +319,12 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
             if (!membershipError) {
                 data.memberships = membershipData || [];
-                console.log('Memberships loaded:', data.memberships.length);
             } else {
                 console.error('Error loading memberships:', membershipError);
             }
         } catch (err) {
-            console.log('Professional memberships table might not exist yet');
+            // Silently handle missing table
+            data.memberships = [];
         }
 
         // Load interests
@@ -356,12 +336,12 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
             if (!interestsError) {
                 data.interests = interestsData || [];
-                console.log('Interests loaded:', data.interests.length);
             } else {
                 console.error('Error loading interests:', interestsError);
             }
         } catch (err) {
-            console.log('Interests table might not exist yet');
+            // Silently handle missing table
+            data.interests = [];
         }
 
         // Load qualification equivalence
@@ -373,12 +353,12 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
 
             if (!qualificationError) {
                 data.qualificationEquivalence = qualificationData || [];
-                console.log('Qualification equivalence loaded:', data.qualificationEquivalence.length);
             } else {
                 console.error('Error loading qualification equivalence:', qualificationError);
             }
         } catch (err) {
-            console.log('Professional qualification equivalence table might not exist yet');
+            // Silently handle missing table
+            data.qualificationEquivalence = [];
         }
 
         return data;

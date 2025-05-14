@@ -28,8 +28,6 @@ export async function getResponsibilitiesForExperience(workExperienceId: string)
     }
 
     try {
-        console.log('Fetching categories for work experience:', workExperienceId);
-
         // First get all categories
         const { data: categories, error: categoriesError } = await supabase
             .from('responsibility_categories')
@@ -42,15 +40,12 @@ export async function getResponsibilitiesForExperience(workExperienceId: string)
             return [];
         }
 
-        console.log('Categories fetched:', categories);
-
         if (!categories || categories.length === 0) {
             return [];
         }
 
         // Get all items for these categories
         const categoryIds = categories.map(cat => cat.id);
-        console.log('Category IDs for items query:', categoryIds);
 
         const { data: items, error: itemsError } = await supabase
             .from('responsibility_items')
@@ -63,15 +58,12 @@ export async function getResponsibilitiesForExperience(workExperienceId: string)
             return categories.map(cat => ({ ...cat, items: [] }));
         }
 
-        console.log('Items fetched:', items);
-
         // Group items by category
         const result = categories.map(category => ({
             ...category,
             items: items?.filter(item => item.category_id === category.id) || []
         }));
 
-        console.log('Final result:', result);
         return result;
     } catch (err) {
         console.error('Unexpected error fetching responsibilities:', err);
