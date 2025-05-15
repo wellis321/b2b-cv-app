@@ -22,8 +22,7 @@
 	interface Education {
 		id: string;
 		institution: string;
-		qualification?: string;
-		degree?: string; // Include for backward compatibility
+		qualification: string;
 		field_of_study: string | null;
 		start_date: string | null;
 		end_date: string | null;
@@ -177,44 +176,44 @@
 			if (submitError) {
 				console.error('Error submitting education:', submitError);
 				error = submitError.message || 'Failed to save education information';
-				success = '';
-			} else {
-				console.log('Education saved successfully:', educationData);
-
-				// Clear any error first
-				error = undefined;
-				success = isEditing ? 'Education updated successfully!' : 'Education saved successfully!';
-
-				// Add/update the education in the list
-				if (educationData && educationData.length > 0) {
-					const savedEducation = educationData[0];
-
-					if (isEditing) {
-						// Update education in the list
-						educationList = educationList.map((edu) =>
-							edu.id === savedEducation.id ? savedEducation : edu
-						);
-					} else {
-						// Add new education to the list
-						educationList = sortEducation([savedEducation, ...educationList]);
-					}
-				}
-
-				// Reset the form
-				resetForm();
-
-				// Reset editing state
-				isEditing = false;
-				editingEducation = null;
-
-				// Hide the form after successful submission
-				showAddForm = false;
-
-				// Clear success message after 3 seconds
-				setTimeout(() => {
-					success = '';
-				}, 3000);
+				return;
 			}
+
+			console.log('Education saved successfully:', educationData);
+
+			// Clear any error first
+			error = undefined;
+			success = isEditing ? 'Education updated successfully!' : 'Education saved successfully!';
+
+			// Add/update the education in the list
+			if (educationData && educationData.length > 0) {
+				const savedEducation = educationData[0];
+
+				if (isEditing) {
+					// Update education in the list
+					educationList = educationList.map((edu) =>
+						edu.id === savedEducation.id ? savedEducation : edu
+					);
+				} else {
+					// Add new education to the list
+					educationList = sortEducation([savedEducation, ...educationList]);
+				}
+			}
+
+			// Reset the form
+			resetForm();
+
+			// Reset editing state
+			isEditing = false;
+			editingEducation = null;
+
+			// Hide the form after successful submission
+			showAddForm = false;
+
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				success = '';
+			}, 3000);
 		} catch (err) {
 			console.error('Unexpected error during form submission:', err);
 			// Ensure error is properly set and success is cleared
@@ -230,8 +229,8 @@
 		isEditing = true;
 		editingEducation = edu;
 		institution = edu.institution;
-		// Use qualification if available, otherwise fall back to degree
-		qualification = edu.qualification || edu.degree || '';
+		// Only use qualification since degree is deprecated
+		qualification = edu.qualification;
 		fieldOfStudy = edu.field_of_study || '';
 		startDate = edu.start_date || '';
 		endDate = edu.end_date || '';
@@ -566,7 +565,7 @@
 						<div class="flex items-center justify-between">
 							<div>
 								<div class="font-semibold">
-									{edu.qualification || edu.degree || 'No qualification specified'} at {edu.institution}
+									{edu.qualification || 'No qualification specified'} at {edu.institution}
 								</div>
 								<div class="text-sm text-gray-500">
 									{edu.start_date ? formatDate(edu.start_date) : ''}
