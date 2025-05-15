@@ -136,11 +136,94 @@
 
 ---
 
+## 8. API Security
+**Priority**: 🟠
+**Actions**:
+- [ ] Implement comprehensive permissions checks on all API endpoints:
+  ```ts
+  // Example permission check
+  function ensureOwnership(userId: string, resourceId: string) {
+    if (!userId || userId !== resourceId) {
+      throw error(403, 'Unauthorized access to resource');
+    }
+  }
+  ```
+- [ ] Add rate limiting for all API endpoints, not just authentication
+- [ ] Implement API versioning strategy to handle security updates
+- [ ] Use API keys with appropriate scopes for service-to-service communication
+
+---
+
+## 9. CSRF Protection
+**Priority**: 🔴
+**Actions**:
+- [ ] Ensure CSRF token validation for all state-changing operations:
+  ```ts
+  // Example CSRF check middleware
+  function validateCsrfToken(request, csrfToken) {
+    const requestToken = request.headers.get('x-csrf-token');
+    return crypto.timingSafeEqual(
+      Buffer.from(requestToken || ''),
+      Buffer.from(csrfToken)
+    );
+  }
+  ```
+- [ ] Implement Double-Submit Cookie pattern for CSRF protection
+- [ ] Add CSRF token regeneration on authentication events
+- [ ] Verify SameSite cookie attribute is properly set
+
+---
+
+## 10. Dependency Management
+**Priority**: 🟠
+**Actions**:
+- [ ] Implement automated dependency scanning in CI/CD pipeline:
+  ```bash
+  # Example CI step
+  npm audit --production
+  # or
+  yarn audit
+  ```
+- [ ] Schedule regular dependency updates (monthly at minimum)
+- [ ] Set up automatic security notifications for vulnerable dependencies
+- [ ] Document policy for addressing critical vulnerabilities in dependencies
+
+---
+
+## 11. Error Handling
+**Priority**: 🔵
+**Actions**:
+- [ ] Implement standardized error handling that doesn't expose sensitive information:
+  ```ts
+  // Example secure error handler
+  function handleError(error, event) {
+    // Log the detailed error internally
+    console.error('Detailed error:', error);
+
+    // Return sanitized error to user
+    return new Response(JSON.stringify({
+      error: 'An error occurred processing your request'
+    }), {
+      status: 500,
+      headers: {'Content-Type': 'application/json'}
+    });
+  }
+  ```
+- [ ] Create custom error pages that don't leak stack traces
+- [ ] Set up centralized error logging with proper PII handling
+- [ ] Implement graceful degradation for non-critical service failures
+
+---
+
 ## Implementation Checklist
 | Priority | Recommendation                      | Owner   | Due Date   | Status |
 |----------|-------------------------------------|---------|------------|--------|
 | 🔴       | CSP Nonce Implementation            | Security| MM/DD      | [ ]    |
 | 🔴       | Auth Rate Limiting                  | Backend | MM/DD      | [ ]    |
+| 🔴       | CSRF Protection Enhancement         | Security| MM/DD      | [ ]    |
 | 🟠       | Supabase RLS Verification           | DB      | MM/DD      | [ ]    |
 | 🟠       | Audit Logging Setup                 | DevOps  | MM/DD      | [ ]    |
+| 🟠       | API Security Review                 | Backend | MM/DD      | [ ]    |
+| 🟠       | Dependency Management               | DevOps  | MM/DD      | [ ]    |
 | 🔵       | Input Sanitization                  | Frontend| MM/DD      | [ ]    |
+| 🔵       | Error Handling Standardization      | Full-stack| MM/DD    | [ ]    |
