@@ -6,9 +6,39 @@
 	import { session, initializeSession, setupAuthListener, logout } from '$lib/stores/authStore';
 	import { browser } from '$app/environment';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
+	import { page } from '$app/stores';
 
 	// State for storing the current user's username
 	let username = $state<string | null>(null);
+
+	// Navigation items with their paths
+	const navItems = [
+		{ name: 'Profile', path: '/profile' },
+		{ name: 'Edit CV Sections', path: '/' },
+		{ name: 'Preview & PDF', path: '/preview-cv' }
+	];
+
+	// Function to check if a path is active
+	function isActive(path: string): boolean {
+		if (path === '/') {
+			// Special case for home page
+			return (
+				$page.url.pathname === '/' ||
+				// Check if we're on one of the CV section pages
+				[
+					'work-experience',
+					'education',
+					'projects',
+					'skills',
+					'certifications',
+					'qualification-equivalence',
+					'memberships',
+					'interests'
+				].some((section) => $page.url.pathname.includes(section))
+			);
+		}
+		return $page.url.pathname.startsWith(path);
+	}
 
 	// Setup auth on mount
 	onMount(() => {
@@ -93,17 +123,40 @@
 					</div>
 				</div>
 				<div class="flex items-center gap-4">
-					<a href="/security-review-client" class="text-sm text-indigo-600 hover:text-indigo-800"
-						>Security Review</a
+					<a
+						href="/security-review-client"
+						class="text-sm {isActive('/security-review-client')
+							? 'font-medium text-indigo-800 hover:text-indigo-900'
+							: 'text-indigo-600 hover:text-indigo-800'}"
 					>
+						Security Review
+					</a>
 					{#if $session}
-						<a href="/profile" class="text-gray-600 hover:text-gray-900">Profile</a>
-						<a href="/" class="text-gray-600 hover:text-gray-900">Edit CV Sections</a>
-						<a href="/preview-cv" class="text-gray-600 hover:text-gray-900">Preview & PDF</a>
+						{#each navItems as item}
+							<a
+								href={item.path}
+								class={isActive(item.path)
+									? 'border-b-2 border-indigo-600 font-medium text-indigo-800 transition-colors hover:text-indigo-900'
+									: 'text-gray-600 transition-colors hover:border-b-2 hover:border-gray-300 hover:text-gray-900'}
+							>
+								{item.name}
+							</a>
+						{/each}
 						{#if username}
-							<a href="/cv/@{username}" class="text-gray-600 hover:text-gray-900">View CV</a>
+							<a
+								href="/cv/@{username}"
+								class={$page.url.pathname.includes('/cv/@')
+									? 'border-b-2 border-indigo-600 font-medium text-indigo-800 transition-colors hover:text-indigo-900'
+									: 'text-gray-600 transition-colors hover:border-b-2 hover:border-gray-300 hover:text-gray-900'}
+							>
+								View CV
+							</a>
 						{/if}
-						<button on:click={signOut} class="text-gray-600 hover:text-gray-900">Sign Out</button>
+						<button
+							on:click={signOut}
+							class="text-gray-600 transition-colors hover:border-b-2 hover:border-gray-300 hover:text-gray-900"
+							>Sign Out</button
+						>
 					{/if}
 				</div>
 			</div>
