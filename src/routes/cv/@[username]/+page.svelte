@@ -223,33 +223,15 @@
 	</div>
 {:else}
 	<!-- Main CV content when profile exists -->
-	<div class="min-h-screen bg-gray-50">
+	<div class="min-h-screen bg-white">
 		<!-- Hero section with profile info -->
-		<div class="bg-gradient-to-r from-indigo-700 to-purple-700 px-4 py-8 text-white shadow-lg">
-			<div class="container mx-auto max-w-5xl">
+		<div class="bg-gradient-to-r from-indigo-700 to-purple-700 py-8 text-white shadow-lg">
+			<div class="container mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex flex-col items-center gap-4 md:flex-row md:items-start md:gap-8">
 					<div class="order-2 flex-1 md:order-1">
 						<h1 class="text-4xl font-bold">{cvData.profile.full_name || 'Professional CV'}</h1>
 
 						<div class="mt-6 space-y-2">
-							{#if cvData.profile.location}
-								<div class="flex items-center gap-2">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-5 w-5"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-									>
-										<path
-											fill-rule="evenodd"
-											d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-											clip-rule="evenodd"
-										/>
-									</svg>
-									<span>{cvData.profile.location}</span>
-								</div>
-							{/if}
-
 							{#if cvData.profile.email}
 								<div class="flex items-center gap-2">
 									<svg
@@ -284,14 +266,32 @@
 									<span>{cvData.profile.phone}</span>
 								</div>
 							{/if}
+
+							{#if cvData.profile.location}
+								<div class="flex items-center gap-2">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<span>{cvData.profile.location}</span>
+								</div>
+							{/if}
 						</div>
 					</div>
 
 					<!-- Profile photo -->
-					<div class="order-1 md:order-2">
+					<div class="order-1 flex items-center justify-center md:order-2">
 						{#if cvData.profile.photo_url && !photoLoadError}
 							<div
-								class="h-32 w-32 overflow-hidden rounded-full border-4 border-white shadow-lg md:h-40 md:w-40"
+								class="my-2 h-40 w-40 overflow-hidden rounded-full border-4 border-white shadow-lg md:h-48 md:w-48"
 							>
 								<img
 									src={photoUrl}
@@ -363,8 +363,8 @@
 		</div>
 
 		<!-- Main content area -->
-		<main class="container mx-auto max-w-5xl px-4 py-8">
-			<div class="grid gap-8 md:grid-cols-3">
+		<main class="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+			<div class="grid gap-6 md:grid-cols-3 lg:gap-8">
 				<!-- Sidebar -->
 				<aside class="md:col-span-1">
 					<div class="space-y-8">
@@ -659,7 +659,7 @@
 
 		<!-- Footer -->
 		<footer class="bg-gray-800 py-6 text-center text-white print:hidden">
-			<div class="container mx-auto max-w-5xl px-4">
+			<div class="container mx-auto px-4 sm:px-6 lg:px-8">
 				<p class="text-gray-300">CV created with CV App</p>
 				<p class="mt-2">
 					<a href="/" class="text-indigo-300 hover:text-indigo-200 hover:underline"
