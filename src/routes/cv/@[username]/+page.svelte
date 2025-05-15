@@ -135,8 +135,8 @@
 
 	// Handle print function
 	function handlePrint() {
-		// Navigate to the preview-cv page which has better print options
-		window.location.href = `/preview-cv?username=${username}`;
+		// Instead of navigating to preview page, just use browser print
+		window.print();
 	}
 </script>
 
