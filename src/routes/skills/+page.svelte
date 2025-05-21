@@ -3,9 +3,11 @@
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { session as authSession } from '$lib/stores/authStore';
 	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
+	import { invalidate } from '$app/navigation';
+	import { enhance } from '$app/forms';
 
 	interface PageData {
 		skills: Skill[];
@@ -259,16 +261,24 @@
 		success = '';
 
 		try {
+			// First update UI optimistically
+			const skillToDelete = skills.find((skill) => skill.id === id);
+			const backupSkills = [...skills];
+			skills = skills.filter((skill) => skill.id !== id);
+
+			// Then attempt the deletion in the database
 			const { error: deleteError } = await supabase.from('skills').delete().eq('id', id);
 
 			if (deleteError) {
 				console.error('Error deleting skill:', deleteError);
 				error = deleteError.message || 'Failed to delete skill';
+				// Restore the backup state if there was an error
+				skills = backupSkills;
 			} else {
 				success = 'Skill deleted successfully!';
 
-				// Remove the skill from the list
-				skills = skills.filter((skill) => skill.id !== id);
+				// Invalidate to ensure data consistency
+				invalidate('app:skills');
 
 				// Reset the delete confirmation
 				deleteConfirmId = null;
@@ -281,6 +291,9 @@
 		} catch (err) {
 			console.error('Unexpected error during deletion:', err);
 			error = 'An unexpected error occurred. Please try again.';
+
+			// Refresh data to ensure UI is consistent after an error
+			refreshSkills();
 		} finally {
 			loading = false;
 		}
@@ -327,39 +340,55 @@
 		}
 	}
 
-	// Check for success message in URL params and data loading
-	onMount(async () => {
-		if (browser) {
-			// Check URL params for success message
-			if ($page.url.searchParams.has('success')) {
-				const successType = $page.url.searchParams.get('success');
-				if (successType === 'create') {
-					success = 'Skill added successfully!';
-				} else if (successType === 'update') {
-					success = 'Skill updated successfully!';
-				} else if (successType === 'delete') {
-					success = 'Skill deleted successfully!';
-				}
+	// Check for success parameter in URL and show success message
+	$effect(() => {
+		if ($page.url.searchParams.get('success') === 'true') {
+			success = 'Skill saved successfully!';
 
-				// Clear URL params
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				success = '';
+				// Update URL without the success parameter
 				const url = new URL(window.location.href);
 				url.searchParams.delete('success');
-				history.replaceState({}, document.title, url.toString());
-
-				// Clear success message after 3 seconds
-				setTimeout(() => {
-					success = '';
-				}, 3000);
-			}
-
-			// If data was loaded properly on the server, we'll have skills
-			// Otherwise, try to load them directly from client
-			if (session && (!skills || skills.length === 0)) {
-				console.log('No skills loaded from server, trying client-side fetch');
-				await loadSkillsFromClient();
-			}
+				window.history.replaceState({}, '', url.toString());
+			}, 3000);
 		}
 	});
+
+	// Set initial skills state from data prop whenever it changes
+	$effect(() => {
+		if (data.skills) {
+			skills = data.skills;
+		}
+
+		// Show any server errors
+		if (data.error) {
+			error = data.error;
+		}
+	});
+
+	// Function to refresh skills data
+	async function refreshSkills() {
+		loadingSkills = true;
+		try {
+			// Use SvelteKit's invalidation to trigger the +page.js load function
+			await invalidate('app:skills');
+
+			// Success feedback to user
+			success = 'Skills refreshed successfully!';
+
+			// Clear success message after 3 seconds
+			setTimeout(() => {
+				success = '';
+			}, 3000);
+		} catch (err) {
+			console.error('Error refreshing skills:', err);
+			error = 'Failed to refresh skills. Please try again.';
+		} finally {
+			loadingSkills = false;
+		}
+	}
 </script>
 
 <div class="mx-auto max-w-4xl space-y-6">
@@ -397,10 +426,82 @@
 				</h3>
 
 				<form
-					onsubmit={handleSubmit}
 					method="POST"
 					action={isEditing ? '?/update' : '?/create'}
 					class="space-y-4"
+					use:enhance={({ formData, cancel }) => {
+						// Validate form before submission
+						if (!formData.get('name')) {
+							error = 'Skill name is required';
+							return cancel();
+						}
+
+						// Set form status
+						loading = true;
+						error = undefined;
+
+						// Get form data for optimistic update
+						const optimisticName = formData.get('name') as string;
+						const optimisticLevel = formData.get('level') as string;
+						const optimisticCategory = formData.get('category') as string;
+
+						// Create optimistic skill
+						const optimisticSkill =
+							isEditing && editingSkill
+								? {
+										...editingSkill,
+										name: optimisticName,
+										level: optimisticLevel || null,
+										category: optimisticCategory || null
+									}
+								: {
+										id: 'temp-' + Date.now(),
+										profile_id: session?.user?.id,
+										name: optimisticName,
+										level: optimisticLevel || null,
+										category: optimisticCategory || null,
+										created_at: new Date().toISOString(),
+										updated_at: new Date().toISOString()
+									};
+
+						// Apply optimistic update
+						if (isEditing && editingSkill) {
+							skills = skills.map((s) => (s.id === editingSkill.id ? optimisticSkill : s));
+						} else {
+							skills = [...skills, optimisticSkill];
+						}
+
+						return async ({ result, update }) => {
+							loading = false;
+
+							if (result.type === 'success') {
+								success = isEditing ? 'Skill updated successfully!' : 'Skill added successfully!';
+
+								// Ensure we have fresh data
+								await invalidate('app:skills');
+
+								// Reset form state
+								resetForm();
+								isEditing = false;
+								editingSkill = null;
+
+								// Hide form after successful submission
+								showAddForm = false;
+							} else if (result.type === 'failure') {
+								// Handle errors
+								if (result.data?.error) {
+									error = result.data.error;
+								} else {
+									error = 'Failed to save skill. Please try again.';
+								}
+
+								// Refresh data to ensure UI consistency
+								await refreshSkills();
+							}
+
+							await update();
+						};
+					}}
 				>
 					{#if data.form?.error}
 						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{data.form.error}</div>

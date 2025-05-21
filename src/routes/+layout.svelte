@@ -7,6 +7,12 @@
 	import { browser } from '$app/environment';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import { page } from '$app/stores';
+	import { initGlobalHelpers } from '$lib/utils/globalHelpers';
+
+	// Initialize global helpers
+	if (browser) {
+		initGlobalHelpers();
+	}
 
 	// State for storing the current user's username
 	let username = $state<string | null>(null);
@@ -38,6 +44,11 @@
 			);
 		}
 		return $page.url.pathname.startsWith(path);
+	}
+
+	// Function to check if current page is a public CV profile page
+	function isPublicCvPage(): boolean {
+		return /^\/cv\/@[^/]+$/.test($page.url.pathname);
 	}
 
 	// Setup auth on mount
@@ -164,7 +175,7 @@
 	</header>
 
 	<main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-		{#if !$session && !$page.url.pathname.startsWith('/cv/@')}
+		{#if !$session && !isPublicCvPage()}
 			<AuthForm />
 		{:else}
 			<ErrorBoundary>

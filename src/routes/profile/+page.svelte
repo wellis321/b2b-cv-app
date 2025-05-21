@@ -10,8 +10,16 @@
 	import CameraCapture from '$lib/components/CameraCapture.svelte';
 	import PhotoFallback from '$lib/components/PhotoFallback.svelte';
 	import { fetchWithCsrf } from '$lib/security/clientCsrf';
+	import { enhance } from '$app/forms';
+	import type { ProfileData } from '$lib/types/profile';
 
-	let { data, form } = $props();
+	interface PageData {
+		profile: ProfileData | null;
+		error?: string | null;
+		session: any | null;
+	}
+
+	let { data, form } = $props<{ data: PageData; form?: any }>();
 	let fullName = $state(data.profile?.full_name ?? '');
 	let username = $state(data.profile?.username ?? '');
 	let email = $state(data.profile?.email ?? '');
@@ -41,14 +49,13 @@
 	const PROFILE_PHOTOS_BUCKET = 'profile-photos';
 	const DEFAULT_PROFILE_PHOTO = '/images/default-profile.svg';
 
-	// Fix updateProfile return type
-	interface ProfileUpdateResult {
-		success: boolean;
-		profile?: any;
-		error?: string;
-		message?: string;
-		requestId?: string;
-	}
+	// Form submission state
+	let formStatus = $state({
+		submitted: false,
+		success: false,
+		error: null as string | null,
+		isPending: false
+	});
 
 	// Check authentication on mount and try to initialize data
 	onMount(async () => {
@@ -247,14 +254,43 @@
 
 	// Common photo upload function (used by both file input and camera)
 	async function uploadProfilePhoto(file: File) {
+		// Clear any previous errors first
+		photoError = null;
+
+		// Verify authentication status
 		if (!$session) {
-			photoError = 'You need to be logged in to upload a photo.';
-			return;
+			photoError = 'Authentication required. Please log in again to upload a photo.';
+			if (browser) {
+				// Refresh session
+				try {
+					await supabase.auth.refreshSession();
+					// If we don't get an error, check if we now have a session
+					if ($session) {
+						photoError = null; // Clear the error if session was refreshed successfully
+					} else {
+						// Still no session after refresh
+						photoError = 'Your session has expired. Please log in again.';
+						setTimeout(() => {
+							goto('/');
+						}, 2000);
+						return;
+					}
+				} catch (refreshErr) {
+					console.error('Session refresh failed:', refreshErr);
+					photoError = 'Unable to refresh your session. Please log in again.';
+					setTimeout(() => {
+						goto('/');
+					}, 2000);
+					return;
+				}
+			} else {
+				return; // Can't proceed server-side without session
+			}
 		}
 
 		if (!storageAvailable) {
 			photoError =
-				'Storage is not available. Please contact the administrator to set up the profile-photos bucket.';
+				'Storage is not available. An administrator needs to create the "profile-photos" storage bucket in Supabase.';
 			return;
 		}
 
@@ -283,7 +319,12 @@
 			if (photoUrl) {
 				const path = getPathFromUrl(photoUrl, PROFILE_PHOTOS_BUCKET);
 				if (path) {
-					await deleteFile(PROFILE_PHOTOS_BUCKET, path);
+					const deleteResult = await deleteFile(PROFILE_PHOTOS_BUCKET, path);
+
+					if (!deleteResult.success) {
+						console.warn('Failed to delete old photo, continuing with upload:', deleteResult.error);
+						// Don't stop the process if deletion fails, but log it
+					}
 				}
 			}
 
@@ -295,10 +336,16 @@
 				if (result.error?.includes('bucket') || result.error?.includes('storage')) {
 					console.error('Storage bucket error:', result.error);
 					photoError =
-						'Storage is not available. Please contact the administrator to set up the profile-photos bucket.';
+						'Storage is not available. An administrator needs to create the "profile-photos" storage bucket in Supabase.';
 					storageAvailable = false; // Mark storage as unavailable
+				} else if (result.error?.includes('auth') || result.error?.includes('permission')) {
+					photoError = "You don't have permission to upload photos. Please log in again.";
+				} else if (result.error?.includes('size') || result.error?.includes('large')) {
+					photoError = 'The photo is too large. Please try a smaller image (under 2MB).';
+				} else if (result.error?.includes('format') || result.error?.includes('type')) {
+					photoError = 'Invalid file format. Only JPEG, PNG, and WebP images are allowed.';
 				} else {
-					photoError = result.error || 'Failed to upload photo.';
+					photoError = result.error || 'Failed to upload photo. Please try again.';
 				}
 				return;
 			}
@@ -312,17 +359,43 @@
 			if (!updateResult.success) {
 				// Extract and display a more helpful error message
 				let errorMessage = updateResult.error || 'Failed to update profile with new photo.';
-				if (updateResult.message) {
-					errorMessage += `: ${updateResult.message}`;
+
+				// Check for specific error cases
+				if (
+					updateResult.error === 'Authentication required' ||
+					updateResult.message?.includes('log in') ||
+					updateResult.error === 'Authentication failed'
+				) {
+					errorMessage = 'Your session has expired. Please log in again to save your photo.';
+
+					// Try to refresh the auth session
+					if (browser) {
+						try {
+							await supabase.auth.refreshSession();
+						} catch (e) {
+							console.error('Failed to refresh session:', e);
+						}
+					}
+				} else if (updateResult.error === 'Database error') {
+					errorMessage = 'Database error while saving your photo. Please try again.';
 				}
+
+				// Add additional context from the response if available
+				if (updateResult.message) {
+					errorMessage += ` ${updateResult.message}`;
+				}
+
+				// Include request ID for troubleshooting if available
 				if (updateResult.requestId) {
-					errorMessage += ` (Request ID: ${updateResult.requestId})`;
+					console.error(
+						`Error saving profile photo (Request ID: ${updateResult.requestId})`,
+						updateResult
+					);
 				}
 
 				photoError = errorMessage;
-				console.error('Error saving profile photo:', errorMessage);
 			} else {
-				success = 'Photo uploaded successfully!';
+				success = updateResult.message || 'Photo uploaded successfully!';
 
 				// Clear success message after 3 seconds
 				setTimeout(() => {
@@ -331,9 +404,26 @@
 			}
 		} catch (err) {
 			console.error('Error uploading photo:', err);
-			photoError = `Upload error: ${err instanceof Error ? err.message : 'Unknown error'}`;
+
+			// Provide more specific error messages based on the error
+			if (err instanceof Error) {
+				if (err.message.includes('network') || err.message.includes('fetch')) {
+					photoError = 'Network error. Please check your internet connection and try again.';
+				} else if (err.message.includes('auth') || err.message.includes('session')) {
+					photoError = 'Authentication error. Please log in again.';
+				} else {
+					photoError = `Upload error: ${err.message}`;
+				}
+			} else {
+				photoError = 'An unexpected error occurred during upload. Please try again.';
+			}
 		} finally {
 			uploadingPhoto = false;
+
+			// If photo input caused the error, reset it
+			if (photoError && photoInputEl) {
+				photoInputEl.value = '';
+			}
 		}
 	}
 
@@ -358,7 +448,7 @@
 
 		if (!storageAvailable) {
 			photoError =
-				'Storage is not available. Please contact the administrator to set up the profile-photos bucket.';
+				'Storage is not available. An administrator needs to create the "profile-photos" storage bucket in Supabase.';
 			return;
 		}
 
@@ -426,7 +516,8 @@
 		}
 	});
 
-	async function saveProfile(e: Event) {
+	// Update the saveProfile function to use SvelteKit form actions
+	function handleFormSubmit(e: Event) {
 		e.preventDefault();
 		// Double-check authentication
 		if (!$session) {
@@ -438,54 +529,8 @@
 		error = null;
 		success = null;
 
-		try {
-			// Use session from store
-			const userId = $session.user.id;
-			const accessToken = $session.access_token;
-			const authEmail = $session.user.email; // Get email from auth session
-
-			// Ensure we have a user ID and token
-			if (!userId || !accessToken) {
-				error = 'User ID or token not found. Please log in again.';
-				loading = false;
-				return;
-			}
-
-			// Prepare profile data
-			const profileData = {
-				id: userId,
-				full_name: fullName,
-				username,
-				// Prioritize auth email if available
-				email: authEmail || email,
-				phone,
-				location,
-				photo_url: photoUrl,
-				// Also include profile_photo_url for compatibility with production
-				profile_photo_url: photoUrl
-			};
-
-			// Use our direct updateMinimalProfile function instead of authStore's updateProfile
-			const result = await updateMinimalProfile(profileData);
-
-			if (!result.success) {
-				error = result.error || 'Failed to save profile';
-				console.error('Error saving profile:', result.error);
-			} else {
-				// Refresh profile data to ensure everything is in sync
-				await refreshProfileData();
-
-				success = 'Profile saved successfully!';
-
-				// Update section status to reflect the profile completion
-				await updateSectionStatus();
-			}
-		} catch (err) {
-			console.error('Error saving profile:', err);
-			error = 'An unexpected error occurred';
-		} finally {
-			loading = false;
-		}
+		// Now using SvelteKit form action mechanism
+		// The form will be submitted below with the enhance action
 	}
 
 	// Function to update profile with simplified structure
@@ -812,7 +857,90 @@
 			</div>
 		</div>
 
-		<form onsubmit={saveProfile} class="space-y-6">
+		<form
+			method="POST"
+			class="space-y-6"
+			use:enhance={({ formData, cancel }) => {
+				// Validate form before submission
+				if (!formData.get('fullName')) {
+					formStatus.error = 'Full name is required';
+					return cancel();
+				}
+
+				// If username validation is pending, delay submission
+				if (checkingUsername) {
+					formStatus.error = 'Please wait for username validation to complete';
+					return cancel();
+				}
+
+				// If username has errors, prevent submission
+				if (usernameError) {
+					formStatus.error = usernameError;
+					return cancel();
+				}
+
+				// Add the photo URL to form data
+				if (photoUrl) {
+					formData.append('photoUrl', photoUrl);
+				}
+
+				// Set form status to pending
+				formStatus.isPending = true;
+				formStatus.submitted = false;
+				formStatus.error = null;
+				loading = true;
+
+				// Get the form data for optimistic updates
+				const optimisticFullName = formData.get('fullName') as string;
+				const optimisticEmail = formData.get('email') as string;
+				const optimisticPhone = formData.get('phone') as string;
+				const optimisticLocation = formData.get('location') as string;
+				const optimisticUsername = formData.get('username') as string;
+
+				// Apply optimistic updates
+				fullName = optimisticFullName;
+				email = optimisticEmail;
+				phone = optimisticPhone;
+				location = optimisticLocation;
+				username = optimisticUsername;
+
+				// Show temporary success message for immediate feedback
+				success = 'Saving your profile...';
+
+				return async ({ result, update }) => {
+					formStatus.isPending = false;
+					loading = false;
+
+					if (result.type === 'success') {
+						formStatus.success = true;
+						success = 'Profile saved successfully!';
+
+						// Refresh profile data to ensure everything is in sync
+						await refreshProfileData();
+
+						// Update section status to reflect the profile completion
+						await updateSectionStatus();
+					} else if (result.type === 'failure') {
+						// Handle specific errors from server
+						let errorMsg = 'Failed to save profile';
+						if (result.data && typeof result.data.error === 'string') {
+							errorMsg = result.data.error;
+						}
+
+						formStatus.error = errorMsg;
+						success = null; // Clear optimistic success message
+					} else if (result.type === 'error') {
+						formStatus.error = 'An unexpected error occurred. Please try again.';
+						success = null; // Clear optimistic success message
+					}
+
+					formStatus.submitted = true;
+
+					// Only update the DOM if we need to
+					await update();
+				};
+			}}
+		>
 			<div>
 				<label class="mb-1 block text-sm font-medium text-gray-700" for="fullName">Full Name</label>
 				<input
@@ -905,12 +1033,60 @@
 			<div>
 				<button
 					type="submit"
-					disabled={loading}
+					disabled={loading || formStatus.isPending}
 					class="w-full rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 				>
-					{loading ? 'Saving...' : 'Save Profile'}
+					{loading || formStatus.isPending ? 'Saving...' : 'Save Profile'}
 				</button>
 			</div>
+
+			{#if formStatus.error}
+				<div class="rounded-md bg-red-50 p-4">
+					<div class="flex">
+						<div class="flex-shrink-0">
+							<svg
+								class="h-5 w-5 text-red-400"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</div>
+						<div class="ml-3">
+							<p class="text-sm font-medium text-red-800">{formStatus.error}</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			{#if formStatus.success}
+				<div class="rounded-md bg-green-50 p-4">
+					<div class="flex">
+						<div class="flex-shrink-0">
+							<svg
+								class="h-5 w-5 text-green-400"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</div>
+						<div class="ml-3">
+							<p class="text-sm font-medium text-green-800">Profile saved successfully!</p>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</form>
 
 		{#if username && !usernameError}

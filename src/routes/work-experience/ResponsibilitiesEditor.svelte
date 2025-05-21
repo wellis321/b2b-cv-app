@@ -51,8 +51,8 @@
 		await loadResponsibilities();
 	});
 
-	// Load responsibilities (categories and items)
-	async function loadResponsibilities() {
+	// Export loadResponsibilities for use by error boundary
+	export async function loadResponsibilities() {
 		if (!workExperienceId) {
 			console.error('Missing workExperienceId in ResponsibilitiesEditor');
 			error = 'Missing work experience ID';
@@ -200,11 +200,8 @@
 		// Notify parent we're editing responsibilities
 		setEditingResponsibilities(true);
 
-		$inspect({ addingItem: { categoryId, content } });
-
 		try {
 			const result = await addItem(categoryId, content);
-			$inspect({ addItemResult: result });
 
 			if (result) {
 				// Clear the input field

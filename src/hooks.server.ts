@@ -5,13 +5,28 @@ import { redirect, error } from '@sveltejs/kit';
 import { getCsrfToken, validateCsrfToken, requiresCsrfCheck } from '$lib/security/csrf';
 import { rateLimit, applyAuthRateLimit } from '$lib/security/rateLimit';
 
-// List of public routes that don't require authentication
-const publicRoutes = ['/', '/login', '/signup', '/security-review-client', '/cv/@'];
+// Define base public routes that don't require authentication
+const basePublicRoutes = [
+    '/',
+    '/login',
+    '/signup',
+    '/security-review-client',
+    '/cv',
+    /^\/cv\/@[^/]+$/ // Add regex pattern for username-based CV paths like /cv/@username
+];
+
+// Add development-only routes if not in production
+const publicRoutes = [
+    ...basePublicRoutes,
+    // Only add security-test page to public routes in development
+    ...(config.isDevelopment ? ['/security-test'] : [])
+];
 
 // List of API routes that are exempt from CSRF checks (e.g., webhooks)
 const csrfExemptRoutes = [
     '/api/verify-session', // This is a read-only endpoint to verify a session
-    '/api/update-profile-photo' // Special endpoint for photo uploads that handles auth separately
+    '/api/update-profile-photo', // Special endpoint for photo uploads that handles auth separately
+    '/api/csp-report' // CSP violation reporting endpoint
 ];
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -158,9 +173,15 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
 
         // Check if this is a protected route and redirect if needed
-        const isPublicRoute = publicRoutes.some(
-            (route) => path === route || path.startsWith(`${route}/`)
-        );
+        // Modified to handle regex patterns in publicRoutes
+        const isPublicRoute = publicRoutes.some(route => {
+            if (typeof route === 'string') {
+                return path === route || path.startsWith(`${route}/`);
+            } else if (route instanceof RegExp) {
+                return route.test(path);
+            }
+            return false;
+        });
 
         safeLog('debug', `[${requestId}] Route check`, {
             path,

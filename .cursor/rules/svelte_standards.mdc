@@ -1,0 +1,52 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Svelte and SvelteKit Development Standards
+
+## Reference Documentation
+- Always use the `svelte-complete-medium.txt` document as the primary reference for implementation patterns
+- Prioritize modern Svelte 5 patterns over legacy approaches
+
+## Reactivity
+- Use Svelte 5 runes for state management:
+  - `$state` for declaring reactive state
+  - `$derived` for computed values
+  - `$effect` for side effects and lifecycle
+  - `$props` for component props
+  - `$bindable` for two-way binding
+
+## Routing & Files
+- Follow SvelteKit's file-based routing conventions strictly
+- Use proper file organization with `+page.svelte`, `+layout.svelte`, etc.
+- Place reusable components in the lib directory
+- Keep server-only code in `+page.server.js` or `$lib/server`
+
+## Data Handling
+- Use server-side load functions for data fetching
+- Implement SvelteKit form actions for data mutations
+- Leverage progressive enhancement for forms
+- Stream data with promises when appropriate
+
+## TypeScript
+- Maintain proper type safety throughout
+- Use TypeScript interfaces for component props
+- Leverage `$types` for route parameter typing
+- Follow the type patterns shown in the reference document
+
+## Performance & Accessibility
+- Apply SSR-friendly coding practices
+- Avoid shared state on the server
+- Keep load functions pure (no side effects)
+- Implement proper semantic HTML and ARIA attributes
+- Ensure keyboard navigation support
+
+## Component Design
+- Follow the component composition patterns from documentation
+- Use Svelte's built-in transitions and animations
+- Implement proper error handling with `+error.svelte`
+- Use stores and context for cross-component state when needed
+
+These standards ensure consistent implementation of Svelte and SvelteKit features,
+maintainable code structure, and optimal performance throughout the CV application.

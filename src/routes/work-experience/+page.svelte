@@ -10,6 +10,8 @@
 	import BreadcrumbNavigation from '$lib/components/BreadcrumbNavigation.svelte';
 	import ResponsibilitiesEditor from './ResponsibilitiesEditor.svelte';
 	import { getResponsibilitiesForExperience, addCategory, addItem } from './responsibilities';
+	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
+	import ResponsibilityErrorFallback from './ResponsibilityErrorFallback.svelte';
 
 	// Define type for form values
 	type FormValues = {
@@ -709,11 +711,16 @@
 
 					{#if isEditing && editingExperience}
 						<div class="mt-4 border-t pt-4">
-							<ResponsibilitiesEditor
-								workExperienceId={editingExperience.id}
-								bind:this={editResponsibilitiesEditor}
-								on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
-							/>
+							<ErrorBoundary
+								fallback={ResponsibilityErrorFallback}
+								onError={(error) => console.error('Responsibility editor error:', error)}
+							>
+								<ResponsibilitiesEditor
+									workExperienceId={editingExperience.id}
+									bind:this={editResponsibilitiesEditor}
+									on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
+								/>
+							</ErrorBoundary>
 						</div>
 					{/if}
 
@@ -826,11 +833,20 @@
 
 						<!-- Show responsibilities in read-only view -->
 						<div class="mt-3">
-							<ResponsibilitiesEditor
-								workExperienceId={exp.id}
-								readOnly={true}
-								bind:this={displayResponsibilitiesEditors[exp.id]}
-							/>
+							<ErrorBoundary
+								fallback={ResponsibilityErrorFallback}
+								resetErrorBoundary={() => {
+									if (displayResponsibilitiesEditors[exp.id]) {
+										displayResponsibilitiesEditors[exp.id].loadResponsibilities();
+									}
+								}}
+							>
+								<ResponsibilitiesEditor
+									workExperienceId={exp.id}
+									readOnly={true}
+									bind:this={displayResponsibilitiesEditors[exp.id]}
+								/>
+							</ErrorBoundary>
 						</div>
 					</li>
 				{/each}
