@@ -75,12 +75,12 @@
 		if (!dateString) return 'Present';
 		try {
 			const plainDate = Temporal.PlainDate.from(dateString);
-			// Format as DD/MM/YYYY instead of the default ISO format
-			return `${plainDate.day.toString().padStart(2, '0')}/${plainDate.month.toString().padStart(2, '0')}/${plainDate.year}`;
+			// Format as MM/YYYY
+			return `${plainDate.month.toString().padStart(2, '0')}/${plainDate.year}`;
 		} catch (e) {
 			// Fallback to basic formatting if Temporal fails
 			const date = new Date(dateString);
-			return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+			return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 		}
 	}
 

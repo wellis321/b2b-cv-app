@@ -48,13 +48,13 @@
 
 		try {
 			const date = Temporal.PlainDate.from(dateStr);
-			// Format as DD/MM/YYYY
-			return `${date.day.toString().padStart(2, '0')}/${date.month.toString().padStart(2, '0')}/${date.year}`;
+			// Format as MM/YYYY
+			return `${date.month.toString().padStart(2, '0')}/${date.year}`;
 		} catch (err) {
 			console.error('Error formatting date:', err);
 			// Fallback to basic formatting
 			const date = new Date(dateStr);
-			return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+			return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
 		}
 	}
 
