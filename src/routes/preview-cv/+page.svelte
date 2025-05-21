@@ -15,6 +15,7 @@
 	import { cvStore } from '$lib/stores/cvDataStore';
 	import { page } from '$app/stores';
 	import { getProxiedPhotoUrl, validatePhotoUrl, DEFAULT_PROFILE_PHOTO } from '$lib/photoUtils';
+	import { decodeHtmlEntities } from '$lib/validation';
 
 	// CV data
 	let profile = $state<any>(null);
@@ -201,6 +202,16 @@
 			.catch((err) => {
 				console.error('Could not copy URL:', err);
 			});
+	}
+
+	// Group skills by category
+	function getSkillsByCategory(skillsList: any[]) {
+		return skillsList.reduce((acc: Record<string, any[]>, skill) => {
+			const category = skill.category || 'Other';
+			if (!acc[category]) acc[category] = [];
+			acc[category].push(skill);
+			return acc;
+		}, {});
 	}
 
 	// Handle image error
@@ -484,247 +495,266 @@
 				</div>
 			</div>
 
-			<!-- Work Experience -->
-			{#if workExperiences.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Work Experience</h2>
-					<div class="space-y-6">
-						{#each workExperiences as job}
-							<div>
-								<div class="flex justify-between">
-									<div>
-										<h3 class="font-semibold">{job.position}</h3>
-										<h4 class="text-gray-700">{job.company_name}</h4>
+			<!-- Preview content -->
+			<div class="rounded-b-lg bg-white p-6 shadow-md">
+				<div class="space-y-8">
+					<!-- Work Experience Section -->
+					{#if workExperiences.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Work Experience</h2>
+							{#each workExperiences as job, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<div class="mb-2 md:flex md:justify-between">
+										<div>
+											<h3 class="text-xl font-bold text-gray-800">
+												{decodeHtmlEntities(job.position)}
+											</h3>
+											<div class="text-lg font-semibold text-gray-700">
+												{decodeHtmlEntities(job.company_name)}
+											</div>
+										</div>
+										<div class="mt-2 text-gray-600 md:mt-0 md:text-right">
+											{formatDate(job.start_date)} - {formatDate(job.end_date)}
+										</div>
 									</div>
-									<div class="text-sm text-gray-600">
-										{formatDate(job.start_date)} - {job.end_date
-											? formatDate(job.end_date)
-											: 'Present'}
-									</div>
-								</div>
-								{#if job.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">
-											{#if job.description.includes('Key Responsibilities:')}
-												{job.description.split('Key Responsibilities:')[0].trim()}
-											{:else}
-												{job.description}
-											{/if}
-										</p>
-									</div>
-								{/if}
-
-								<!-- Display job responsibilities -->
-								<div class="mt-3">
-									<ResponsibilitiesEditor workExperienceId={job.id} readOnly={true} />
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Projects -->
-			{#if projects.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Projects</h2>
-					<div class="space-y-6">
-						{#each projects as project}
-							<div>
-								<div class="flex justify-between">
-									<div>
-										<h3 class="font-semibold">{project.title}</h3>
-										{#if project.url}
-											<a
-												href={project.url}
-												target="_blank"
-												rel="noopener noreferrer"
-												class="text-indigo-600 hover:underline"
-											>
-												{project.url.replace(/^https?:\/\//, '')}
-											</a>
-										{/if}
-									</div>
-									{#if project.start_date}
-										<div class="text-sm text-gray-600">
-											{formatDate(project.start_date)} - {project.end_date
-												? formatDate(project.end_date)
-												: 'Present'}
+									{#if job.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(job.description)}
+										</div>
+									{/if}
+									{#if job.responsibilities && job.responsibilities.length > 0}
+										<div class="mt-4">
+											<h4 class="mb-2 font-semibold text-gray-700">Key Responsibilities</h4>
+											<ResponsibilitiesEditor
+												responsibilities={job.responsibilities}
+												readOnly={true}
+											/>
 										</div>
 									{/if}
 								</div>
-								{#if project.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{project.description}</p>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
+							{/each}
+						</section>
+					{/if}
 
-			<!-- Skills -->
-			{#if skills.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Skills</h2>
-					<div>
-						{#each skills as skill}
-							<span class="mr-2 mb-2 inline-block rounded-full bg-gray-200 px-3 py-1 text-sm">
-								{skill.name}
-								{#if skill.level}
-									<span class="ml-1 text-gray-600">({skill.level})</span>
-								{/if}
-							</span>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Education -->
-			{#if education.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Education</h2>
-					<div class="space-y-6">
-						{#each education as edu}
-							<div>
-								<div class="flex justify-between">
-									<div>
-										<h3 class="font-semibold">{edu.qualification || edu.degree}</h3>
-										<h4 class="text-gray-700">{edu.institution}</h4>
-									</div>
-									<div class="text-sm text-gray-600">
-										{formatDate(edu.start_date)} - {edu.end_date
-											? formatDate(edu.end_date)
-											: 'Present'}
-									</div>
-								</div>
-								{#if edu.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{edu.description}</p>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Certifications -->
-			{#if certifications && certifications.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Certifications</h2>
-					<div class="space-y-6">
-						{#each certifications as cert}
-							<div>
-								<div class="flex justify-between">
-									<div>
-										<h3 class="font-semibold">{cert.name}</h3>
-										{#if cert.issuer}
-											<h4 class="text-gray-700">{cert.issuer}</h4>
-										{/if}
-										{#if cert.url}
-											<a
-												href={cert.url}
-												target="_blank"
-												rel="noopener noreferrer"
-												class="text-indigo-600 hover:underline"
-											>
-												{cert.url.replace(/^https?:\/\//, '')}
-											</a>
-										{/if}
-									</div>
-									{#if cert.date_issued}
-										<div class="text-sm text-gray-600">
-											Issued: {formatDate(cert.date_issued)}
-											{#if cert.expiry_date}
-												<br />Expires: {formatDate(cert.expiry_date)}
+					<!-- Education Section -->
+					{#if education.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Education</h2>
+							{#each education as edu, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<div class="mb-2 md:flex md:justify-between">
+										<div>
+											<h3 class="text-xl font-bold text-gray-800">
+												{decodeHtmlEntities(edu.institution)}
+											</h3>
+											{#if edu.degree}
+												<div class="text-lg font-semibold text-gray-700">
+													{decodeHtmlEntities(edu.degree)}
+												</div>
+											{:else if edu.course}
+												<div class="text-lg font-semibold text-gray-700">
+													{decodeHtmlEntities(edu.course)}
+												</div>
 											{/if}
 										</div>
-									{/if}
-								</div>
-								{#if cert.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{cert.description}</p>
+										<div class="mt-2 text-gray-600 md:mt-0 md:text-right">
+											{formatDate(edu.start_date)} - {formatDate(edu.end_date)}
+										</div>
 									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-
-			<!-- Professional Memberships -->
-			{#if memberships && memberships.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Professional Memberships</h2>
-					<div class="space-y-6">
-						{#each memberships as membership}
-							<div>
-								<div class="flex justify-between">
-									<div>
-										<h3 class="font-semibold">{membership.organisation}</h3>
-										{#if membership.role}
-											<h4 class="text-gray-700">{membership.role}</h4>
-										{/if}
-									</div>
-									{#if membership.start_date}
-										<div class="text-sm text-gray-600">
-											{formatDate(membership.start_date)} - {membership.end_date
-												? formatDate(membership.end_date)
-												: 'Present'}
+									{#if edu.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(edu.description)}
 										</div>
 									{/if}
 								</div>
-								{#if membership.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{membership.description}</p>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
+							{/each}
+						</section>
+					{/if}
 
-			<!-- Qualification Equivalence -->
-			{#if qualificationEquivalence && qualificationEquivalence.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Professional Qualification Equivalence</h2>
-					<div class="space-y-6">
-						{#each qualificationEquivalence as qualification}
-							<div>
-								<h3 class="font-semibold">{qualification.qualification}</h3>
-								<h4 class="text-gray-700">Equivalent to: {qualification.equivalent_to}</h4>
-								{#if qualification.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{qualification.description}</p>
-									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
+					<!-- Skills Section -->
+					{#if skills.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Skills</h2>
 
-			<!-- Interests -->
-			{#if interests && interests.length > 0}
-				<div class="mt-8">
-					<h2 class="mb-4 text-xl font-bold">Interests & Activities</h2>
-					<div class="space-y-6">
-						{#each interests as interest}
-							<div>
-								<h3 class="font-semibold">{interest.name}</h3>
-								{#if interest.description}
-									<div class="mt-2 text-gray-700">
-										<p class="whitespace-pre-line">{interest.description}</p>
+							{#if skills.length > 0}
+								{#each Object.keys(getSkillsByCategory(skills)).sort() as category}
+									<div class="mb-4">
+										<h3 class="mb-2 text-lg font-semibold text-gray-700">
+											{decodeHtmlEntities(category)}
+										</h3>
+										<div class="flex flex-wrap gap-2">
+											{#each getSkillsByCategory(skills)[category] as skill}
+												<div
+													class="rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800"
+												>
+													{decodeHtmlEntities(skill.name)}
+													{#if skill.level}
+														<span class="text-indigo-600">({decodeHtmlEntities(skill.level)})</span>
+													{/if}
+												</div>
+											{/each}
+										</div>
 									</div>
-								{/if}
-							</div>
-						{/each}
-					</div>
+								{/each}
+							{/if}
+						</section>
+					{/if}
+
+					<!-- Projects Section -->
+					{#if projects.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Projects</h2>
+							{#each projects as project, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<div class="mb-2 md:flex md:justify-between">
+										<div>
+											<h3 class="text-xl font-bold text-gray-800">
+												{decodeHtmlEntities(project.title)}
+											</h3>
+											{#if project.url}
+												<a
+													href={project.url}
+													target="_blank"
+													class="text-indigo-600 hover:text-indigo-800 hover:underline"
+													>{decodeHtmlEntities(project.url)}</a
+												>
+											{/if}
+										</div>
+										{#if project.start_date}
+											<div class="mt-2 text-gray-600 md:mt-0 md:text-right">
+												{formatDate(project.start_date)} - {formatDate(project.end_date)}
+											</div>
+										{/if}
+									</div>
+									{#if project.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(project.description)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
+
+					<!-- Certifications Section -->
+					{#if certifications.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Certifications</h2>
+							{#each certifications as cert, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<div class="mb-2 md:flex md:justify-between">
+										<div>
+											<h3 class="text-xl font-bold text-gray-800">
+												{decodeHtmlEntities(cert.name)}
+											</h3>
+											{#if cert.issuer}
+												<div class="text-lg font-semibold text-gray-700">
+													{decodeHtmlEntities(cert.issuer)}
+												</div>
+											{/if}
+											{#if cert.url}
+												<a
+													href={cert.url}
+													target="_blank"
+													class="text-indigo-600 hover:text-indigo-800 hover:underline"
+													>{decodeHtmlEntities(cert.url)}</a
+												>
+											{/if}
+										</div>
+										<div class="mt-2 text-gray-600 md:mt-0 md:text-right">
+											{#if cert.date_issued}
+												Issued: {formatDate(cert.date_issued)}
+												{#if cert.expiry_date}
+													<br />Expires: {formatDate(cert.expiry_date)}
+												{/if}
+											{/if}
+										</div>
+									</div>
+									{#if cert.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(cert.description)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
+
+					<!-- Professional Memberships Section -->
+					{#if memberships.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Professional Memberships</h2>
+							{#each memberships as membership, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<div class="mb-2 md:flex md:justify-between">
+										<div>
+											<h3 class="text-xl font-bold text-gray-800">
+												{decodeHtmlEntities(membership.organisation)}
+											</h3>
+											{#if membership.role}
+												<div class="text-lg font-semibold text-gray-700">
+													{decodeHtmlEntities(membership.role)}
+												</div>
+											{/if}
+										</div>
+										{#if membership.start_date}
+											<div class="mt-2 text-gray-600 md:mt-0 md:text-right">
+												{formatDate(membership.start_date)} - {formatDate(membership.end_date)}
+											</div>
+										{/if}
+									</div>
+									{#if membership.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(membership.description)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
+
+					<!-- Qualification Equivalence Section -->
+					{#if qualificationEquivalence.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Qualification Equivalence</h2>
+							{#each qualificationEquivalence as qual, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<h3 class="text-xl font-bold text-gray-800">
+										{decodeHtmlEntities(qual.qualification)}
+									</h3>
+									<div class="text-lg font-semibold text-gray-700">
+										Equivalent to: {decodeHtmlEntities(qual.equivalent_to)}
+									</div>
+									{#if qual.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(qual.description)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
+
+					<!-- Interests Section -->
+					{#if interests.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Interests & Activities</h2>
+							{#each interests as interest, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<h3 class="text-xl font-bold text-gray-800">
+										{decodeHtmlEntities(interest.name)}
+									</h3>
+									{#if interest.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(interest.description)}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
 				</div>
-			{/if}
+			</div>
 		</div>
 	{/if}
 

@@ -1,4 +1,5 @@
 import type { Content, TDocumentDefinitions, StyleDictionary } from 'pdfmake/interfaces';
+import { decodeHtmlEntities } from './validation';
 
 export interface PdfProfile {
     id: string;
@@ -203,21 +204,21 @@ export async function createCvDocDefinition(
         // Add header with profile information
         const headerContent = [
             {
-                text: profile.full_name || 'Your Name',
+                text: profile.full_name ? decodeHtmlEntities(profile.full_name) : 'Your Name',
                 style: 'header'
             }
         ];
 
         if (profile.location) {
-            headerContent.push({ text: profile.location, style: 'normal' });
+            headerContent.push({ text: decodeHtmlEntities(profile.location), style: 'normal' });
         }
 
         if (profile.email) {
-            headerContent.push({ text: profile.email, style: 'normal' });
+            headerContent.push({ text: decodeHtmlEntities(profile.email), style: 'normal' });
         }
 
         if (profile.phone) {
-            headerContent.push({ text: profile.phone, style: 'normal' });
+            headerContent.push({ text: decodeHtmlEntities(profile.phone), style: 'normal' });
         }
 
         // Profile header layout with optional photo (if enabled)
@@ -304,7 +305,7 @@ export async function createCvDocDefinition(
                 columns: [
                     {
                         width: '*',
-                        text: job.position,
+                        text: decodeHtmlEntities(job.position),
                         style: 'jobPosition'
                     },
                     {
@@ -319,7 +320,7 @@ export async function createCvDocDefinition(
 
             // Company name
             content.push({
-                text: job.company_name,
+                text: decodeHtmlEntities(job.company_name),
                 style: 'company',
                 margin: [0, 3, 0, 3]
             });
@@ -333,7 +334,7 @@ export async function createCvDocDefinition(
                 }
 
                 content.push({
-                    text: descriptionText,
+                    text: decodeHtmlEntities(descriptionText),
                     style: 'normal',
                     margin: [0, 5, 0, 3]
                 });
@@ -348,37 +349,38 @@ export async function createCvDocDefinition(
                 const categories = await getResponsibilitiesForExperience(job.id);
 
                 if (categories && categories.length > 0) {
-                    // Add responsibilities header
-                    content.push({
-                        text: 'Key Responsibilities:',
-                        style: 'normal',
-                        bold: true,
-                        margin: [0, 5, 0, 3]
-                    });
+                    const responsibilitiesContent: Content[] = [];
 
-                    // For each category
-                    categories.forEach((category) => {
-                        // Add category name
-                        content.push({
-                            text: category.name,
-                            style: 'normal',
-                            italics: true,
-                            margin: [0, 5, 0, 2]
-                        });
+                    categories.forEach(category => {
+                        if (category.items.length > 0) {
+                            // Add category name
+                            responsibilitiesContent.push({
+                                text: decodeHtmlEntities(category.name) + ':',
+                                bold: true,
+                                margin: [0, 5, 0, 3]
+                            });
 
-                        // Add items as bullet points
-                        if (category.items && category.items.length > 0) {
-                            const itemsContent = category.items.map((item) => ({
-                                text: item.content,
-                                style: 'normal'
+                            // Add items as bullet points
+                            const items = category.items.map(item => ({
+                                text: decodeHtmlEntities(item.content),
+                                margin: [0, 2, 0, 2] as [number, number, number, number]
                             }));
 
-                            content.push({
-                                ul: itemsContent,
-                                margin: [10, 0, 0, 5]
+                            responsibilitiesContent.push({
+                                ul: items
                             });
                         }
                     });
+
+                    if (responsibilitiesContent.length > 0) {
+                        content.push({
+                            stack: [
+                                { text: 'Key Responsibilities:', bold: true, margin: [0, 5, 0, 3] as [number, number, number, number] },
+                                ...responsibilitiesContent
+                            ],
+                            margin: [10, 0, 0, 10] as [number, number, number, number]
+                        });
+                    }
                 }
             } catch (err) {
                 console.error('Error loading responsibilities for PDF:', err);
@@ -397,53 +399,57 @@ export async function createCvDocDefinition(
     if (config.sections.projects && cvData.projects.length > 0) {
         content.push({ text: 'Projects', style: 'subheader' });
 
-        cvData.projects.forEach((project) => {
-            // Project header
-            const projectHeader = {
-                columns: [
-                    {
-                        width: '*',
-                        text: project.title,
-                        style: 'jobPosition'
-                    },
-                    {
-                        width: 'auto',
-                        text: project.start_date
-                            ? `${formatDate(project.start_date)} - ${formatDate(project.end_date)}`
-                            : '',
-                        style: 'dates'
-                    }
-                ]
-            };
+        for (const project of cvData.projects) {
+            // Project header with title and date
+            const dateText = project.start_date
+                ? `${formatDate(project.start_date)} - ${formatDate(project.end_date)}`
+                : '';
 
-            content.push(projectHeader);
-
-            // URL if available
-            if (project.url) {
+            if (dateText) {
                 content.push({
-                    text: project.url.replace(/^https?:\/\//, ''),
-                    style: 'company',
-                    margin: [0, 3, 0, 3],
-                    color: '#3366cc',
-                    decoration: 'underline'
+                    columns: [
+                        {
+                            width: '*',
+                            text: decodeHtmlEntities(project.title),
+                            style: 'jobPosition'
+                        },
+                        {
+                            width: 'auto',
+                            text: dateText,
+                            style: 'dates'
+                        }
+                    ]
+                });
+            } else {
+                content.push({
+                    text: decodeHtmlEntities(project.title),
+                    style: 'jobPosition'
                 });
             }
 
             // Description if available
             if (project.description) {
                 content.push({
-                    text: project.description,
+                    text: decodeHtmlEntities(project.description),
                     style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                // Add spacing if no description
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
+                    margin: [0, 5, 0, 5]
                 });
             }
-        });
+
+            // URL if available
+            if (project.url) {
+                content.push({
+                    text: decodeHtmlEntities(project.url),
+                    style: 'normal',
+                    color: '#0000EE',
+                    decoration: 'underline',
+                    margin: [0, 5, 0, 5]
+                });
+            }
+
+            // Add some space between project entries
+            content.push({ text: '', margin: [0, 0, 0, 10] });
+        }
     }
 
     // Skills
@@ -451,49 +457,60 @@ export async function createCvDocDefinition(
         content.push({ text: 'Skills', style: 'subheader' });
 
         // Group skills by category
-        const skillsByCategory = cvData.skills.reduce<Record<string, PdfSkill[]>>((acc, skill) => {
+        const skillsByCategory: Record<string, PdfSkill[]> = {};
+        for (const skill of cvData.skills) {
             const category = skill.category || 'Other';
-            if (!acc[category]) {
-                acc[category] = [];
+            if (!skillsByCategory[category]) {
+                skillsByCategory[category] = [];
             }
-            acc[category].push(skill);
-            return acc;
-        }, {});
+            skillsByCategory[category].push(skill);
+        }
 
-        // Add each category
-        Object.keys(skillsByCategory)
-            .sort()
-            .forEach((category) => {
-                content.push({
-                    text: category,
-                    bold: true,
-                    margin: [0, 5, 0, 2]
-                });
+        // Add skills by category
+        for (const category in skillsByCategory) {
+            if (Object.prototype.hasOwnProperty.call(skillsByCategory, category)) {
+                const skills = skillsByCategory[category];
 
-                const skillsText = skillsByCategory[category]
-                    .map((skill) => (skill.level ? `${skill.name} (${skill.level})` : skill.name))
-                    .join(', ');
+                if (skills.length > 0) {
+                    // Only add category header if not 'Other' or if there are multiple categories
+                    if (category !== 'Other' || Object.keys(skillsByCategory).length > 1) {
+                        content.push({
+                            text: decodeHtmlEntities(category),
+                            bold: true,
+                            margin: [0, 5, 0, 3]
+                        });
+                    }
 
-                content.push({
-                    text: skillsText,
-                    style: 'skills',
-                    margin: [0, 0, 0, 5]
-                });
-            });
+                    // Format skills with level if available
+                    const skillTexts = skills.map((skill) => {
+                        const skillName = decodeHtmlEntities(skill.name);
+                        return skill.level
+                            ? `${skillName} (${decodeHtmlEntities(skill.level)})`
+                            : skillName;
+                    });
+
+                    content.push({
+                        text: skillTexts.join(', '),
+                        style: 'skills',
+                        margin: [0, 0, 0, 5]
+                    });
+                }
+            }
+        }
     }
 
     // Education
     if (config.sections.education && cvData.education.length > 0) {
         content.push({ text: 'Education', style: 'subheader' });
 
-        cvData.education.forEach((edu) => {
-            // Education header
-            const eduHeader = {
+        for (const edu of cvData.education) {
+            // Education header with institution and date
+            content.push({
                 columns: [
                     {
                         width: '*',
-                        text: edu.degree || edu.course || 'Education',
-                        style: 'jobPosition'
+                        text: decodeHtmlEntities(edu.institution),
+                        style: 'institution'
                     },
                     {
                         width: 'auto',
@@ -501,32 +518,30 @@ export async function createCvDocDefinition(
                         style: 'dates'
                     }
                 ]
-            };
-
-            content.push(eduHeader);
-
-            // Institution
-            content.push({
-                text: edu.institution,
-                style: 'institution',
-                margin: [0, 3, 0, 3]
             });
+
+            // Degree/qualification
+            const degreeText = edu.degree || edu.course || '';
+            if (degreeText) {
+                content.push({
+                    text: decodeHtmlEntities(degreeText),
+                    style: 'jobPosition',
+                    margin: [0, 3, 0, 3]
+                });
+            }
 
             // Description if available
             if (edu.description) {
                 content.push({
-                    text: edu.description,
+                    text: decodeHtmlEntities(edu.description),
                     style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                // Add spacing if no description
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
+                    margin: [0, 5, 0, 5]
                 });
             }
-        });
+
+            // Add some space between education entries
+            content.push({ text: '', margin: [0, 0, 0, 10] });
+        }
     }
 
     // Certifications
@@ -586,7 +601,7 @@ export async function createCvDocDefinition(
                     columns: [
                         {
                             width: '*',
-                            text: cert.name,
+                            text: decodeHtmlEntities(cert.name),
                             style: 'jobPosition'
                         },
                         {
@@ -602,7 +617,7 @@ export async function createCvDocDefinition(
                 // Issuer
                 if (cert.issuer) {
                     content.push({
-                        text: cert.issuer,
+                        text: decodeHtmlEntities(cert.issuer),
                         style: 'institution',
                         margin: [0, 3, 0, 3]
                     });
@@ -611,7 +626,7 @@ export async function createCvDocDefinition(
                 // URL if available
                 if (cert.url) {
                     content.push({
-                        text: cert.url.replace(/^https?:\/\//, ''),
+                        text: decodeHtmlEntities(cert.url),
                         style: 'company',
                         margin: [0, 3, 0, 3],
                         color: '#3366cc',
@@ -622,7 +637,7 @@ export async function createCvDocDefinition(
                 // Description if available
                 if (cert.description) {
                     content.push({
-                        text: cert.description,
+                        text: decodeHtmlEntities(cert.description),
                         style: 'normal',
                         margin: [0, 5, 0, 10] as [number, number, number, number]
                     });
@@ -654,32 +669,39 @@ export async function createCvDocDefinition(
     if (config.sections.memberships && cvData.memberships && cvData.memberships.length > 0) {
         content.push({ text: 'Professional Memberships', style: 'subheader' });
 
-        cvData.memberships.forEach((membership) => {
-            // Membership header
-            const membershipHeader = {
-                columns: [
-                    {
-                        width: '*',
-                        text: membership.organisation,
-                        style: 'jobPosition'
-                    },
-                    {
-                        width: 'auto',
-                        text: membership.start_date
-                            ? `${formatDate(membership.start_date)} - ${formatDate(membership.end_date)}`
-                            : '',
-                        style: 'dates'
-                    }
-                ]
-            };
+        for (const membership of cvData.memberships) {
+            // Membership header with organization and date
+            const dateText = membership.start_date
+                ? `${formatDate(membership.start_date)} - ${formatDate(membership.end_date)}`
+                : '';
 
-            content.push(membershipHeader);
+            if (dateText) {
+                content.push({
+                    columns: [
+                        {
+                            width: '*',
+                            text: decodeHtmlEntities(membership.organisation),
+                            style: 'jobPosition'
+                        },
+                        {
+                            width: 'auto',
+                            text: dateText,
+                            style: 'dates'
+                        }
+                    ]
+                });
+            } else {
+                content.push({
+                    text: decodeHtmlEntities(membership.organisation),
+                    style: 'jobPosition'
+                });
+            }
 
             // Role if available
             if (membership.role) {
                 content.push({
-                    text: membership.role,
-                    style: 'institution',
+                    text: decodeHtmlEntities(membership.role),
+                    style: 'company',
                     margin: [0, 3, 0, 3]
                 });
             }
@@ -687,18 +709,15 @@ export async function createCvDocDefinition(
             // Description if available
             if (membership.description) {
                 content.push({
-                    text: membership.description,
+                    text: decodeHtmlEntities(membership.description),
                     style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                // Add spacing if no description
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
+                    margin: [0, 5, 0, 5]
                 });
             }
-        });
+
+            // Add some space between membership entries
+            content.push({ text: '', margin: [0, 0, 0, 10] });
+        }
     }
 
     // Qualification Equivalence
@@ -709,27 +728,21 @@ export async function createCvDocDefinition(
     ) {
         content.push({ text: 'Professional Qualification Equivalence', style: 'subheader' });
 
-        cvData.qualificationEquivalence.forEach((qualification) => {
+        for (const qual of cvData.qualificationEquivalence) {
             content.push({
-                columns: [
-                    {
-                        width: '*',
-                        text: qualification.qualification,
-                        style: 'jobPosition'
-                    }
-                ],
-                margin: [0, 5, 0, 2]
+                text: decodeHtmlEntities(qual.qualification),
+                style: 'jobPosition'
             });
 
             content.push({
-                text: `Equivalent to: ${qualification.equivalent_to}`,
+                text: `Equivalent to: ${decodeHtmlEntities(qual.equivalent_to)}`,
                 style: 'institution',
                 margin: [0, 3, 0, 3]
             });
 
-            if (qualification.description) {
+            if (qual.description) {
                 content.push({
-                    text: qualification.description,
+                    text: decodeHtmlEntities(qual.description),
                     style: 'normal',
                     margin: [0, 5, 0, 10] as [number, number, number, number]
                 });
@@ -739,33 +752,31 @@ export async function createCvDocDefinition(
                     margin: [0, 0, 0, 10] as [number, number, number, number]
                 });
             }
-        });
+        }
     }
 
     // Interests
     if (config.sections.interests && cvData.interests && cvData.interests.length > 0) {
         content.push({ text: 'Interests & Activities', style: 'subheader' });
 
-        cvData.interests.forEach((interest) => {
+        for (const interest of cvData.interests) {
             content.push({
-                text: interest.name,
-                style: 'jobPosition',
-                margin: [0, 5, 0, 2]
+                text: decodeHtmlEntities(interest.name),
+                style: 'jobPosition'
             });
 
+            // Description if available
             if (interest.description) {
                 content.push({
-                    text: interest.description,
+                    text: decodeHtmlEntities(interest.description),
                     style: 'normal',
-                    margin: [0, 3, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
+                    margin: [0, 5, 0, 5]
                 });
             }
-        });
+
+            // Add some space between interest entries
+            content.push({ text: '', margin: [0, 0, 0, 10] });
+        }
     }
 
     // Return the complete document definition
@@ -785,7 +796,7 @@ export async function createCvDocDefinition(
         content,
         footer: function (currentPage: number, pageCount: number) {
             return {
-                text: `CV created with CV App | Page ${currentPage} of ${pageCount}`,
+                text: `CV created with CV App by William Ellis | Page ${currentPage} of ${pageCount}`,
                 style: 'footer',
                 margin: [40, 0, 40, 0] as [number, number, number, number]
             };
