@@ -601,18 +601,20 @@
 									Projects
 								</h2>
 
-								<div class="mt-6 grid gap-6 sm:grid-cols-2">
+								<div class="mt-6 space-y-6">
 									{#each cvData.projects as project}
 										<div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
 											<div class="border-b border-gray-100 bg-gray-50 px-4 py-3">
-												<h3 class="font-semibold text-gray-800">{project.title}</h3>
-												{#if project.start_date}
-													<p class="mt-1 text-xs text-gray-500">
-														{formatDate(project.start_date)} - {project.end_date
-															? formatDate(project.end_date)
-															: 'Present'}
-													</p>
-												{/if}
+												<div class="flex flex-wrap items-start justify-between gap-2">
+													<h3 class="font-semibold text-gray-800">{project.title}</h3>
+													{#if project.start_date}
+														<p class="text-sm text-gray-500">
+															{formatDate(project.start_date)} - {project.end_date
+																? formatDate(project.end_date)
+																: 'Present'}
+														</p>
+													{/if}
+												</div>
 											</div>
 
 											<div class="p-4">
