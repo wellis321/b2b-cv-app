@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { formatDate } from '$lib/pdfGenerator';
+	import { formatDate, generateCvPdf } from '$lib/pdfGenerator';
 	import { cvStore } from '$lib/stores/cvDataStore';
 	import ResponsibilitiesEditor from '../../work-experience/ResponsibilitiesEditor.svelte';
 	import { getProxiedPhotoUrl, DEFAULT_PROFILE_PHOTO } from '$lib/photoUtils';
@@ -180,6 +180,19 @@
 
 		// For non-owners, just use browser print
 		window.print();
+	}
+
+	// Function to generate and download a PDF of the CV
+	async function downloadPdf() {
+		if (!cvData) return;
+
+		try {
+			// Use default config for public PDF - this includes all sections
+			await generateCvPdf(cvData);
+		} catch (err) {
+			console.error('Error generating PDF:', err);
+			alert('Sorry, there was a problem generating the PDF. Please try again later.');
+		}
 	}
 </script>
 
@@ -728,11 +741,29 @@
 		<footer class="bg-gray-800 py-6 text-center text-white print:hidden">
 			<div class="container mx-auto px-4 sm:px-6 lg:px-8">
 				<p class="text-gray-300">CV created with CV App by William Ellis</p>
-				<p class="mt-2">
-					<a href="/" class="text-indigo-300 hover:text-indigo-200 hover:underline"
-						>Return to CV App</a
+				<div class="mt-3 flex justify-center space-x-4">
+					<button
+						onclick={downloadPdf}
+						class="inline-flex items-center rounded bg-indigo-500 px-3 py-1.5 text-sm text-white hover:bg-indigo-600"
 					>
-				</p>
+						<svg
+							class="mr-1.5 h-4 w-4"
+							fill="currentColor"
+							viewBox="0 0 20 20"
+							xmlns="http://www.w3.org/2000/svg"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+						Download PDF
+					</button>
+					<a href="/" class="text-indigo-300 hover:text-indigo-200 hover:underline">
+						Return to CV App
+					</a>
+				</div>
 			</div>
 		</footer>
 	</div>
