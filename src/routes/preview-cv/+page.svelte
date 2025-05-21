@@ -214,6 +214,21 @@
 		}, {});
 	}
 
+	// Get categorized skills
+	function getCategorizedSkills(skillsList: any[]) {
+		const skillsByCategory = getSkillsByCategory(skillsList);
+
+		// Convert to array format for template rendering
+		const categorizedSkillsArray = Object.keys(skillsByCategory)
+			.sort()
+			.map((category) => ({
+				category,
+				skills: skillsByCategory[category]
+			}));
+
+		return categorizedSkillsArray;
+	}
+
 	// Handle image error
 	function handleImageError(event: Event) {
 		photoLoadError = true;
@@ -577,13 +592,13 @@
 							<h2 class="mb-4 text-2xl font-bold text-gray-800">Skills</h2>
 
 							{#if skills.length > 0}
-								{#each Object.keys(getSkillsByCategory(skills)).sort() as category}
+								{#each getCategorizedSkills(skills) as { category, skills: skillList }}
 									<div class="mb-4">
 										<h3 class="mb-2 text-lg font-semibold text-gray-700">
 											{decodeHtmlEntities(category)}
 										</h3>
 										<div class="flex flex-wrap gap-2">
-											{#each getSkillsByCategory(skills)[category] as skill}
+											{#each skillList as skill}
 												<div
 													class="rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800"
 												>

@@ -48,7 +48,8 @@
 
 	// Function to check if current page is a public CV profile page
 	function isPublicCvPage(): boolean {
-		return /^\/cv\/@[^/]+$/.test($page.url.pathname);
+		// Check if we're on any CV page - including @username routes
+		return $page.url.pathname.startsWith('/cv/');
 	}
 
 	// Setup auth on mount
