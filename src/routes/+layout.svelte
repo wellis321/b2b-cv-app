@@ -164,7 +164,7 @@
 	</header>
 
 	<main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-		{#if !$session}
+		{#if !$session && !$page.url.pathname.startsWith('/cv/@')}
 			<AuthForm />
 		{:else}
 			<ErrorBoundary>
