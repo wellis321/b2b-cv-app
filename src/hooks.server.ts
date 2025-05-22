@@ -231,6 +231,29 @@ export const handle: Handle = async ({ event, resolve }) => {
         response.headers.set('X-XSS-Protection', '1; mode=block');
         response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
+        // Add strict HSTS header (HTTP Strict Transport Security)
+        if (config.isProduction) {
+            response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+        }
+
+        // Add Content-Security-Policy header
+        response.headers.set(
+            'Content-Security-Policy',
+            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com; img-src 'self' data: https://storage.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'; report-uri /api/csp-report; report-to default;"
+        );
+
+        // Add Permissions-Policy header (formerly Feature-Policy)
+        response.headers.set(
+            'Permissions-Policy',
+            'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()'
+        );
+
+        // Add Report-To header for better CSP violation reporting
+        response.headers.set(
+            'Report-To',
+            '{"group":"default","max_age":31536000,"endpoints":[{"url":"/api/csp-report"}]}'
+        );
+
         // Add CORS headers for API routes in production
         if (event.url.pathname.startsWith('/api')) {
             // In production, only allow requests from our domain
@@ -266,19 +289,6 @@ export const handle: Handle = async ({ event, resolve }) => {
                     headers: response.headers
                 });
             }
-        }
-
-        // Only set in production - in dev we need to allow inline scripts for HMR
-        if (config.isProduction) {
-            response.headers.set(
-                'Content-Security-Policy',
-                "default-src 'self'; " +
-                "script-src 'self' 'unsafe-inline'; " +
-                "style-src 'self' 'unsafe-inline'; " +
-                "img-src 'self' data: blob:; " +
-                "font-src 'self'; " +
-                "connect-src 'self' https://*.supabase.co;"
-            );
         }
     }
 
