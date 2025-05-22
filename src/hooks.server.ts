@@ -237,10 +237,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         }
 
         // Add Content-Security-Policy header
-        response.headers.set(
-            'Content-Security-Policy',
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com; img-src 'self' data: https://storage.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'; report-uri /api/csp-report; report-to default;"
-        );
+        // response.headers.set(
+        //     'Content-Security-Policy',
+        //     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://storage.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://storage.googleapis.com; img-src 'self' data: https://storage.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self'; report-uri /api/csp-report; report-to default;"
+        // );
 
         // Add Permissions-Policy header (formerly Feature-Policy)
         response.headers.set(
