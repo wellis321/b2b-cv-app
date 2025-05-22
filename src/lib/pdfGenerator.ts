@@ -818,7 +818,7 @@ export async function createCvDocDefinition(
         content,
         footer: function (currentPage: number, pageCount: number) {
             return {
-                text: `CV created with CV App by William and Max Ellis| Page ${currentPage} of ${pageCount}`,
+                text: `CV created with CV App by William and Max Ellis | Page ${currentPage} of ${pageCount}`,
                 style: 'footer',
                 margin: [40, 0, 40, 0] as [number, number, number, number]
             };
