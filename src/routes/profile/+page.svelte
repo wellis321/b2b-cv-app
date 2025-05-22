@@ -818,6 +818,87 @@
 			formStatus.isPending = false;
 		}
 	}
+
+	// New saveProfile function
+	async function saveProfile() {
+		if (!$session) {
+			error = 'Not authenticated. Please login first.';
+			return;
+		}
+
+		loading = true;
+		error = null;
+		success = null;
+		formStatus.error = null;
+		formStatus.success = false;
+		formStatus.isPending = true;
+
+		// Validate username
+		if (checkingUsername) {
+			error = 'Please wait for username validation to complete';
+			loading = false;
+			formStatus.isPending = false;
+			return;
+		}
+
+		// If username has errors, prevent submission
+		if (usernameError) {
+			error = usernameError;
+			loading = false;
+			formStatus.isPending = false;
+			return;
+		}
+
+		// Validate that name is present
+		if (!fullName || !fullName.trim()) {
+			error = 'Full name is required';
+			loading = false;
+			formStatus.isPending = false;
+			return;
+		}
+
+		try {
+			// Create the profile data object
+			const profileData = {
+				full_name: fullName,
+				email,
+				phone,
+				location,
+				username,
+				linkedin_url: linkedinUrl,
+				bio,
+				photo_url: photoUrl,
+				updated_at: new Date().toISOString()
+			};
+
+			// Use Supabase client directly to update the profile
+			const { error: updateError } = await supabase.from('profiles').upsert({
+				id: $session.user.id,
+				...profileData
+			});
+
+			if (updateError) {
+				console.error('Error updating profile:', updateError);
+				error = updateError.message || 'Failed to update profile';
+				formStatus.error = error;
+			} else {
+				success = 'Profile saved successfully!';
+				formStatus.success = true;
+				// Refresh profile data to ensure everything is in sync
+				await refreshProfileData();
+				// Update section status to reflect the profile completion
+				await updateSectionStatus();
+			}
+		} catch (err) {
+			console.error('Exception in profile update:', err);
+			error = err instanceof Error ? err.message : 'An unexpected error occurred';
+			formStatus.error = error;
+		} finally {
+			loading = false;
+			formStatus.isPending = false;
+			formStatus.submitted = true;
+		}
+	}
 </script>
 
 <div class="mx-auto max-w-xl space-y-6 rounded bg-white p-8 shadow">
@@ -935,91 +1016,9 @@
 		</div>
 
 		<form
-			method="POST"
 			class="space-y-6"
-			use:enhance={({ formData, cancel }) => {
-				// Validate form before submission
-				if (!formData.get('fullName')) {
-					formStatus.error = 'Full name is required';
-					return cancel();
-				}
-
-				// If username validation is pending, delay submission
-				if (checkingUsername) {
-					formStatus.error = 'Please wait for username validation to complete';
-					return cancel();
-				}
-
-				// If username has errors, prevent submission
-				if (usernameError) {
-					formStatus.error = usernameError;
-					return cancel();
-				}
-
-				// Add the photo URL to form data
-				if (photoUrl) {
-					formData.append('photoUrl', photoUrl);
-				}
-
-				// Set form status to pending
-				formStatus.isPending = true;
-				formStatus.submitted = false;
-				formStatus.error = null;
-				loading = true;
-
-				// Get the form data for optimistic updates
-				const optimisticFullName = formData.get('fullName') as string;
-				const optimisticEmail = formData.get('email') as string;
-				const optimisticPhone = formData.get('phone') as string;
-				const optimisticLocation = formData.get('location') as string;
-				const optimisticUsername = formData.get('username') as string;
-				const optimisticLinkedinUrl = formData.get('linkedinUrl') as string;
-				const optimisticBio = formData.get('bio') as string;
-
-				// Apply optimistic updates
-				fullName = optimisticFullName;
-				email = optimisticEmail;
-				phone = optimisticPhone;
-				location = optimisticLocation;
-				username = optimisticUsername;
-				linkedinUrl = optimisticLinkedinUrl;
-				bio = optimisticBio;
-
-				// Show temporary success message for immediate feedback
-				success = 'Saving your profile...';
-
-				return async ({ result, update }) => {
-					formStatus.isPending = false;
-					loading = false;
-
-					if (result.type === 'success') {
-						formStatus.success = true;
-						success = 'Profile saved successfully!';
-
-						// Refresh profile data to ensure everything is in sync
-						await refreshProfileData();
-
-						// Update section status to reflect the profile completion
-						await updateSectionStatus();
-					} else if (result.type === 'failure') {
-						// Handle specific errors from server
-						let errorMsg = 'Failed to save profile';
-						if (result.data && typeof result.data.error === 'string') {
-							errorMsg = result.data.error;
-						}
-
-						formStatus.error = errorMsg;
-						success = null; // Clear optimistic success message
-					} else if (result.type === 'error') {
-						formStatus.error = 'An unexpected error occurred. Please try again.';
-						success = null; // Clear optimistic success message
-					}
-
-					formStatus.submitted = true;
-
-					// Only update the DOM if we need to
-					await update();
-				};
+			onsubmit={(e) => {
+				e.preventDefault();
 			}}
 		>
 			<div>
@@ -1144,7 +1143,8 @@
 			</div>
 			<div>
 				<button
-					type="submit"
+					type="button"
+					onclick={saveProfile}
 					disabled={loading || formStatus.isPending}
 					class="w-full rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
 				>
