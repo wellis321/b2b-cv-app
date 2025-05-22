@@ -244,6 +244,46 @@
 			alert('Sorry, there was a problem generating the PDF. Please try again later.');
 		}
 	}
+
+	// Map color string to actual hex color value
+	function getColorHex(colorName: string): string {
+		const colorMap: Record<string, string> = {
+			'slate-700': '#334155',
+			'gray-700': '#374151',
+			'zinc-700': '#3f3f46',
+			'neutral-700': '#404040',
+			'stone-700': '#44403c',
+			'red-700': '#b91c1c',
+			'orange-700': '#c2410c',
+			'amber-700': '#b45309',
+			'yellow-700': '#a16207',
+			'lime-700': '#4d7c0f',
+			'green-700': '#15803d',
+			'emerald-700': '#047857',
+			'teal-700': '#0f766e',
+			'cyan-700': '#0e7490',
+			'sky-700': '#0369a1',
+			'blue-700': '#1d4ed8',
+			'indigo-700': '#4338ca',
+			'violet-700': '#6d28d9',
+			'purple-700': '#7e22ce',
+			'fuchsia-700': '#a21caf',
+			'pink-700': '#be185d',
+			'rose-700': '#be123c'
+		};
+		return colorMap[colorName] || '#4338ca'; // Default to indigo if not found
+	}
+
+	// Calculate gradient style based on profile colors
+	let headerGradientStyle = $state('');
+
+	$effect(() => {
+		if (cvData?.profile) {
+			const fromColor = getColorHex(cvData.profile.cv_header_from_color || 'indigo-700');
+			const toColor = getColorHex(cvData.profile.cv_header_to_color || 'purple-700');
+			headerGradientStyle = `background: linear-gradient(to right, ${fromColor}, ${toColor});`;
+		}
+	});
 </script>
 
 <svelte:head>
@@ -327,7 +367,7 @@
 	<!-- Main CV content when profile exists -->
 	<div class="min-h-screen bg-white">
 		<!-- Hero section with profile info -->
-		<div class="bg-gradient-to-r from-indigo-700 to-purple-700 py-8 text-white shadow-lg">
+		<div style={headerGradientStyle} class="py-8 text-white shadow-lg">
 			<div class="container mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex flex-col items-center gap-4 md:flex-row md:items-start md:gap-8">
 					<div class="order-2 flex-1 md:order-1">

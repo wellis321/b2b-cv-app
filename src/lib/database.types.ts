@@ -212,6 +212,8 @@ export interface Database {
                     username: string;
                     linkedin_url: string | null;
                     bio: string | null;
+                    cv_header_from_color: string;
+                    cv_header_to_color: string;
                 };
                 Insert: {
                     created_at?: string;
@@ -225,6 +227,8 @@ export interface Database {
                     username: string;
                     linkedin_url?: string | null;
                     bio?: string | null;
+                    cv_header_from_color?: string;
+                    cv_header_to_color?: string;
                 };
                 Update: {
                     created_at?: string;
@@ -238,6 +242,8 @@ export interface Database {
                     username?: string;
                     linkedin_url?: string | null;
                     bio?: string | null;
+                    cv_header_from_color?: string;
+                    cv_header_to_color?: string;
                 };
                 Relationships: [];
             };

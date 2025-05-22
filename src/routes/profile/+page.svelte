@@ -28,6 +28,8 @@
 	let photoUrl = $state(data.profile?.photo_url ?? '');
 	let linkedinUrl = $state(data.profile?.linkedin_url ?? '');
 	let bio = $state(data.profile?.bio ?? '');
+	let cvHeaderFromColor = $state(data.profile?.cv_header_from_color ?? 'indigo-700');
+	let cvHeaderToColor = $state(data.profile?.cv_header_to_color ?? 'purple-700');
 	let error = $state<string | null>(null);
 	let success = $state<string | null>(null);
 	let loading = $state(false);
@@ -58,6 +60,32 @@
 		error: null as string | null,
 		isPending: false
 	});
+
+	// Tailwind color options for CV header
+	const colorOptions = [
+		{ name: 'Slate', value: 'slate-700' },
+		{ name: 'Gray', value: 'gray-700' },
+		{ name: 'Zinc', value: 'zinc-700' },
+		{ name: 'Neutral', value: 'neutral-700' },
+		{ name: 'Stone', value: 'stone-700' },
+		{ name: 'Red', value: 'red-700' },
+		{ name: 'Orange', value: 'orange-700' },
+		{ name: 'Amber', value: 'amber-700' },
+		{ name: 'Yellow', value: 'yellow-700' },
+		{ name: 'Lime', value: 'lime-700' },
+		{ name: 'Green', value: 'green-700' },
+		{ name: 'Emerald', value: 'emerald-700' },
+		{ name: 'Teal', value: 'teal-700' },
+		{ name: 'Cyan', value: 'cyan-700' },
+		{ name: 'Sky', value: 'sky-700' },
+		{ name: 'Blue', value: 'blue-700' },
+		{ name: 'Indigo', value: 'indigo-700' },
+		{ name: 'Violet', value: 'violet-700' },
+		{ name: 'Purple', value: 'purple-700' },
+		{ name: 'Fuchsia', value: 'fuchsia-700' },
+		{ name: 'Pink', value: 'pink-700' },
+		{ name: 'Rose', value: 'rose-700' }
+	];
 
 	// Check authentication on mount and try to initialize data
 	onMount(async () => {
@@ -108,6 +136,8 @@
 							photoUrl = profileData.photo_url || '';
 							linkedinUrl = profileData.linkedin_url || '';
 							bio = profileData.bio || '';
+							cvHeaderFromColor = profileData.cv_header_from_color || 'indigo-700';
+							cvHeaderToColor = profileData.cv_header_to_color || 'purple-700';
 							// Clear any error
 							error = null;
 						} else {
@@ -617,6 +647,8 @@
 				photoUrl = profileData.photo_url || '';
 				linkedinUrl = profileData.linkedin_url || '';
 				bio = profileData.bio || '';
+				cvHeaderFromColor = profileData.cv_header_from_color || 'indigo-700';
+				cvHeaderToColor = profileData.cv_header_to_color || 'purple-700';
 			}
 		} catch (err) {
 			console.error('Exception refreshing profile:', err);
@@ -759,6 +791,8 @@
 			photoUrl = data.profile.photo_url || '';
 			linkedinUrl = data.profile.linkedin_url || '';
 			bio = data.profile.bio || '';
+			cvHeaderFromColor = data.profile.cv_header_from_color || 'indigo-700';
+			cvHeaderToColor = data.profile.cv_header_to_color || 'purple-700';
 		}
 	});
 
@@ -819,7 +853,7 @@
 		}
 	}
 
-	// New saveProfile function
+	// Update saveProfile function to include CV theme colors
 	async function saveProfile() {
 		if (!$session) {
 			error = 'Not authenticated. Please login first.';
@@ -868,6 +902,8 @@
 				linkedin_url: linkedinUrl,
 				bio,
 				photo_url: photoUrl,
+				cv_header_from_color: cvHeaderFromColor,
+				cv_header_to_color: cvHeaderToColor,
 				updated_at: new Date().toISOString()
 			};
 
@@ -899,6 +935,44 @@
 			formStatus.submitted = true;
 		}
 	}
+
+	// Add a function to convert Tailwind color names to hex values
+	function getColorHex(colorName: string): string {
+		const colorMap: Record<string, string> = {
+			'slate-700': '#334155',
+			'gray-700': '#374151',
+			'zinc-700': '#3f3f46',
+			'neutral-700': '#404040',
+			'stone-700': '#44403c',
+			'red-700': '#b91c1c',
+			'orange-700': '#c2410c',
+			'amber-700': '#b45309',
+			'yellow-700': '#a16207',
+			'lime-700': '#4d7c0f',
+			'green-700': '#15803d',
+			'emerald-700': '#047857',
+			'teal-700': '#0f766e',
+			'cyan-700': '#0e7490',
+			'sky-700': '#0369a1',
+			'blue-700': '#1d4ed8',
+			'indigo-700': '#4338ca',
+			'violet-700': '#6d28d9',
+			'purple-700': '#7e22ce',
+			'fuchsia-700': '#a21caf',
+			'pink-700': '#be185d',
+			'rose-700': '#be123c'
+		};
+		return colorMap[colorName] || '#4338ca'; // Default to indigo if not found
+	}
+
+	// Calculate preview gradient style
+	let previewGradientStyle = $state('');
+
+	$effect(() => {
+		const fromColor = getColorHex(cvHeaderFromColor);
+		const toColor = getColorHex(cvHeaderToColor);
+		previewGradientStyle = `background: linear-gradient(to right, ${fromColor}, ${toColor});`;
+	});
 </script>
 
 <div class="mx-auto max-w-xl space-y-6 rounded bg-white p-8 shadow">
@@ -1140,6 +1214,53 @@
 					Keep your bio concise and highlight your key professional attributes (250 words or less
 					recommended).
 				</p>
+			</div>
+			<div>
+				<label class="mb-1 block text-sm font-medium text-gray-700" for="bio"
+					>CV Header Colors</label
+				>
+
+				<div class="mt-2 space-y-4">
+					<div>
+						<p class="mb-2 text-sm text-gray-600">Preview:</p>
+						<div style={previewGradientStyle} class="h-16 rounded-md shadow-sm"></div>
+					</div>
+
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div>
+							<label class="block text-sm font-medium text-gray-700" for="fromColor"
+								>From Color</label
+							>
+							<select
+								id="fromColor"
+								name="fromColor"
+								bind:value={cvHeaderFromColor}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							>
+								{#each colorOptions as color}
+									<option value={color.value}>{color.name}</option>
+								{/each}
+							</select>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700" for="toColor">To Color</label>
+							<select
+								id="toColor"
+								name="toColor"
+								bind:value={cvHeaderToColor}
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							>
+								{#each colorOptions as color}
+									<option value={color.value}>{color.name}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+					<p class="text-xs text-gray-500">
+						These colors will be used for the gradient in your CV header. Choose colors that match
+						your personal brand.
+					</p>
+				</div>
 			</div>
 			<div>
 				<button
