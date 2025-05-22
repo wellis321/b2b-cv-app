@@ -28,8 +28,14 @@
 	let photoUrl = $state(data.profile?.photo_url ?? '');
 	let linkedinUrl = $state(data.profile?.linkedin_url ?? '');
 	let bio = $state(data.profile?.bio ?? '');
-	let cvHeaderFromColor = $state(data.profile?.cv_header_from_color ?? 'indigo-700');
-	let cvHeaderToColor = $state(data.profile?.cv_header_to_color ?? 'purple-700');
+	let cvHeaderFromColor = $state(
+		data.profile?.cv_header_from_color?.startsWith('#')
+			? data.profile?.cv_header_from_color
+			: '#4338ca' // Default indigo-700
+	);
+	let cvHeaderToColor = $state(
+		data.profile?.cv_header_to_color?.startsWith('#') ? data.profile?.cv_header_to_color : '#7e22ce' // Default purple-700
+	);
 	let error = $state<string | null>(null);
 	let success = $state<string | null>(null);
 	let loading = $state(false);
@@ -136,8 +142,8 @@
 							photoUrl = profileData.photo_url || '';
 							linkedinUrl = profileData.linkedin_url || '';
 							bio = profileData.bio || '';
-							cvHeaderFromColor = profileData.cv_header_from_color || 'indigo-700';
-							cvHeaderToColor = profileData.cv_header_to_color || 'purple-700';
+							cvHeaderFromColor = profileData.cv_header_from_color || '#4338ca';
+							cvHeaderToColor = profileData.cv_header_to_color || '#7e22ce';
 							// Clear any error
 							error = null;
 						} else {
@@ -647,8 +653,8 @@
 				photoUrl = profileData.photo_url || '';
 				linkedinUrl = profileData.linkedin_url || '';
 				bio = profileData.bio || '';
-				cvHeaderFromColor = profileData.cv_header_from_color || 'indigo-700';
-				cvHeaderToColor = profileData.cv_header_to_color || 'purple-700';
+				cvHeaderFromColor = profileData.cv_header_from_color || '#4338ca';
+				cvHeaderToColor = profileData.cv_header_to_color || '#7e22ce';
 			}
 		} catch (err) {
 			console.error('Exception refreshing profile:', err);
@@ -791,8 +797,12 @@
 			photoUrl = data.profile.photo_url || '';
 			linkedinUrl = data.profile.linkedin_url || '';
 			bio = data.profile.bio || '';
-			cvHeaderFromColor = data.profile.cv_header_from_color || 'indigo-700';
-			cvHeaderToColor = data.profile.cv_header_to_color || 'purple-700';
+			cvHeaderFromColor = data.profile.cv_header_from_color?.startsWith('#')
+				? data.profile.cv_header_from_color
+				: '#4338ca'; // Default indigo-700
+			cvHeaderToColor = data.profile.cv_header_to_color?.startsWith('#')
+				? data.profile.cv_header_to_color
+				: '#7e22ce'; // Default purple-700
 		}
 	});
 
@@ -936,42 +946,11 @@
 		}
 	}
 
-	// Add a function to convert Tailwind color names to hex values
-	function getColorHex(colorName: string): string {
-		const colorMap: Record<string, string> = {
-			'slate-700': '#334155',
-			'gray-700': '#374151',
-			'zinc-700': '#3f3f46',
-			'neutral-700': '#404040',
-			'stone-700': '#44403c',
-			'red-700': '#b91c1c',
-			'orange-700': '#c2410c',
-			'amber-700': '#b45309',
-			'yellow-700': '#a16207',
-			'lime-700': '#4d7c0f',
-			'green-700': '#15803d',
-			'emerald-700': '#047857',
-			'teal-700': '#0f766e',
-			'cyan-700': '#0e7490',
-			'sky-700': '#0369a1',
-			'blue-700': '#1d4ed8',
-			'indigo-700': '#4338ca',
-			'violet-700': '#6d28d9',
-			'purple-700': '#7e22ce',
-			'fuchsia-700': '#a21caf',
-			'pink-700': '#be185d',
-			'rose-700': '#be123c'
-		};
-		return colorMap[colorName] || '#4338ca'; // Default to indigo if not found
-	}
-
-	// Calculate preview gradient style
+	// Update the previewGradientStyle function to use hex values directly
 	let previewGradientStyle = $state('');
 
 	$effect(() => {
-		const fromColor = getColorHex(cvHeaderFromColor);
-		const toColor = getColorHex(cvHeaderToColor);
-		previewGradientStyle = `background: linear-gradient(to right, ${fromColor}, ${toColor});`;
+		previewGradientStyle = `background: linear-gradient(to right, ${cvHeaderFromColor}, ${cvHeaderToColor});`;
 	});
 </script>
 
@@ -1231,34 +1210,34 @@
 							<label class="block text-sm font-medium text-gray-700" for="fromColor"
 								>From Color</label
 							>
-							<select
-								id="fromColor"
-								name="fromColor"
-								bind:value={cvHeaderFromColor}
-								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-							>
-								{#each colorOptions as color}
-									<option value={color.value}>{color.name}</option>
-								{/each}
-							</select>
+							<div class="mt-1 flex items-center gap-3">
+								<input
+									type="color"
+									id="fromColor"
+									name="fromColor"
+									bind:value={cvHeaderFromColor}
+									class="h-10 w-10 cursor-pointer rounded border border-gray-300 p-0"
+								/>
+								<span class="font-mono text-sm">{cvHeaderFromColor}</span>
+							</div>
 						</div>
 						<div>
 							<label class="block text-sm font-medium text-gray-700" for="toColor">To Color</label>
-							<select
-								id="toColor"
-								name="toColor"
-								bind:value={cvHeaderToColor}
-								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-							>
-								{#each colorOptions as color}
-									<option value={color.value}>{color.name}</option>
-								{/each}
-							</select>
+							<div class="mt-1 flex items-center gap-3">
+								<input
+									type="color"
+									id="toColor"
+									name="toColor"
+									bind:value={cvHeaderToColor}
+									class="h-10 w-10 cursor-pointer rounded border border-gray-300 p-0"
+								/>
+								<span class="font-mono text-sm">{cvHeaderToColor}</span>
+							</div>
 						</div>
 					</div>
 					<p class="text-xs text-gray-500">
-						These colors will be used for the gradient in your CV header. Choose colors that match
-						your personal brand.
+						Choose custom colors for your CV header gradient. The left color will blend into the
+						right color.
 					</p>
 				</div>
 			</div>
