@@ -484,6 +484,95 @@
 				<!-- Sidebar -->
 				<aside class="md:col-span-1">
 					<div class="space-y-8">
+						<!-- Certifications (in sidebar on larger screens) -->
+						{#if cvData.certifications && cvData.certifications.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
+							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
+								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
+									Certifications
+								</h2>
+
+								<div class="mt-4 space-y-4">
+									{#each cvData.certifications as cert}
+										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+											<h3 class="font-semibold text-gray-800">{decodeHtmlEntities(cert.name)}</h3>
+											{#if cert.issuer}
+												<p class="text-gray-700">{decodeHtmlEntities(cert.issuer)}</p>
+											{/if}
+											{#if cert.date_obtained}
+												<p class="mt-1 text-sm text-gray-500">
+													{formatDate(cert.date_obtained)}
+													{#if cert.expiry_date}
+														- Expires: {formatDate(cert.expiry_date)}
+													{/if}
+												</p>
+											{/if}
+											{#if cert.description}
+												<p class="mt-2 text-sm text-gray-600">
+													{decodeHtmlEntities(cert.description)}
+												</p>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</section>
+						{/if}
+
+						<!-- Education section (visible in sidebar on larger screens) -->
+						{#if cvData.education && cvData.education.length > 0 && (activeTab === 'all' || activeTab === 'education' || windowWidth >= 768)}
+							<section class="rounded-lg bg-white p-6 shadow-md md:block print:shadow-none">
+								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
+									Education
+								</h2>
+
+								<div class="mt-4 space-y-4">
+									{#each cvData.education as edu}
+										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+											<h3 class="font-semibold text-gray-800">
+												{decodeHtmlEntities(edu.institution)}
+											</h3>
+											<p class="text-gray-700">
+												{decodeHtmlEntities(edu.qualification || edu.degree)}
+											</p>
+											{#if edu.field_of_study}
+												<p class="text-gray-600">{decodeHtmlEntities(edu.field_of_study)}</p>
+											{/if}
+											{#if edu.start_date}
+												<p class="mt-1 text-sm text-gray-500">
+													{formatDate(edu.start_date)} - {edu.end_date
+														? formatDate(edu.end_date)
+														: 'Present'}
+												</p>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</section>
+						{/if}
+
+						<!-- Interests (in sidebar on larger screens) -->
+						{#if cvData.interests && cvData.interests.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
+							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
+								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
+									Interests & Activities
+								</h2>
+
+								<div class="mt-4 space-y-4">
+									{#each cvData.interests as interest}
+										<div class="pb-2 last:pb-0">
+											<h3 class="font-semibold text-gray-800">
+												{decodeHtmlEntities(interest.name)}
+											</h3>
+											{#if interest.description}
+												<p class="mt-1 text-sm text-gray-600">
+													{decodeHtmlEntities(interest.description)}
+												</p>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</section>
+						{/if}
+
 						<!-- Skills section (always visible on larger screens) -->
 						{#if cvData.skills && cvData.skills.length > 0 && (activeTab === 'all' || activeTab === 'skills' || windowWidth >= 768)}
 							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
@@ -529,95 +618,6 @@
 										{/each}
 									</div>
 								{/if}
-							</section>
-						{/if}
-
-						<!-- Education section (visible in sidebar on larger screens) -->
-						{#if cvData.education && cvData.education.length > 0 && (activeTab === 'all' || activeTab === 'education' || windowWidth >= 768)}
-							<section class="rounded-lg bg-white p-6 shadow-md md:block print:shadow-none">
-								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
-									Education
-								</h2>
-
-								<div class="mt-4 space-y-4">
-									{#each cvData.education as edu}
-										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
-											<h3 class="font-semibold text-gray-800">
-												{decodeHtmlEntities(edu.institution)}
-											</h3>
-											<p class="text-gray-700">
-												{decodeHtmlEntities(edu.qualification || edu.degree)}
-											</p>
-											{#if edu.field_of_study}
-												<p class="text-gray-600">{decodeHtmlEntities(edu.field_of_study)}</p>
-											{/if}
-											{#if edu.start_date}
-												<p class="mt-1 text-sm text-gray-500">
-													{formatDate(edu.start_date)} - {edu.end_date
-														? formatDate(edu.end_date)
-														: 'Present'}
-												</p>
-											{/if}
-										</div>
-									{/each}
-								</div>
-							</section>
-						{/if}
-
-						<!-- Certifications (in sidebar on larger screens) -->
-						{#if cvData.certifications && cvData.certifications.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
-							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
-								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
-									Certifications
-								</h2>
-
-								<div class="mt-4 space-y-4">
-									{#each cvData.certifications as cert}
-										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
-											<h3 class="font-semibold text-gray-800">{decodeHtmlEntities(cert.name)}</h3>
-											{#if cert.issuer}
-												<p class="text-gray-700">{decodeHtmlEntities(cert.issuer)}</p>
-											{/if}
-											{#if cert.date_obtained}
-												<p class="mt-1 text-sm text-gray-500">
-													{formatDate(cert.date_obtained)}
-													{#if cert.expiry_date}
-														- Expires: {formatDate(cert.expiry_date)}
-													{/if}
-												</p>
-											{/if}
-											{#if cert.description}
-												<p class="mt-2 text-sm text-gray-600">
-													{decodeHtmlEntities(cert.description)}
-												</p>
-											{/if}
-										</div>
-									{/each}
-								</div>
-							</section>
-						{/if}
-
-						<!-- Interests (in sidebar on larger screens) -->
-						{#if cvData.interests && cvData.interests.length > 0 && (activeTab === 'all' || activeTab === 'more' || windowWidth >= 768)}
-							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
-								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
-									Interests & Activities
-								</h2>
-
-								<div class="mt-4 space-y-4">
-									{#each cvData.interests as interest}
-										<div class="pb-2 last:pb-0">
-											<h3 class="font-semibold text-gray-800">
-												{decodeHtmlEntities(interest.name)}
-											</h3>
-											{#if interest.description}
-												<p class="mt-1 text-sm text-gray-600">
-													{decodeHtmlEntities(interest.description)}
-												</p>
-											{/if}
-										</div>
-									{/each}
-								</div>
 							</section>
 						{/if}
 					</div>
