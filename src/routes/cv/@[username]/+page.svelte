@@ -82,6 +82,14 @@
 		category?: string | null;
 	}
 
+	// Track which work experiences have expanded responsibilities
+	let expandedResponsibilities = $state<Record<string, boolean>>({});
+
+	// Toggle responsibilities visibility
+	function toggleResponsibilities(workId: string) {
+		expandedResponsibilities[workId] = !expandedResponsibilities[workId];
+	}
+
 	// Predefined skill categories in preferred order
 	const PREFERRED_CATEGORIES = [
 		'Programming Languages',
@@ -654,17 +662,46 @@
 												<p class="my-2 text-gray-600">{decodeHtmlEntities(work.description)}</p>
 											{/if}
 
-											{#if work.responsibilities && work.responsibilities.length > 0}
+											<!-- Responsibilities section with better visibility -->
+											{#if work.responsibilities && Array.isArray(work.responsibilities) && work.responsibilities.length > 0}
 												<div class="mt-3">
-													<h4 class="mb-2 font-medium text-gray-700">Key Responsibilities:</h4>
+													<button
+														onclick={() => toggleResponsibilities(work.id)}
+														class="inline-flex items-center rounded bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="mr-1.5 h-4 w-4"
+															viewBox="0 0 20 20"
+															fill="currentColor"
+														>
+															{#if expandedResponsibilities[work.id]}
+																<path
+																	fill-rule="evenodd"
+																	d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+																	clip-rule="evenodd"
+																/>
+															{:else}
+																<path
+																	fill-rule="evenodd"
+																	d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+																	clip-rule="evenodd"
+																/>
+															{/if}
+														</svg>
+														{expandedResponsibilities[work.id] ? 'Hide' : 'View'} Responsibilities
+													</button>
 
-													<!-- Render responsibilities as read-only -->
-													<div class="pl-2">
-														<ResponsibilitiesEditor
-															responsibilities={work.responsibilities}
-															readOnly={true}
-														/>
-													</div>
+													{#if expandedResponsibilities[work.id]}
+														<div class="mt-2 pl-2">
+															<div class="pl-2">
+																<ResponsibilitiesEditor
+																	responsibilities={work.responsibilities}
+																	readOnly={true}
+																/>
+															</div>
+														</div>
+													{/if}
 												</div>
 											{/if}
 										</div>
@@ -777,7 +814,7 @@
 		<!-- Footer -->
 		<footer class="bg-gray-800 py-6 text-center text-white print:hidden">
 			<div class="container mx-auto px-4 sm:px-6 lg:px-8">
-				<p class="text-gray-300">CV created with CV App by William Ellis</p>
+				<p class="text-gray-300">CV created with CV App by William and Max Ellis</p>
 				<div class="mt-3 flex justify-center space-x-4">
 					<button
 						onclick={downloadPdf}

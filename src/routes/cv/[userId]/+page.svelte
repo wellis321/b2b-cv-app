@@ -459,7 +459,7 @@
 
 			<!-- Footer -->
 			<div class="mt-12 border-t border-gray-300 pt-4 text-center text-sm text-gray-500">
-				<p>CV created with CV App by William Ellis</p>
+				<p>CV created with CV App by William and Max Ellis</p>
 				<p class="mt-1">
 					<button
 						class="text-indigo-600 hover:underline"

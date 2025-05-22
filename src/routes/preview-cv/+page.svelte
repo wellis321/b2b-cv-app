@@ -594,7 +594,6 @@
 									{/if}
 									{#if job.responsibilities && job.responsibilities.length > 0}
 										<div class="mt-4">
-											<h4 class="mb-2 font-semibold text-gray-700">Key Responsibilities</h4>
 											<ResponsibilitiesEditor
 												responsibilities={job.responsibilities}
 												readOnly={true}

@@ -358,6 +358,61 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
         data.interests = interestsResult.error ? [] : interestsResult.data || [];
         data.qualificationEquivalence = qualificationEquivalenceResult.error ? [] : qualificationEquivalenceResult.data || [];
 
+        // Load responsibilities for each work experience entry
+        if (data.workExperiences.length > 0) {
+            try {
+                // Fetch responsibilities for each work experience
+                const workResponsibilities = await Promise.all(
+                    data.workExperiences.map(async (work) => {
+                        try {
+                            // Query the responsibility categories for this work experience
+                            const { data: categories, error: categoriesError } = await client
+                                .from('responsibility_categories')
+                                .select('*')
+                                .eq('work_experience_id', work.id)
+                                .order('sort_order', { ascending: true });
+
+                            if (categoriesError || !categories || categories.length === 0) {
+                                return { ...work, responsibilities: [] };
+                            }
+
+                            // Get all items for these categories
+                            const categoryIds = categories.map((cat: any) => cat.id);
+                            const { data: items, error: itemsError } = await client
+                                .from('responsibility_items')
+                                .select('*')
+                                .in('category_id', categoryIds)
+                                .order('sort_order', { ascending: true });
+
+                            if (itemsError) {
+                                return {
+                                    ...work,
+                                    responsibilities: categories.map((cat: any) => ({ ...cat, items: [] }))
+                                };
+                            }
+
+                            // Group items by category
+                            const responsibilities = categories.map((category: any) => ({
+                                ...category,
+                                items: items?.filter((item: any) => item.category_id === category.id) || []
+                            }));
+
+                            return { ...work, responsibilities };
+                        } catch (err) {
+                            console.error(`Error loading responsibilities for work experience ${work.id}:`, err);
+                            return { ...work, responsibilities: [] };
+                        }
+                    })
+                );
+
+                // Replace the work experiences with the ones including responsibilities
+                data.workExperiences = workResponsibilities;
+            } catch (respErr) {
+                console.error('Error loading work responsibilities:', respErr);
+                // Continue with the work experiences we have, without responsibilities
+            }
+        }
+
         // Log any errors that occurred
         [
             { name: 'work experiences', result: workExperiencesResult },
