@@ -12,6 +12,9 @@
 	import { getResponsibilitiesForExperience, addCategory, addItem } from './responsibilities';
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import ResponsibilityErrorFallback from './ResponsibilityErrorFallback.svelte';
+	import FormSection from '$lib/components/FormSection.svelte';
+	import FormGrid from '$lib/components/FormGrid.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 
 	// Define type for form values
 	type FormValues = {
@@ -603,254 +606,289 @@
 			<h2 class="text-2xl font-bold">Your Work Experience</h2>
 			<button
 				onclick={toggleAddForm}
-				class="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+				class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 			>
 				{showAddForm ? 'Cancel' : 'Add Experience'}
 			</button>
 		</div>
 
 		{#if error}
-			<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{error}</div>
+			<div class="mb-4 rounded-md bg-red-100 p-4 text-red-700">{error}</div>
 		{/if}
 
 		{#if success}
-			<div class="mb-4 rounded bg-green-100 p-4 text-green-700">{success}</div>
+			<div class="mb-4 rounded-md bg-green-100 p-4 text-green-700">{success}</div>
 		{/if}
 
 		{#if warning}
-			<div class="mb-4 rounded bg-yellow-100 p-4 text-yellow-700">{warning}</div>
+			<div class="mb-4 rounded-md bg-yellow-100 p-4 text-yellow-700">{warning}</div>
 		{/if}
 
 		<!-- Add/Edit form moved to the top and toggleable -->
 		{#if showAddForm && ($session || data.session)}
-			<div id="experienceForm" class="mb-8 rounded bg-white p-6 shadow">
-				<h3 class="mb-4 text-xl font-semibold">
-					{isEditing ? 'Edit Experience' : 'Add New Experience'}
-				</h3>
+			<div id="experienceForm" class="mb-8">
+				<FormSection title={isEditing ? 'Edit Experience' : 'Add New Experience'}>
+					<form
+						onsubmit={handleSubmit}
+						method="POST"
+						action={isEditing ? '?/update' : '?/create'}
+						class="space-y-4"
+					>
+						{#if form?.error}
+							<div class="mb-4 rounded-md bg-red-100 p-4 text-red-700">{form.error}</div>
+						{/if}
 
-				<form
-					onsubmit={handleSubmit}
-					method="POST"
-					action={isEditing ? '?/update' : '?/create'}
-					class="space-y-4"
-				>
-					{#if form?.error}
-						<div class="mb-4 rounded bg-red-100 p-4 text-red-700">{form.error}</div>
-					{/if}
+						{#if isEditing && editingExperience}
+							<input type="hidden" name="id" value={editingExperience.id} />
+						{/if}
 
-					{#if isEditing && editingExperience}
-						<input type="hidden" name="id" value={editingExperience.id} />
-					{/if}
+						<FormGrid>
+							<FormField
+								label="Company Name"
+								id="companyName"
+								bind:value={companyName}
+								placeholder="e.g. Acme Corporation"
+								required={true}
+								errorMessage={!companyName && error ? 'Company name is required' : null}
+							/>
 
-					<div>
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="companyName"
-							>Company Name</label
-						>
-						<input
-							id="companyName"
-							name="companyName"
-							type="text"
-							bind:value={companyName}
-							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-							required
-						/>
-					</div>
-					<div>
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="position"
-							>Position</label
-						>
-						<input
-							id="position"
-							name="position"
-							type="text"
-							bind:value={position}
-							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-							required
-						/>
-					</div>
-					<div class="flex gap-4">
-						<div class="flex-1">
-							<label class="mb-1 block text-sm font-medium text-gray-700" for="startDate"
-								>Start Date</label
-							>
-							<input
+							<FormField
+								label="Position"
+								id="position"
+								bind:value={position}
+								placeholder="e.g. Software Developer"
+								required={true}
+								errorMessage={!position && error ? 'Position is required' : null}
+							/>
+
+							<FormField
+								label="Start Date"
 								id="startDate"
-								name="startDate"
 								type="date"
 								bind:value={startDate}
-								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-								required
+								required={true}
+								errorMessage={!startDate && error ? 'Start date is required' : null}
 							/>
-						</div>
-						<div class="flex-1">
-							<label class="mb-1 block text-sm font-medium text-gray-700" for="endDate"
-								>End Date <span class="text-xs text-gray-500">(Leave blank for current job)</span
-								></label
-							>
-							<input
+
+							<FormField
+								label="End Date"
 								id="endDate"
-								name="endDate"
 								type="date"
 								bind:value={endDate}
-								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+								placeholder="Leave blank for current position"
 							/>
-						</div>
-					</div>
-					<div>
-						<label class="mb-1 block text-sm font-medium text-gray-700" for="description"
-							>Description</label
-						>
-						<textarea
-							id="description"
-							name="description"
-							bind:value={description}
-							rows="4"
-							class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-						></textarea>
-					</div>
+						</FormGrid>
 
-					{#if isEditing && editingExperience}
-						<div class="mt-4 border-t pt-4">
-							<ErrorBoundary
-								fallback={ResponsibilityErrorFallback}
-								onError={(error) => console.error('Responsibility editor error:', error)}
+						<div>
+							<label class="mb-1 block text-sm font-medium text-gray-700" for="description"
+								>Description</label
 							>
+							<textarea
+								id="description"
+								name="description"
+								rows="4"
+								bind:value={description}
+								placeholder="Briefly describe your role and responsibilities..."
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+							></textarea>
+						</div>
+
+						<div class="flex justify-end gap-2">
+							{#if isEditing}
+								<button
+									type="button"
+									onclick={() => {
+										showAddForm = false;
+										isEditing = false;
+										editingExperience = null;
+										resetForm();
+									}}
+									class="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+								>
+									Cancel
+								</button>
+							{/if}
+							<button
+								type="submit"
+								disabled={loading}
+								class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+							>
+								{loading ? 'Saving...' : isEditing ? 'Update Experience' : 'Add Experience'}
+							</button>
+						</div>
+					</form>
+				</FormSection>
+
+				<!-- Responsibilities Editor for editing experiences -->
+				{#if isEditing && editingExperience}
+					<div class="mt-6">
+						<FormSection title="Key Responsibilities">
+							<ErrorBoundary fallback={ResponsibilityErrorFallback}>
 								<ResponsibilitiesEditor
-									workExperienceId={editingExperience.id}
 									bind:this={editResponsibilitiesEditor}
-									on:editingResponsibilities={(e) => (editingResponsibilities = e.detail.editing)}
+									workExperienceId={editingExperience.id}
+									on:saved={() => {
+										success = 'Responsibilities saved successfully!';
+										setTimeout(() => {
+											success = null;
+										}, 3000);
+									}}
 								/>
 							</ErrorBoundary>
-						</div>
-					{/if}
-
-					<div class="flex gap-2">
-						<button
-							type="submit"
-							disabled={loading}
-							class="flex-1 rounded bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-						>
-							{loading ? 'Saving...' : isEditing ? 'Update Experience' : 'Save Experience'}
-						</button>
-						{#if isEditing}
-							<button
-								type="button"
-								onclick={cancelEdit}
-								class="rounded bg-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-400 focus:ring-2 focus:ring-gray-500 focus:outline-none"
-							>
-								Cancel
-							</button>
-						{/if}
+						</FormSection>
 					</div>
-				</form>
+				{/if}
 			</div>
 		{/if}
 
+		<!-- Work Experience List -->
 		{#if loadingExperiences}
-			<div class="mb-4 rounded bg-blue-100 p-4">
-				<p class="font-medium">Loading your work experiences...</p>
-			</div>
-		{:else if !$session && !data.session}
-			<div class="mb-4 rounded bg-yellow-100 p-4">
-				<p class="font-medium">You need to be logged in to view your work experiences.</p>
-				<button
-					onclick={() => goto('/')}
-					class="mt-2 rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-				>
-					Go to Login
-				</button>
+			<div class="text-center">
+				<p>Loading your work experience...</p>
 			</div>
 		{:else if workExperiences.length === 0}
-			<div class="rounded bg-gray-100 p-4 text-gray-700">
-				<p>No work experience added yet. Use the button above to add your work history.</p>
+			<div class="rounded-md bg-gray-50 p-6 text-center">
+				<p class="text-gray-500">You haven't added any work experience yet.</p>
+				{#if !showAddForm}
+					<button
+						onclick={toggleAddForm}
+						class="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+					>
+						Add Your First Experience
+					</button>
+				{/if}
 			</div>
 		{:else}
-			<ul class="space-y-4">
-				{#each workExperiences as exp}
-					<li class="rounded border bg-white p-4 shadow">
-						{#if deleteConfirmId === exp.id}
-							<div class="mb-3 rounded bg-red-50 p-3 text-red-800">
-								<p class="font-medium">Are you sure you want to delete this experience?</p>
-								<div class="mt-2 flex gap-2">
-									<form method="POST" action="?/delete" class="inline">
-										<input type="hidden" name="id" value={exp.id} />
-										<button
-											type="submit"
-											class="rounded bg-red-600 px-3 py-1 text-sm font-semibold text-white hover:bg-red-700"
-											disabled={loading}
-											onclick={() => deleteExperience(exp.id)}
-										>
-											{loading ? 'Deleting...' : 'Yes, Delete'}
-										</button>
-									</form>
-									<button
-										onclick={cancelDelete}
-										class="rounded bg-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-300"
-									>
-										Cancel
-									</button>
-								</div>
-							</div>
-						{/if}
-						<div class="flex items-center justify-between">
+			<div class="space-y-6">
+				{#each workExperiences as experience}
+					<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+						<div class="flex justify-between">
 							<div>
-								<div class="font-semibold">{exp.position} at {exp.company_name}</div>
-								<div class="text-sm text-gray-500">
-									{formatDate(exp.start_date)} - {formatDate(exp.end_date)}
-								</div>
+								<h3 class="text-lg font-medium text-gray-900">{experience.position}</h3>
+								<p class="text-gray-600">{experience.company_name}</p>
+								<p class="text-sm text-gray-500">
+									{formatDate(experience.start_date)} - {formatDate(experience.end_date)}
+								</p>
+								{#if experience.description}
+									<p class="mt-2 text-gray-700">{experience.description}</p>
+								{/if}
 							</div>
-							<div class="flex gap-2">
+							<div class="flex items-center space-x-2">
 								<button
-									onclick={() => editExperience(exp)}
-									class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-200"
-									title="Edit"
+									onclick={() => {
+										editingExperience = experience;
+										companyName = experience.company_name;
+										position = experience.position;
+										startDate = experience.start_date;
+										endDate = experience.end_date || '';
+										description = experience.description || '';
+										isEditing = true;
+										showAddForm = true;
+										editingResponsibilities = false;
+									}}
+									class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
 								>
 									Edit
 								</button>
 								<button
-									onclick={() => confirmDelete(exp.id)}
-									class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
-									title="Delete"
+									onclick={() => (deleteConfirmId = experience.id)}
+									class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-red-300 ring-inset hover:bg-red-50"
 								>
 									Delete
 								</button>
 							</div>
 						</div>
 
-						<!-- Description section (if exists) -->
-						{#if exp.description && exp.description.trim()}
-							<div class="mt-2">
-								<h4 class="mb-1 text-sm font-medium text-gray-700">Description</h4>
-								<div class="whitespace-pre-line text-gray-700">
-									{#if exp.description.includes('Key Responsibilities:')}
-										{exp.description.split('Key Responsibilities:')[0].trim()}
-									{:else}
-										{exp.description}
-									{/if}
-								</div>
-							</div>
-						{/if}
-
-						<!-- Show responsibilities in read-only view -->
-						<div class="mt-3">
-							<ErrorBoundary
-								fallback={ResponsibilityErrorFallback}
-								resetErrorBoundary={() => {
-									if (displayResponsibilitiesEditors[exp.id]) {
-										displayResponsibilitiesEditors[exp.id].loadResponsibilities();
-									}
-								}}
-							>
+						<!-- Display Responsibilities -->
+						<div class="mt-4">
+							<ErrorBoundary fallback={ResponsibilityErrorFallback}>
 								<ResponsibilitiesEditor
-									workExperienceId={exp.id}
+									bind:this={displayResponsibilitiesEditors[experience.id]}
+									workExperienceId={experience.id}
 									readOnly={true}
-									bind:this={displayResponsibilitiesEditors[exp.id]}
 								/>
 							</ErrorBoundary>
 						</div>
-					</li>
+					</div>
 				{/each}
-			</ul>
+			</div>
 		{/if}
 	</div>
 </div>
+
+<!-- Delete Confirmation Dialog -->
+{#if deleteConfirmId}
+	<div class="fixed inset-0 z-10 overflow-y-auto">
+		<div
+			class="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0"
+		>
+			<div class="fixed inset-0 transition-opacity" aria-hidden="true">
+				<div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+			</div>
+			<span class="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true"
+				>&#8203;</span
+			>
+			<div
+				class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle"
+			>
+				<div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+					<div class="sm:flex sm:items-start">
+						<div
+							class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10"
+						>
+							<svg
+								class="h-6 w-6 text-red-600"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+								/>
+							</svg>
+						</div>
+						<div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+							<h3 class="text-lg leading-6 font-medium text-gray-900">Delete Experience</h3>
+							<div class="mt-2">
+								<p class="text-sm text-gray-500">
+									Are you sure you want to delete this work experience? This action cannot be
+									undone.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+					<button
+						onclick={() => {
+							if (deleteConfirmId) {
+								deleteExperience(deleteConfirmId);
+							}
+							deleteConfirmId = null;
+						}}
+						type="button"
+						class="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+					>
+						Delete
+					</button>
+					<button
+						onclick={() => {
+							deleteConfirmId = null;
+						}}
+						type="button"
+						class="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Camera Capture component goes here if needed -->

@@ -106,11 +106,29 @@
 			// Data should already be loaded by +page.ts, so we just need to extract it
 			const data = $cvStore;
 
-			if (!data || !data.profile) {
-				error = urlUsername
-					? `Failed to load CV data for user ${urlUsername}.`
-					: 'Failed to load your CV data. Please complete your profile.';
+			// More thorough validation to prevent premature error message
+			if (!data) {
+				error = 'Failed to load CV data. Please try again later.';
 				loading = false;
+				return;
+			}
+
+			// Get minimal required profile data rather than checking entire profile
+			if (!data.profile) {
+				error = 'Your CV profile could not be found. Please create your profile first.';
+				loading = false;
+				return;
+			}
+
+			// Check if first name or last name is missing
+			const hasName = data.profile.first_name || data.profile.last_name || data.profile.full_name;
+			if (!hasName) {
+				// Instead of error, just mark loading as complete and data as loaded
+				// We'll show a special message in the UI for this case
+				loading = false;
+				dataLoaded = true;
+				profile = data.profile; // Still set the profile data
+				// But don't set error - we'll handle this case in the UI with a helpful message
 				return;
 			}
 
@@ -514,6 +532,30 @@
 				Go to Profile
 			</a>
 		</div>
+	{:else if profile && dataLoaded && !profile.first_name && !profile.last_name && !profile.full_name}
+		<div class="rounded bg-yellow-100 p-6 shadow-md">
+			<h2 class="mb-2 text-xl font-semibold text-yellow-800">
+				Your profile needs more information
+			</h2>
+			<p class="mb-4">
+				Your CV profile is missing essential information. Please add at least your name to create a
+				proper CV.
+			</p>
+			<div class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
+				<a
+					href="/profile"
+					class="inline-block rounded bg-indigo-600 px-6 py-2 text-center font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+				>
+					Complete Your Profile
+				</a>
+				<button
+					onclick={() => (error = null)}
+					class="inline-block rounded border border-gray-300 bg-white px-6 py-2 text-center font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-400 focus:outline-none"
+				>
+					View CV Anyway
+				</button>
+			</div>
+		</div>
 	{:else if dataLoaded}
 		<div id="cv-content" class="bg-white p-8 shadow-lg">
 			<!-- Header with personal info -->
@@ -598,6 +640,30 @@
 												responsibilities={job.responsibilities}
 												readOnly={true}
 											/>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</section>
+					{/if}
+
+					<!-- Qualification Equivalence Section -->
+					{#if qualificationEquivalence.length > 0}
+						<section>
+							<h2 class="mb-4 text-2xl font-bold text-gray-800">Qualification Equivalence</h2>
+							{#each qualificationEquivalence as qual, i}
+								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
+									<h3 class="text-xl font-bold text-gray-800">
+										{decodeHtmlEntities(qual.qualification || qual.level)}
+									</h3>
+									{#if qual.equivalent_to && qual.equivalent_to !== 'NULL'}
+										<div class="text-lg font-semibold text-gray-700">
+											Equivalent to: {decodeHtmlEntities(qual.equivalent_to)}
+										</div>
+									{/if}
+									{#if qual.description}
+										<div class="my-3 text-gray-700">
+											{decodeHtmlEntities(qual.description)}
 										</div>
 									{/if}
 								</div>
@@ -775,28 +841,6 @@
 									{#if membership.description}
 										<div class="my-3 text-gray-700">
 											{decodeHtmlEntities(membership.description)}
-										</div>
-									{/if}
-								</div>
-							{/each}
-						</section>
-					{/if}
-
-					<!-- Qualification Equivalence Section -->
-					{#if qualificationEquivalence.length > 0}
-						<section>
-							<h2 class="mb-4 text-2xl font-bold text-gray-800">Qualification Equivalence</h2>
-							{#each qualificationEquivalence as qual, i}
-								<div class="mb-6 border-b border-gray-100 pb-6 last:border-b-0 last:pb-0">
-									<h3 class="text-xl font-bold text-gray-800">
-										{decodeHtmlEntities(qual.qualification)}
-									</h3>
-									<div class="text-lg font-semibold text-gray-700">
-										Equivalent to: {decodeHtmlEntities(qual.equivalent_to)}
-									</div>
-									{#if qual.description}
-										<div class="my-3 text-gray-700">
-											{decodeHtmlEntities(qual.description)}
 										</div>
 									{/if}
 								</div>

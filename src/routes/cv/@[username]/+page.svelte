@@ -112,9 +112,17 @@
 	// Track which work experiences have expanded responsibilities
 	let expandedResponsibilities = $state<Record<string, boolean>>({});
 
+	// Track which qualification equivalence entries have expanded supporting evidence
+	let expandedSupportingEvidence = $state<Record<string, boolean>>({});
+
 	// Toggle responsibilities visibility
 	function toggleResponsibilities(workId: string) {
 		expandedResponsibilities[workId] = !expandedResponsibilities[workId];
+	}
+
+	// Toggle supporting evidence visibility
+	function toggleSupportingEvidence(qualId: string) {
+		expandedSupportingEvidence[qualId] = !expandedSupportingEvidence[qualId];
 	}
 
 	// Predefined skill categories in preferred order
@@ -282,6 +290,31 @@
 				: '#7e22ce'; // Default purple-700
 
 			headerGradientStyle = `background: linear-gradient(to right, ${fromColor}, ${toColor});`;
+		}
+	});
+
+	// Initialize tabs
+	$effect(() => {
+		console.log('CV @[username] page mounted. Username:', username);
+		if (cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0) {
+			console.log(
+				'Qualification equivalence data:',
+				JSON.stringify(cvData.qualificationEquivalence, null, 2)
+			);
+			console.log('First qualification ID:', cvData.qualificationEquivalence[0].id);
+			console.log(
+				'Has supporting_evidence_items?',
+				cvData.qualificationEquivalence[0].supporting_evidence_items !== undefined
+			);
+			// Debug each qualification equivalence entry
+			cvData.qualificationEquivalence.forEach((qual, index) => {
+				console.log(`Qualification ${index + 1} ID:`, qual.id);
+				console.log(`Qualification ${index + 1} level:`, qual.level);
+				console.log(`Qualification ${index + 1} has evidence:`, !!qual.supporting_evidence_items);
+				if (qual.supporting_evidence_items) {
+					console.log(`Evidence items count:`, qual.supporting_evidence_items.length);
+				}
+			});
 		}
 	});
 </script>
@@ -763,6 +796,83 @@
 																	responsibilities={work.responsibilities}
 																	readOnly={true}
 																/>
+															</div>
+														</div>
+													{/if}
+												</div>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</section>
+						{/if}
+
+						<!-- Professional Qualification Equivalence section -->
+						{#if cvData.qualificationEquivalence && cvData.qualificationEquivalence.length > 0 && (activeTab === 'all' || activeTab === 'more')}
+							<section class="rounded-lg bg-white p-6 shadow-md print:shadow-none">
+								<h2 class="border-b border-gray-200 pb-2 text-xl font-bold text-gray-800">
+									Professional Qualification Equivalence
+								</h2>
+
+								<div class="mt-4 space-y-4">
+									{#each cvData.qualificationEquivalence as qualification}
+										<div class="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+											<h3 class="font-semibold text-gray-800">
+												{decodeHtmlEntities(qualification.qualification || qualification.level)}
+											</h3>
+											{#if qualification.equivalent_to && qualification.equivalent_to !== 'NULL'}
+												<h4 class="text-gray-700">
+													Equivalent to: {decodeHtmlEntities(qualification.equivalent_to)}
+												</h4>
+											{/if}
+											{#if qualification.description}
+												<div class="mt-2 text-gray-700">
+													<p class="whitespace-pre-line">
+														{decodeHtmlEntities(qualification.description)}
+													</p>
+												</div>
+											{/if}
+
+											{#if qualification.supporting_evidence_items && qualification.supporting_evidence_items.length > 0}
+												<div class="mt-3">
+													<button
+														onclick={() => toggleSupportingEvidence(qualification.id)}
+														class="inline-flex items-center rounded bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+													>
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															class="mr-1.5 h-4 w-4"
+															viewBox="0 0 20 20"
+															fill="currentColor"
+														>
+															{#if expandedSupportingEvidence[qualification.id]}
+																<path
+																	fill-rule="evenodd"
+																	d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z"
+																	clip-rule="evenodd"
+																/>
+															{:else}
+																<path
+																	fill-rule="evenodd"
+																	d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+																	clip-rule="evenodd"
+																/>
+															{/if}
+														</svg>
+														{expandedSupportingEvidence[qualification.id] ? 'Hide' : 'View'} Supporting
+														Evidence
+													</button>
+
+													{#if expandedSupportingEvidence[qualification.id]}
+														<div class="mt-2 pl-2">
+															<div class="rounded-md bg-gray-50 p-3">
+																<ul class="list-disc space-y-2 pl-5">
+																	{#each qualification.supporting_evidence_items as evidence}
+																		<li class="text-gray-700">
+																			{decodeHtmlEntities(evidence.content)}
+																		</li>
+																	{/each}
+																</ul>
 															</div>
 														</div>
 													{/if}

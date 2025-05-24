@@ -13,6 +13,9 @@
 	import { fetchWithCsrf } from '$lib/security/clientCsrf';
 	import { enhance } from '$app/forms';
 	import type { ProfileData } from '$lib/types/profile';
+	import FormSection from '$lib/components/FormSection.svelte';
+	import FormGrid from '$lib/components/FormGrid.svelte';
+	import FormField from '$lib/components/FormField.svelte';
 
 	interface PageData {
 		profile: ProfileData | null;
@@ -1002,221 +1005,194 @@
 			<p class="font-medium">Loading your profile...</p>
 		</div>
 	{:else}
-		<!-- Profile Photo Section -->
-		<div class="mt-6 space-y-4">
-			<label class="block text-lg font-medium text-gray-700" for="profile-photo-section"
-				>Profile Photo</label
-			>
-
-			<div
-				id="profile-photo-section"
-				class="flex flex-col items-start gap-4 sm:flex-row sm:items-center"
-			>
-				<!-- Photo Display -->
-				<div class="relative h-24 w-24 overflow-hidden rounded-full">
-					{#if photoUrl && photoUrl !== DEFAULT_PROFILE_PHOTO && !photoError}
-						<img
-							src={getProxiedPhotoUrl(photoUrl)}
-							alt={fullName || 'User profile'}
-							class="h-full w-full object-cover"
-							onerror={() => {
-								console.error('Error loading profile photo, fallback to default');
-								photoError = 'Unable to load photo';
-							}}
-						/>
-					{:else}
-						<PhotoFallback photoUrl={null} defaultImage={DEFAULT_PROFILE_PHOTO} size="lg" />
-					{/if}
-				</div>
-
-				<!-- Upload Controls -->
-				<div class="flex flex-col gap-2">
-					<div class="flex flex-wrap gap-2">
-						<!-- File Upload Button -->
-						<label
-							for="photo-upload"
-							class="cursor-pointer rounded bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-						>
-							Choose File
-						</label>
-						<input
-							type="file"
-							id="photo-upload"
-							accept="image/jpeg,image/png,image/webp"
-							class="hidden"
-							onchange={handlePhotoUpload}
-							bind:this={photoInputEl}
-						/>
-
-						<!-- Camera Button -->
-						<button
-							type="button"
-							class="rounded bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-							onclick={() => {
-								showCamera = true;
-								cameraStatus = 'Opening camera...';
-								photoError = null;
-							}}
-						>
-							Use Camera
-						</button>
-
-						{#if photoUrl && photoUrl !== DEFAULT_PROFILE_PHOTO}
-							<!-- Delete Photo Button -->
-							<button
-								type="button"
-								class="rounded bg-red-500 px-4 py-2 text-white shadow hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
-								onclick={deleteProfilePhoto}
-								disabled={uploadingPhoto}
-							>
-								Delete Photo
-							</button>
-						{/if}
-					</div>
-
-					{#if photoError}
-						<p class="text-sm text-red-600">{photoError}</p>
-					{/if}
-
-					{#if uploadingPhoto}
-						<p class="text-sm">Uploading... Please wait</p>
-					{/if}
-				</div>
-			</div>
-		</div>
-
 		<form
 			class="space-y-6"
 			onsubmit={(e) => {
 				e.preventDefault();
 			}}
 		>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="fullName">Full Name</label>
-				<input
-					id="fullName"
-					name="fullName"
-					type="text"
-					bind:value={fullName}
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					required
-				/>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="username">Username</label>
-				<div class="relative">
-					<input
-						id="username"
-						name="username"
-						type="text"
-						bind:value={username}
-						onblur={() => handleUsernameChange()}
-						placeholder="your-username"
-						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {usernameError
-							? 'border-red-500'
-							: ''} {usernameAvailable && username && !usernameError ? 'border-green-500' : ''}"
-						required
+			<FormSection title="Personal Details" required={true}>
+				<FormGrid>
+					<FormField
+						label="Full Name"
+						id="fullName"
+						bind:value={fullName}
+						placeholder="e.g. John Smith"
+						required={true}
 					/>
-					{#if checkingUsername}
-						<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-							<div class="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-500"></div>
-						</div>
-					{:else if usernameAvailable && username && !usernameError}
-						<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-green-500">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-5 w-5"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-						</div>
-					{/if}
-				</div>
 
-				{#if usernameError}
-					<p class="mt-1 text-sm text-red-600">{usernameError}</p>
-				{/if}
+					<div>
+						<label class="mb-1 block text-sm font-medium text-gray-700" for="username"
+							>Username *</label
+						>
+						<div class="relative">
+							<input
+								id="username"
+								name="username"
+								type="text"
+								bind:value={username}
+								onblur={() => handleUsernameChange()}
+								placeholder="e.g. johnsmith"
+								class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {usernameError
+									? 'border-red-500'
+									: ''} {usernameAvailable && username && !usernameError ? 'border-green-500' : ''}"
+								required
+							/>
+							{#if checkingUsername}
+								<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
+									<div class="h-5 w-5 animate-spin rounded-full border-b-2 border-indigo-500"></div>
+								</div>
+							{:else if usernameAvailable && username && !usernameError}
+								<div class="absolute inset-y-0 right-0 flex items-center pr-3 text-green-500">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-5 w-5"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</div>
+							{/if}
+						</div>
 
-				{#if username && !usernameError && browser}
-					<p class="mt-1 text-sm text-gray-500">
-						A public version of your CV will be available once you save your profile.
+						{#if usernameError}
+							<p class="mt-1 text-sm text-red-600">{usernameError}</p>
+						{/if}
+					</div>
+
+					<FormField
+						label="Email"
+						id="email"
+						type="email"
+						bind:value={email}
+						placeholder="e.g. john.smith@example.com"
+						required={true}
+					/>
+
+					<FormField
+						label="Phone"
+						id="phone"
+						type="tel"
+						bind:value={phone}
+						placeholder="e.g. 0123 456 789"
+					/>
+
+					<FormField
+						label="Location"
+						id="location"
+						bind:value={location}
+						placeholder="e.g. London, UK"
+					/>
+
+					<FormField
+						label="LinkedIn URL"
+						id="linkedinUrl"
+						type="url"
+						bind:value={linkedinUrl}
+						placeholder="https://www.linkedin.com/in/yourprofile"
+					/>
+				</FormGrid>
+
+				<!-- Full-width for bio -->
+				<div class="mt-4">
+					<label class="mb-1 block text-sm font-medium text-gray-700" for="bio">Short Bio</label>
+					<textarea
+						id="bio"
+						name="bio"
+						bind:value={bio}
+						rows="4"
+						placeholder="Write a brief professional summary about yourself..."
+						class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+					></textarea>
+					<p class="mt-1 text-xs text-gray-500">
+						Keep your bio concise and highlight your key professional attributes (250 words or less
+						recommended).
 					</p>
-				{/if}
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="email">Email</label>
-				<input
-					id="email"
-					name="email"
-					type="email"
-					bind:value={email}
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-					required
-				/>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="phone">Phone</label>
-				<input
-					id="phone"
-					name="phone"
-					type="tel"
-					bind:value={phone}
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="location">Location</label>
-				<input
-					id="location"
-					name="location"
-					type="text"
-					bind:value={location}
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="linkedinUrl"
-					>LinkedIn URL</label
-				>
-				<input
-					id="linkedinUrl"
-					name="linkedinUrl"
-					type="url"
-					bind:value={linkedinUrl}
-					placeholder="https://www.linkedin.com/in/yourprofile"
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				/>
-				<p class="mt-1 text-xs text-gray-500">
-					Add your LinkedIn profile URL to help recruiters connect with you professionally.
-				</p>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="bio">Short Bio</label>
-				<textarea
-					id="bio"
-					name="bio"
-					bind:value={bio}
-					rows="4"
-					placeholder="Write a brief professional summary about yourself..."
-					class="mt-1 block w-full rounded border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-				></textarea>
-				<p class="mt-1 text-xs text-gray-500">
-					Keep your bio concise and highlight your key professional attributes (250 words or less
-					recommended).
-				</p>
-			</div>
-			<div>
-				<label class="mb-1 block text-sm font-medium text-gray-700" for="bio"
-					>CV Header Colors</label
-				>
+				</div>
+			</FormSection>
 
-				<div class="mt-2 space-y-4">
+			<FormSection title="Profile Photo">
+				<div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+					<!-- Photo Display -->
+					<div class="relative h-24 w-24 overflow-hidden rounded-full">
+						{#if photoUrl && photoUrl !== DEFAULT_PROFILE_PHOTO && !photoError}
+							<img
+								src={getProxiedPhotoUrl(photoUrl)}
+								alt={fullName || 'User profile'}
+								class="h-full w-full object-cover"
+								onerror={() => {
+									console.error('Error loading profile photo, fallback to default');
+									photoError = 'Unable to load photo';
+								}}
+							/>
+						{:else}
+							<PhotoFallback photoUrl={null} defaultImage={DEFAULT_PROFILE_PHOTO} size="lg" />
+						{/if}
+					</div>
+
+					<!-- Upload Controls -->
+					<div class="flex flex-col gap-2">
+						<div class="flex flex-wrap gap-2">
+							<!-- File Upload Button -->
+							<label
+								for="photo-upload"
+								class="cursor-pointer rounded-md bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+							>
+								Choose File
+							</label>
+							<input
+								type="file"
+								id="photo-upload"
+								accept="image/jpeg,image/png,image/webp"
+								class="hidden"
+								onchange={handlePhotoUpload}
+								bind:this={photoInputEl}
+							/>
+
+							<!-- Camera Button -->
+							<button
+								type="button"
+								class="rounded-md bg-blue-500 px-4 py-2 text-white shadow hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+								onclick={() => {
+									showCamera = true;
+									cameraStatus = 'Opening camera...';
+									photoError = null;
+								}}
+							>
+								Use Camera
+							</button>
+
+							{#if photoUrl && photoUrl !== DEFAULT_PROFILE_PHOTO}
+								<!-- Delete Photo Button -->
+								<button
+									type="button"
+									class="rounded-md bg-red-500 px-4 py-2 text-white shadow hover:bg-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none"
+									onclick={deleteProfilePhoto}
+									disabled={uploadingPhoto}
+								>
+									Delete Photo
+								</button>
+							{/if}
+						</div>
+
+						{#if photoError}
+							<p class="text-sm text-red-600">{photoError}</p>
+						{/if}
+
+						{#if uploadingPhoto}
+							<p class="text-sm">Uploading... Please wait</p>
+						{/if}
+					</div>
+				</div>
+			</FormSection>
+
+			<FormSection title="CV Header Colors">
+				<div class="space-y-4">
 					<div>
 						<p class="mb-2 text-sm text-gray-600">Preview:</p>
 						<div style={previewGradientStyle} class="h-16 rounded-md shadow-sm"></div>
@@ -1231,7 +1207,9 @@
 						right color.
 					</p>
 				</div>
-			</div>
+			</FormSection>
+
+			<!-- Save Button -->
 			<div>
 				<button
 					type="button"

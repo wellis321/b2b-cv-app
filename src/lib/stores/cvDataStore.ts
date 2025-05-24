@@ -218,103 +218,15 @@ const createCvStore = () => {
             console.log(`Loading CV sections for user ID: ${userId}`);
 
             try {
-                const [
-                    workExperiencesResult,
-                    { data: education, error: eduError },
-                    { data: skills, error: skillsError },
-                    { data: projects, error: projectsError },
-                    { data: certifications, error: certError },
-                    { data: professionalMemberships, error: membershipError },
-                    { data: interests, error: interestError },
-                    { data: qualificationEquivalence, error: qualError }
-                ] = await Promise.all([
-                    // Work experiences with responsibilities
-                    loadWorkExperiences(userId, client),
+                // Use the loadUserCvData helper function to ensure supporting evidence is loaded
+                const cvData = await loadUserCvData(userId, client);
 
-                    // Education
-                    client
-                        .from('education')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('start_date', { ascending: false }),
-
-                    // Skills
-                    client
-                        .from('skills')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('category', { ascending: true }),
-
-                    // Projects
-                    client
-                        .from('projects')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('start_date', { ascending: false }),
-
-                    // Certifications
-                    client
-                        .from('certifications')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('date_obtained', { ascending: false }),
-
-                    // Professional memberships
-                    client
-                        .from('professional_memberships')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('start_date', { ascending: false }),
-
-                    // Interests
-                    client
-                        .from('interests')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('name', { ascending: true }),
-
-                    // Qualification equivalence
-                    client
-                        .from('professional_qualification_equivalence')
-                        .select('*')
-                        .eq('profile_id', userId)
-                        .order('country', { ascending: true })
-                ]);
-
-                // Check for any loading errors
-                const errors = [];
-                if (workExperiencesResult.error) errors.push(`Work experience: ${workExperiencesResult.error}`);
-                if (eduError) errors.push(`Education: ${eduError.message}`);
-                if (skillsError) errors.push(`Skills: ${skillsError.message}`);
-                if (projectsError) errors.push(`Projects: ${projectsError.message}`);
-                if (certError) errors.push(`Certifications: ${certError.message}`);
-                if (membershipError) errors.push(`Memberships: ${membershipError.message}`);
-                if (interestError) errors.push(`Interests: ${interestError.message}`);
-                if (qualError) errors.push(`Qualification equivalence: ${qualError.message}`);
-
-                if (errors.length > 0) {
-                    console.error('Error loading CV data:', errors);
-                    // Show an error but continue with any data we have
-                    loadingState.update(state => ({
-                        ...state,
-                        error: `Some data could not be loaded (${errors.length} errors)`
-                    }));
-                }
+                // Add username to the data
+                cvData.username = username;
+                cvData.profile = profileData;
 
                 // Update the store with all the data
-                set({
-                    userId,
-                    profile: profileData,
-                    workExperiences: workExperiencesResult.data || [],
-                    education: education || [],
-                    skills: skills || [],
-                    projects: projects || [],
-                    certifications: certifications || [],
-                    memberships: professionalMemberships || [],
-                    interests: interests || [],
-                    qualificationEquivalence: qualificationEquivalence || [],
-                    username
-                });
+                set(cvData);
 
                 loadingState.update(state => ({
                     ...state,
@@ -402,17 +314,44 @@ const createCvStore = () => {
                     .eq('id', userId)
                     .single();
 
-                if (profileError) {
+                if (profileError && profileError.code !== 'PGRST116') {
+                    // Log real errors but don't show them to user immediately
                     console.error('Error loading profile:', profileError);
-                    loadingState.update((s) => ({ ...s, error: 'Failed to load profile data' }));
-                    return;
+
+                    // If it's not a "no rows returned" error, update the error state
+                    if (profileError.code !== 'PGRST116') {
+                        loadingState.update((s) => ({ ...s, error: 'Failed to load profile data' }));
+                        return;
+                    }
                 }
+
+                // Create a basic profile object even if none exists in the database yet
+                // This prevents errors when viewing the CV preview with incomplete data
+                const userProfile = profile || {
+                    id: userId,
+                    first_name: '',
+                    last_name: '',
+                    full_name: '',
+                    username: `user${userId.substring(0, 8)}`,
+                    email: currentSession.user.email || '',
+                    created_at: new Date().toISOString(),
+                    photo_url: null,
+                    bio: null,
+                    linkedin_url: null,
+                    location: null,
+                    phone: null,
+                    cv_header_from_color: '#4338ca',
+                    cv_header_to_color: '#7e22ce'
+                };
 
                 // Load all CV sections
                 const data = await loadUserCvData(userId);
 
-                if (data.profile) {
-                    data.username = data.profile.username || null;
+                // Always set the profile data, even if incomplete
+                data.profile = userProfile;
+
+                if (userProfile) {
+                    data.username = userProfile.username || null;
                 }
 
                 // Cache the data
@@ -549,46 +488,54 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
     const data: CvData = { ...defaultCvData, userId };
 
     try {
-        // Load all sections in parallel for efficiency
-        const [
-            profileResult,
-            workExperiencesResult,
-            projectsResult,
-            skillsResult,
-            educationResult,
-            certificationsResult,
-            membershipResult,
-            interestsResult,
-            qualificationEquivalenceResult
-        ] = await Promise.all([
-            client.from('profiles').select('*').eq('id', userId).single(),
-            client.from('work_experience').select('*').eq('profile_id', userId).order('start_date', { ascending: false }),
-            client.from('projects').select('*').eq('profile_id', userId).order('start_date', { ascending: false }),
-            client.from('skills').select('*').eq('profile_id', userId),
-            client.from('education').select('*').eq('profile_id', userId).order('start_date', { ascending: false }),
-            client.from('certifications').select('*').eq('profile_id', userId).order('date_obtained', { ascending: false }),
-            client.from('professional_memberships').select('*').eq('profile_id', userId).order('start_date', { ascending: false }),
-            client.from('interests').select('*').eq('profile_id', userId),
-            client
-                .from('professional_qualification_equivalence')
-                .select('*')
-                .eq('profile_id', userId)
-        ]);
+        // Fetch all data for the user's CV
+        const workExperiencesResult = await client.from('work_experience')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('start_date', { ascending: false });
 
-        // Check profile result - this is required
-        if (profileResult.error) {
-            console.error('Error loading profile:', profileResult.error);
-            throw new Error('Failed to load profile data');
-        }
+        const educationResult = await client.from('education')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('start_date', { ascending: false });
 
-        // Populate data with results, handle any errors gracefully
-        data.profile = profileResult.data;
+        const skillsResult = await client.from('skills')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('category', { ascending: true });
+
+        const projectsResult = await client.from('projects')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('start_date', { ascending: false });
+
+        const certificationsResult = await client.from('certifications')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('date_obtained', { ascending: false });
+
+        const membershipsResult = await client.from('professional_memberships')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('start_date', { ascending: false });
+
+        const qualificationEquivalenceResult = await client.from('professional_qualification_equivalence')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('level', { ascending: true });
+
+        const interestsResult = await client.from('interests')
+            .select('*')
+            .eq('profile_id', userId)
+            .order('name', { ascending: true });
+
+        // Populate the data object with the results
         data.workExperiences = workExperiencesResult.error ? [] : workExperiencesResult.data || [];
-        data.projects = projectsResult.error ? [] : projectsResult.data || [];
-        data.skills = skillsResult.error ? [] : skillsResult.data || [];
         data.education = educationResult.error ? [] : educationResult.data || [];
+        data.skills = skillsResult.error ? [] : skillsResult.data || [];
+        data.projects = projectsResult.error ? [] : projectsResult.data || [];
         data.certifications = certificationsResult.error ? [] : certificationsResult.data || [];
-        data.memberships = membershipResult.error ? [] : membershipResult.data || [];
+        data.memberships = membershipsResult.error ? [] : membershipsResult.data || [];
         data.interests = interestsResult.error ? [] : interestsResult.data || [];
         data.qualificationEquivalence = qualificationEquivalenceResult.error ? [] : qualificationEquivalenceResult.data || [];
 
@@ -606,68 +553,82 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
                                 .eq('work_experience_id', work.id)
                                 .order('sort_order', { ascending: true });
 
-                            if (categoriesError || !categories || categories.length === 0) {
-                                return { ...work, responsibilities: [] };
-                            }
+                            if (categoriesError) throw categoriesError;
+                            if (!categories || categories.length === 0) return work;
 
-                            // Get all items for these categories
-                            const categoryIds = categories.map((cat: any) => cat.id);
+                            // Get all category IDs for this work experience
+                            const categoryIds = categories.map((cat: { id: string }) => cat.id);
+
+                            // Query all responsibility items for these categories
                             const { data: items, error: itemsError } = await client
                                 .from('responsibility_items')
                                 .select('*')
                                 .in('category_id', categoryIds)
                                 .order('sort_order', { ascending: true });
 
-                            if (itemsError) {
-                                return {
-                                    ...work,
-                                    responsibilities: categories.map((cat: any) => ({ ...cat, items: [] }))
-                                };
-                            }
+                            if (itemsError) throw itemsError;
 
-                            // Group items by category
-                            const responsibilities = categories.map((category: any) => ({
-                                ...category,
-                                items: items?.filter((item: any) => item.category_id === category.id) || []
+                            // Attach the categories and items to the work experience
+                            work.responsibility_categories = categories.map((cat: { id: string; name: string; sort_order: number }) => ({
+                                ...cat,
+                                items: items.filter((item: { category_id: string; content: string; sort_order: number }) =>
+                                    item.category_id === cat.id)
                             }));
 
-                            return { ...work, responsibilities };
+                            return work;
                         } catch (err) {
-                            console.error(`Error loading responsibilities for work experience ${work.id}:`, err);
-                            return { ...work, responsibilities: [] };
+                            console.error('Error loading responsibilities for work experience:', err);
+                            return work;
                         }
                     })
                 );
 
-                // Replace the work experiences with the ones including responsibilities
                 data.workExperiences = workResponsibilities;
-            } catch (respErr) {
-                console.error('Error loading work responsibilities:', respErr);
-                // Continue with the work experiences we have, without responsibilities
+            } catch (err) {
+                console.error('Error loading work responsibilities:', err);
             }
         }
 
-        // Log any errors that occurred
-        [
-            { name: 'work experiences', result: workExperiencesResult },
-            { name: 'projects', result: projectsResult },
-            { name: 'skills', result: skillsResult },
-            { name: 'education', result: educationResult },
-            { name: 'certifications', result: certificationsResult },
-            { name: 'memberships', result: membershipResult },
-            { name: 'interests', result: interestsResult },
-            { name: 'qualification equivalence', result: qualificationEquivalenceResult }
-        ].forEach(item => {
-            if (item.result.error) {
-                console.error(`Error loading ${item.name}:`, item.result.error);
-            }
-        });
+        // Load supporting evidence for each qualification equivalence entry
+        if (data.qualificationEquivalence.length > 0) {
+            try {
+                // Fetch supporting evidence for each qualification equivalence
+                const qualificationWithEvidence = await Promise.all(
+                    data.qualificationEquivalence.map(async (qualification) => {
+                        try {
+                            // Query the supporting evidence items for this qualification
+                            const { data: evidenceItems, error: evidenceError } = await client
+                                .from('supporting_evidence')
+                                .select('*')
+                                .eq('qualification_equivalence_id', qualification.id)
+                                .order('sort_order', { ascending: true });
 
-        // Apply sanitization before returning the data
-        return sanitizeCvData(data);
-    } catch (err) {
-        console.error('Error loading CV data:', err);
-        throw err;
+                            if (evidenceError) throw evidenceError;
+
+                            console.log('Supporting evidence for qualification', qualification.id, ':', evidenceItems);
+
+                            // Attach the supporting evidence items to the qualification
+                            qualification.supporting_evidence_items = evidenceItems || [];
+                            return qualification;
+                        } catch (error) {
+                            console.error('Error fetching supporting evidence for qualification', qualification.id, ':', error);
+                            qualification.supporting_evidence_items = [];
+                            return qualification;
+                        }
+                    })
+                );
+
+                // Replace the qualifications with the ones that have evidence items attached
+                data.qualificationEquivalence = qualificationWithEvidence;
+            } catch (error) {
+                console.error('Error loading supporting evidence for qualifications:', error);
+            }
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error loading CV data:', error);
+        return defaultCvData;
     }
 }
 

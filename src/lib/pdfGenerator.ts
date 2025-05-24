@@ -74,9 +74,11 @@ export interface PdfInterest {
 
 export interface PdfQualificationEquivalence {
     id: string;
-    qualification: string;
-    equivalent_to: string;
+    profile_id: string;
+    level: string;
     description: string | null;
+    qualification?: string;
+    equivalent_to?: string;
 }
 
 export interface CvData {
@@ -417,6 +419,38 @@ export async function createCvDocDefinition(
         }
     }
 
+    // Qualification Equivalence - moved to come right after Work Experience
+    if (
+        config.sections.qualificationEquivalence &&
+        cvData.qualificationEquivalence &&
+        cvData.qualificationEquivalence.length > 0
+    ) {
+        content.push({ text: 'Professional Qualification Equivalence', style: 'subheader' });
+
+        for (const qual of cvData.qualificationEquivalence) {
+            content.push({
+                text: decodeHtmlEntities(qual.qualification || qual.level),
+                style: 'jobPosition'
+            });
+
+            if (qual.equivalent_to && qual.equivalent_to !== 'NULL') {
+                content.push({
+                    text: `Equivalent to: ${decodeHtmlEntities(qual.equivalent_to)}`,
+                    style: 'institution',
+                    margin: [0, 3, 0, 3]
+                });
+            }
+
+            if (qual.description) {
+                content.push({
+                    text: decodeHtmlEntities(qual.description),
+                    style: 'normal',
+                    margin: [0, 3, 0, 15]
+                });
+            }
+        }
+    }
+
     // Projects
     if (config.sections.projects && cvData.projects.length > 0) {
         content.push({ text: 'Projects', style: 'subheader' });
@@ -739,41 +773,6 @@ export async function createCvDocDefinition(
 
             // Add some space between membership entries
             content.push({ text: '', margin: [0, 0, 0, 10] });
-        }
-    }
-
-    // Qualification Equivalence
-    if (
-        config.sections.qualificationEquivalence &&
-        cvData.qualificationEquivalence &&
-        cvData.qualificationEquivalence.length > 0
-    ) {
-        content.push({ text: 'Professional Qualification Equivalence', style: 'subheader' });
-
-        for (const qual of cvData.qualificationEquivalence) {
-            content.push({
-                text: decodeHtmlEntities(qual.qualification),
-                style: 'jobPosition'
-            });
-
-            content.push({
-                text: `Equivalent to: ${decodeHtmlEntities(qual.equivalent_to)}`,
-                style: 'institution',
-                margin: [0, 3, 0, 3]
-            });
-
-            if (qual.description) {
-                content.push({
-                    text: decodeHtmlEntities(qual.description),
-                    style: 'normal',
-                    margin: [0, 5, 0, 10] as [number, number, number, number]
-                });
-            } else {
-                content.push({
-                    text: '',
-                    margin: [0, 0, 0, 10] as [number, number, number, number]
-                });
-            }
         }
     }
 

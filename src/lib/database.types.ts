@@ -172,6 +172,8 @@ export interface Database {
                     level: string;
                     profile_id: string | null;
                     updated_at: string;
+                    qualification: string | null;
+                    equivalent_to: string | null;
                 };
                 Insert: {
                     created_at?: string;
@@ -180,6 +182,8 @@ export interface Database {
                     level: string;
                     profile_id?: string | null;
                     updated_at?: string;
+                    qualification?: string | null;
+                    equivalent_to?: string | null;
                 };
                 Update: {
                     created_at?: string;
@@ -188,6 +192,8 @@ export interface Database {
                     level?: string;
                     profile_id?: string | null;
                     updated_at?: string;
+                    qualification?: string | null;
+                    equivalent_to?: string | null;
                 };
                 Relationships: [
                     {

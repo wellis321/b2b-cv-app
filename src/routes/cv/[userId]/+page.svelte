@@ -135,6 +135,13 @@
 		img.style.display = 'none';
 		console.error('Failed to load image:', img.src);
 	}
+
+	// Debug log to check qualification equivalence data
+	$effect(() => {
+		if (qualificationEquivalence) {
+			console.log('Qualification Equivalence Data:', qualificationEquivalence);
+		}
+	});
 </script>
 
 <svelte:head>
@@ -197,6 +204,14 @@
 					{/if}
 				</div>
 			</div>
+
+			<!-- TEST SECTION - REMOVE AFTER DEBUGGING -->
+			{#if qualificationEquivalence && qualificationEquivalence.length > 0}
+				<div class="mt-4 rounded bg-yellow-100 p-4">
+					<h2 class="font-bold">TEST: Qualification Equivalence Data</h2>
+					<pre class="text-xs">{JSON.stringify(qualificationEquivalence, null, 2)}</pre>
+				</div>
+			{/if}
 
 			<!-- Work Experience -->
 			{#if workExperiences && workExperiences.length > 0}
@@ -418,15 +433,17 @@
 				</div>
 			{/if}
 
-			<!-- Qualification Equivalence -->
+			<!-- NEW Professional Qualification Equivalence Section -->
 			{#if qualificationEquivalence && qualificationEquivalence.length > 0}
-				<div class="mt-8">
+				<div class="mt-8 border border-indigo-100 bg-indigo-50 p-4">
 					<h2 class="mb-4 text-xl font-bold">Professional Qualification Equivalence</h2>
 					<div class="space-y-6">
 						{#each qualificationEquivalence as qualification}
 							<div>
-								<h3 class="font-semibold">{qualification.qualification}</h3>
-								<h4 class="text-gray-700">Equivalent to: {qualification.equivalent_to}</h4>
+								<h3 class="font-semibold">{qualification.qualification || qualification.level}</h3>
+								{#if qualification.equivalent_to && qualification.equivalent_to !== 'NULL'}
+									<h4 class="text-gray-700">Equivalent to: {qualification.equivalent_to}</h4>
+								{/if}
 								{#if qualification.description}
 									<div class="mt-2 text-gray-700">
 										<p class="whitespace-pre-line">{qualification.description}</p>
@@ -477,4 +494,20 @@
 	<div class="mt-6 text-center">
 		<a href="/" class="text-indigo-600 hover:underline">Go to CV App</a>
 	</div>
+
+	<!-- For debugging only -->
+	{#if import.meta.env.DEV && false}
+		<div class="mt-8 rounded border border-gray-300 bg-gray-100 p-4">
+			<h2 class="text-lg font-bold">Debug Information</h2>
+			<p>Has qualificationEquivalence: {!!qualificationEquivalence}</p>
+			<p>Length: {qualificationEquivalence ? qualificationEquivalence.length : 0}</p>
+			{#if qualificationEquivalence && qualificationEquivalence.length > 0}
+				<pre class="mt-2 rounded bg-gray-200 p-2 text-xs whitespace-pre-wrap">{JSON.stringify(
+						qualificationEquivalence,
+						null,
+						2
+					)}</pre>
+			{/if}
+		</div>
+	{/if}
 </div>
