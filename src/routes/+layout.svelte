@@ -8,6 +8,7 @@
 	import ErrorBoundary from '$lib/components/ErrorBoundary.svelte';
 	import { page } from '$app/stores';
 	import { initGlobalHelpers } from '$lib/utils/globalHelpers';
+	import ContentWrapper from '$lib/components/ContentWrapper.svelte';
 
 	// Initialize global helpers
 	if (browser) {
@@ -19,9 +20,9 @@
 
 	// Navigation items with their paths
 	const navItems = [
-		{ name: 'Profile', path: '/profile' },
-		{ name: 'Edit CV Sections', path: '/' },
-		{ name: 'Preview & PDF', path: '/preview-cv' }
+		{ name: 'Profile', path: '/profile', forceReload: false },
+		{ name: 'Edit CV Sections', path: '/dashboard', forceReload: false },
+		{ name: 'Preview & PDF', path: '/preview-cv', forceReload: false }
 	];
 
 	// Function to check if a path is active
@@ -43,6 +44,24 @@
 				].some((section) => $page.url.pathname.includes(section))
 			);
 		}
+
+		if (path === '/dashboard') {
+			return (
+				$page.url.pathname === '/dashboard' ||
+				// Also consider CV section pages as part of dashboard
+				[
+					'work-experience',
+					'education',
+					'projects',
+					'skills',
+					'certifications',
+					'qualification-equivalence',
+					'memberships',
+					'interests'
+				].some((section) => $page.url.pathname.includes(section))
+			);
+		}
+
 		return $page.url.pathname.startsWith(path);
 	}
 
@@ -129,6 +148,15 @@
 			console.error('Error during sign out:', err);
 		}
 	}
+
+	// A function to handle navigation with optional force reload
+	function handleNavigation(path: string, forceReload: boolean = false) {
+		if (forceReload) {
+			window.location.href = path;
+		} else {
+			goto(path);
+		}
+	}
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -141,14 +169,6 @@
 					</div>
 				</div>
 				<div class="flex items-center gap-4">
-					<a
-						href="/security-review-client"
-						class="text-sm {isActive('/security-review-client')
-							? 'font-medium text-indigo-800 hover:text-indigo-900'
-							: 'text-indigo-600 hover:text-indigo-800'}"
-					>
-						Security Review
-					</a>
 					{#if $session}
 						{#each navItems as item}
 							<a
@@ -171,7 +191,7 @@
 							</a>
 						{/if}
 						<button
-							on:click={signOut}
+							onclick={signOut}
 							class="text-gray-600 transition-colors hover:border-b-2 hover:border-gray-300 hover:text-gray-900"
 							>Sign Out</button
 						>
@@ -182,12 +202,12 @@
 	</header>
 
 	<main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-		{#if !$session && !isPublicCvPage()}
+		{#if !$session && !isPublicCvPage() && $page.url.pathname !== '/'}
 			<AuthForm />
 		{:else}
-			<ErrorBoundary>
-				<slot></slot>
-			</ErrorBoundary>
+			<ContentWrapper>
+				<slot />
+			</ContentWrapper>
 		{/if}
 	</main>
 </div>

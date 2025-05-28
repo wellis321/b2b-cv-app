@@ -10,10 +10,11 @@
 	};
 
 	// Props
-	let { fallback, resetErrorBoundary, onError } = $props<{
+	let { fallback, resetErrorBoundary, onError, children } = $props<{
 		fallback?: any;
 		resetErrorBoundary?: () => void;
 		onError?: (error: Error, errorInfo: any) => void;
+		children?: () => any;
 	}>();
 
 	// State
@@ -93,7 +94,8 @@
 <div data-error-boundary>
 	{#if state.hasError}
 		{#if fallback}
-			<svelte:component this={fallback} error={state.error} {reset} />
+			{@const Component = fallback}
+			<Component error={state.error} {reset} />
 		{:else}
 			<div class="error-boundary-fallback">
 				<h2>Something went wrong</h2>
@@ -101,8 +103,8 @@
 				<button class="reset-button" onclick={reset}> Try again </button>
 			</div>
 		{/if}
-	{:else}
-		<slot />
+	{:else if children}
+		{@render children()}
 	{/if}
 </div>
 

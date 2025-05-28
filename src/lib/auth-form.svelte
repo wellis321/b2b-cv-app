@@ -3,6 +3,9 @@
 	import { supabase } from '$lib/supabase';
 	import { browser } from '$app/environment';
 
+	// Use $props() instead of export let
+	const { redirectTo = '/' } = $props();
+
 	let email = $state('');
 	let password = $state('');
 	let isSignUp = $state(false);
@@ -29,11 +32,12 @@
 
 						const profileResult = await createProfile(result.user.id, email);
 
-						if (profileResult.success) {
+						// Use type assertion based on API response structure
+						if ((profileResult as any).success) {
 							console.log('Profile created successfully on signup');
 							success = 'Account created! Redirecting...';
 						} else {
-							console.error('Error creating profile:', profileResult.error);
+							console.error('Error creating profile:', (profileResult as any).error);
 							// Continue anyway, we can create profile later
 							success = 'Account created but profile setup failed. Redirecting...';
 						}
@@ -66,8 +70,8 @@
 				// Wait a moment before redirecting to ensure cookies are set
 				success = 'Logged in! Redirecting...';
 				setTimeout(() => {
-					// Force page reload to ensure all components get the latest session
-					window.location.href = '/';
+					// Force a complete page reload rather than navigation
+					window.location.href = redirectTo;
 				}, 1500);
 			}
 		} catch (err: any) {
