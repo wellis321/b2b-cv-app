@@ -17,4 +17,5 @@ declare global {
     }
 }
 
+// No need to change the types as the SupabaseClient interface is the same
 export { };
