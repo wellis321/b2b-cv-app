@@ -12,23 +12,18 @@ const config = {
         // If your environment is not supported, or you settled on a specific environment, switch out the adapter.
         // See https://svelte.dev/docs/kit/adapters for more information about adapters.
         adapter: adapter({
-            // Use Node.js 18.x runtime which is supported by Vercel
-            runtime: 'nodejs18.x'
+            // Use Node.js runtime for Vercel
+            runtime: 'nodejs18',
+            target: 'node18'
         }),
         csp: {
-            mode: 'auto', // Uses nonces for dynamic pages, hashes for prerendered pages
             directives: {
-                'default-src': ['self'],
-                'script-src': ['self', 'https://storage.googleapis.com'],
-                'connect-src': ['self', 'https://*.supabase.co', 'wss://*.supabase.co', 'https://storage.googleapis.com'],
-                'img-src': ['self', 'data:', 'https://storage.googleapis.com', 'https://*.supabase.co'],
-                'style-src': ['self', 'unsafe-inline'], // Most Svelte transitions need this
-                'font-src': ['self'],
-                'object-src': ['none'],
-                'base-uri': ['self'],
-                'frame-ancestors': ['none'],
-                'form-action': ['self'],
-                'upgrade-insecure-requests': true
+                'script-src': ['self', 'https://js.stripe.com'],
+                'img-src': ['self', 'data:', 'blob:', 'https://storage.googleapis.com', 'https://*.supabase.co']
+            },
+            reportOnly: {
+                'script-src': ['self'],
+                'report-uri': ['/api/csp-report']
             }
         }
     }
