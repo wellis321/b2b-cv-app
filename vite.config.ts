@@ -11,7 +11,6 @@ export default defineConfig({
             output: {
                 // Use manual chunks to better organize large dependencies
                 manualChunks: {
-                    supabase: ['@supabase/supabase-js'],
                     svelte: ['svelte', 'svelte/internal', 'svelte/store'],
                     'svelte-kit': ['@sveltejs/kit']
                 }
