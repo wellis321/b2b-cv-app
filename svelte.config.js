@@ -12,9 +12,9 @@ const config = {
         // If your environment is not supported, or you settled on a specific environment, switch out the adapter.
         // See https://svelte.dev/docs/kit/adapters for more information about adapters.
         adapter: adapter({
-            // Use Node.js runtime for Vercel
-            runtime: 'nodejs18',
-            target: 'node18'
+            // Use Node.js runtime for Vercel - must be 'nodejs18.x' format
+            runtime: 'nodejs18.x'
+            // Removed target property as it's not needed with the correct runtime format
         }),
         csp: {
             directives: {
