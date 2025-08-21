@@ -27,11 +27,15 @@
 		{ name: 'Profile', path: '/profile', forceReload: false },
 		{ name: 'Edit CV Sections', path: '/dashboard', forceReload: false },
 		{ name: 'Preview & PDF', path: '/preview-cv', forceReload: false },
-		{ name: 'Subscription', path: '/subscription', forceReload: false }
+		{ name: 'Subscription', path: '/subscription', forceReload: false },
+		{ name: 'Early Access', path: '/early-access', forceReload: false }
 	];
 
 	// Admin navigation items - only visible to admins
-	const adminNavItems = [{ name: 'Analytics', path: '/admin/analytics', forceReload: false }];
+	const adminNavItems = [
+		{ name: 'Analytics', path: '/admin/analytics', forceReload: false },
+		{ name: 'Feedback', path: '/admin/feedback', forceReload: false }
+	];
 
 	// Function to check if a path is active
 	function isActive(path: string): boolean {

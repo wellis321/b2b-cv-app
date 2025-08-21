@@ -30,6 +30,13 @@
 			if (session) {
 				await updateSectionStatus();
 			}
+
+			// Check for early access success message
+			const urlParams = new URLSearchParams(window.location.search);
+			if (urlParams.get('early_access_granted') === 'true') {
+				// Clear the URL parameter
+				window.history.replaceState({}, document.title, window.location.pathname);
+			}
 		}
 	});
 
@@ -81,7 +88,66 @@
 		<p class="mt-2 text-lg text-gray-600">Complete each section to create your professional CV.</p>
 	</div>
 
-	{#if isLimited}
+	{#if $page.url.searchParams.get('early_access_granted') === 'true'}
+		<div class="mb-6 rounded-md bg-green-50 p-4">
+			<div class="flex">
+				<div class="flex-shrink-0">
+					<svg
+						class="h-5 w-5 text-green-400"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+				</div>
+				<div class="ml-3">
+					<h3 class="text-sm font-medium text-green-800">Early Access Granted!</h3>
+					<div class="mt-2 text-sm text-green-700">
+						<p>
+							🎉 Welcome to early access! You now have unlimited access to all premium features.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if $currentSubscription.plan?.id === 'early_access'}
+		<div class="mb-6 rounded-md bg-green-50 p-4">
+			<div class="flex">
+				<div class="flex-shrink-0">
+					<svg
+						class="h-5 w-5 text-green-400"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+				</div>
+				<div class="ml-3">
+					<h3 class="text-sm font-medium text-green-800">Early Access Active</h3>
+					<div class="mt-2 text-sm text-green-700">
+						<p>
+							🎉 You have early access to all premium features! Thank you for supporting our
+							development.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	{:else if isLimited}
 		<div class="mb-6 rounded-md bg-yellow-50 p-4">
 			<div class="flex">
 				<div class="flex-shrink-0">

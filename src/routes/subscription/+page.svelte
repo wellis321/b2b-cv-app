@@ -110,6 +110,14 @@
 		<p class="mx-auto mt-5 max-w-xl text-xl text-gray-500">
 			Choose the plan that's right for you and take your CV to the next level.
 		</p>
+		<div class="mt-4">
+			<a
+				href="/early-access"
+				class="inline-flex items-center rounded-md border border-transparent bg-green-600 px-6 py-3 text-base font-medium text-white hover:bg-green-700"
+			>
+				🎯 Get Early Access for £2.00
+			</a>
+		</div>
 	</div>
 
 	{#if successMessage}

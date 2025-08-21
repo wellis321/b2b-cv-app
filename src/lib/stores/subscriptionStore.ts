@@ -58,6 +58,23 @@ const DEFAULT_FREE_PLAN: SubscriptionPlan = {
     is_active: true
 };
 
+// Early access plan
+const EARLY_ACCESS_PLAN: SubscriptionPlan = {
+    id: 'early_access',
+    name: 'Early Access',
+    description: 'Lifetime access to all premium features',
+    price: 0, // Already paid £2
+    currency: 'GBP',
+    interval: 'lifetime',
+    features: {
+        max_sections: -1, // Unlimited
+        pdf_export: true,
+        online_cv: true,
+        templates: ['basic', 'professional', 'modern', 'creative', 'executive', 'simple', 'classic', 'elegant', 'minimalist', 'bold', 'academic', 'technical']
+    },
+    is_active: true
+};
+
 // Derived store to check if user can access a specific feature
 export const canAccessFeature = derived(
     currentSubscription,
@@ -208,6 +225,16 @@ export async function loadUserSubscription() {
                 plan: freePlan,
                 expiresAt: null,
                 isActive: true // Free plan is always active
+            });
+            return;
+        }
+
+        // Check if user has early access
+        if (profile.subscription_plan_id === 'early_access') {
+            currentSubscription.set({
+                plan: EARLY_ACCESS_PLAN,
+                expiresAt: null,
+                isActive: true // Early access is always active
             });
             return;
         }
