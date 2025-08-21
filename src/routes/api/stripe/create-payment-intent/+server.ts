@@ -1,10 +1,19 @@
 import { json } from '@sveltejs/kit';
-import { stripe, EARLY_ACCESS_AMOUNT } from '$lib/stripe';
+import { stripe, EARLY_ACCESS_AMOUNT, isStripeConfigured } from '$lib/stripe';
 import { supabase } from '$lib/supabase';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
     try {
+        // Check if Stripe is configured
+        if (!isStripeConfigured()) {
+            return json({ error: 'Stripe is not configured' }, { status: 500 });
+        }
+
+        if (!stripe) {
+            return json({ error: 'Stripe instance not available' }, { status: 500 });
+        }
+
         // Get the session from cookies
         const session = cookies.get('sb-access-token');
 

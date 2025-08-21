@@ -1,9 +1,24 @@
 import { json } from '@sveltejs/kit';
-import { stripe } from '$lib/stripe';
+import { stripe, isStripeConfigured } from '$lib/stripe';
 import { supabase } from '$lib/supabase';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
+    // Check if Stripe is configured
+    if (!isStripeConfigured()) {
+        return json({ error: 'Stripe is not configured' }, { status: 500 });
+    }
+
+    if (!stripe) {
+        return json({ error: 'Stripe instance not available' }, { status: 500 });
+    }
+
+    // Check if webhook secret is configured
+    const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+        return json({ error: 'Webhook secret not configured' }, { status: 500 });
+    }
+
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
 
@@ -18,11 +33,11 @@ export const POST: RequestHandler = async ({ request }) => {
         event = stripe.webhooks.constructEvent(
             body,
             signature,
-            import.meta.env.STRIPE_WEBHOOK_SECRET
+            webhookSecret
         );
     } catch (err) {
         console.error('Webhook signature verification failed:', err);
-        return json({ error: 'Invalid signature' }, { status: 400 });
+        return json({ error: 'Invalid signature' }, { status: 500 });
     }
 
     try {
