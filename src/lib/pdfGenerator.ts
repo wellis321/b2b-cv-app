@@ -160,6 +160,35 @@ export function formatDate(dateString: string | null): string {
 }
 
 /**
+ * Helper function to create section headers with optional accent lines
+ */
+function createSectionHeader(text: string, template: string = 'basic'): Content[] {
+    const content: Content[] = [
+        { text, style: 'subheader' }
+    ];
+
+    // Add blue accent line under the heading for professional template
+    if (template === 'professional') {
+        content.push({
+            canvas: [
+                {
+                    type: 'line',
+                    x1: 0,
+                    y1: 0,
+                    x2: 515,
+                    y2: 0,
+                    lineWidth: 2,
+                    lineColor: '#3498db'
+                }
+            ],
+            style: 'sectionDivider'
+        });
+    }
+
+    return content;
+}
+
+/**
  * Get template-specific styles
  */
 function getTemplateStyles(template: string = 'basic'): StyleDictionary {
@@ -218,21 +247,45 @@ function getTemplateStyles(template: string = 'basic'): StyleDictionary {
             header: {
                 ...basicStyles.header,
                 color: '#2c3e50',
-                fontSize: 20,
+                fontSize: 22,
+                margin: [0, 0, 0, 8] as [number, number, number, number]
+            },
+            tagline: {
+                fontSize: 12,
+                color: '#2c3e50',
                 margin: [0, 0, 0, 15] as [number, number, number, number]
+            },
+            contactInfo: {
+                fontSize: 10,
+                color: '#2c3e50',
+                margin: [0, 2, 0, 2] as [number, number, number, number]
             },
             subheader: {
                 ...basicStyles.subheader,
-                color: '#3498db',
-                fontSize: 15
+                color: '#2c3e50',
+                fontSize: 15,
+                margin: [0, 15, 0, 8] as [number, number, number, number]
             },
             jobPosition: {
                 ...basicStyles.jobPosition,
-                color: '#2c3e50'
+                color: '#2c3e50',
+                fontSize: 13,
+                margin: [0, 0, 0, 3] as [number, number, number, number]
             },
             company: {
                 ...basicStyles.company,
-                color: '#34495e'
+                color: '#34495e',
+                fontSize: 11,
+                margin: [0, 3, 0, 5] as [number, number, number, number]
+            },
+            dates: {
+                ...basicStyles.dates,
+                color: '#666666',
+                fontSize: 10
+            },
+            sectionDivider: {
+                color: '#3498db',
+                margin: [0, 8, 0, 15] as [number, number, number, number]
             }
         };
     }
@@ -586,16 +639,34 @@ export async function createCvDocDefinition(
             }
         ];
 
+        // Add tagline/bio if available (for professional template)
+        if (config.template === 'professional' && profile.bio && profile.bio.trim().length > 0) {
+            headerContent.push({
+                text: decodeHtmlEntities(profile.bio),
+                style: 'tagline'
+            });
+        }
+
+        // Add contact information with professional styling
         if (profile.location) {
-            headerContent.push({ text: decodeHtmlEntities(profile.location), style: 'normal' });
+            headerContent.push({
+                text: decodeHtmlEntities(profile.location),
+                style: config.template === 'professional' ? 'contactInfo' : 'normal'
+            });
         }
 
         if (profile.email) {
-            headerContent.push({ text: decodeHtmlEntities(profile.email), style: 'normal' });
+            headerContent.push({
+                text: decodeHtmlEntities(profile.email),
+                style: config.template === 'professional' ? 'contactInfo' : 'normal'
+            });
         }
 
         if (profile.phone) {
-            headerContent.push({ text: decodeHtmlEntities(profile.phone), style: 'normal' });
+            headerContent.push({
+                text: decodeHtmlEntities(profile.phone),
+                style: config.template === 'professional' ? 'contactInfo' : 'normal'
+            });
         }
 
         if (profile.photo_url && config.includePhoto) {
@@ -659,15 +730,16 @@ export async function createCvDocDefinition(
             content.push({
                 text: 'LinkedIn Profile',
                 style: 'normal',
-                color: '#0000EE',
+                color: config.template === 'professional' ? '#3498db' : '#0000EE',
                 decoration: 'underline',
                 link: profile.linkedin_url,
                 margin: [0, 10, 0, 0]
             });
         }
 
-        // Add bio after the header if available
-        if (profile.bio && profile.bio.trim().length > 0) {
+        // Bio is now handled in the header for professional template
+        // For other templates, add bio here if available
+        if (config.template !== 'professional' && profile.bio && profile.bio.trim().length > 0) {
             content.push({
                 text: decodeHtmlEntities(profile.bio),
                 style: 'normal',
@@ -684,8 +756,8 @@ export async function createCvDocDefinition(
                     y1: 5,
                     x2: 515,
                     y2: 5,
-                    lineWidth: 1,
-                    lineColor: '#CCCCCC'
+                    lineWidth: config.template === 'professional' ? 2 : 1,
+                    lineColor: config.template === 'professional' ? '#3498db' : '#CCCCCC'
                 }
             ],
             margin: [0, 10, 0, 10]
@@ -694,7 +766,7 @@ export async function createCvDocDefinition(
 
     // Work Experience
     if (config.sections.workExperience && cvData.workExperiences.length > 0) {
-        content.push({ text: 'Work Experience', style: 'subheader' });
+        content.push(...createSectionHeader('Work Experience', config.template));
 
         for (const job of cvData.workExperiences) {
             // Work experience header with company and date (only if not hidden)
@@ -741,11 +813,25 @@ export async function createCvDocDefinition(
                 // Convert markdown formatting to plain text for PDF
                 const plainTextDescription = convertMarkdownToPlainText(descriptionText);
 
-                content.push({
-                    text: decodeHtmlEntities(plainTextDescription),
-                    style: 'normal',
-                    margin: [0, 5, 0, 3]
-                });
+                // For professional template, format description with better spacing
+                if (config.template === 'professional') {
+                    // Split into paragraphs and format each one
+                    const paragraphs = plainTextDescription.split('\n').filter(p => p.trim());
+
+                    paragraphs.forEach((paragraph, index) => {
+                        content.push({
+                            text: decodeHtmlEntities(paragraph.trim()),
+                            style: 'normal',
+                            margin: [0, index === 0 ? 5 : 3, 0, index === paragraphs.length - 1 ? 8 : 2]
+                        });
+                    });
+                } else {
+                    content.push({
+                        text: decodeHtmlEntities(plainTextDescription),
+                        style: 'normal',
+                        margin: [0, 5, 0, 3]
+                    });
+                }
             }
 
             // Try to get responsibilities for this job
@@ -765,6 +851,8 @@ export async function createCvDocDefinition(
                             responsibilitiesContent.push({
                                 text: decodeHtmlEntities(category.name) + ':',
                                 bold: true,
+                                fontSize: config.template === 'professional' ? 11 : 11,
+                                color: config.template === 'professional' ? '#34495e' : 'black',
                                 margin: [0, 5, 0, 3]
                             });
 
@@ -783,7 +871,13 @@ export async function createCvDocDefinition(
                     if (responsibilitiesContent.length > 0) {
                         content.push({
                             stack: [
-                                { text: 'Key Responsibilities:', bold: true, margin: [0, 5, 0, 3] as [number, number, number, number] },
+                                {
+                                    text: 'Key Responsibilities:',
+                                    bold: true,
+                                    fontSize: config.template === 'professional' ? 12 : 11,
+                                    color: config.template === 'professional' ? '#2c3e50' : 'black',
+                                    margin: [0, 8, 0, 5] as [number, number, number, number]
+                                },
                                 ...responsibilitiesContent
                             ],
                             margin: [10, 0, 0, 10] as [number, number, number, number]
@@ -809,7 +903,7 @@ export async function createCvDocDefinition(
         cvData.qualificationEquivalence &&
         cvData.qualificationEquivalence.length > 0
     ) {
-        content.push({ text: 'Professional Qualification Equivalence', style: 'subheader' });
+        content.push(...createSectionHeader('Professional Qualification Equivalence', config.template));
 
         for (const qual of cvData.qualificationEquivalence) {
             content.push({
@@ -840,7 +934,7 @@ export async function createCvDocDefinition(
 
     // Projects
     if (config.sections.projects && cvData.projects.length > 0) {
-        content.push({ text: 'Projects', style: 'subheader' });
+        content.push(...createSectionHeader('Projects', config.template));
 
         for (const project of cvData.projects) {
             // Project header with title and date
@@ -900,7 +994,7 @@ export async function createCvDocDefinition(
 
     // Skills
     if (config.sections.skills && cvData.skills.length > 0) {
-        content.push({ text: 'Skills', style: 'subheader' });
+        content.push(...createSectionHeader('Skills', config.template));
 
         // Group skills by category
         const skillsByCategory: Record<string, PdfSkill[]> = {};
@@ -923,6 +1017,8 @@ export async function createCvDocDefinition(
                         content.push({
                             text: decodeHtmlEntities(category),
                             bold: true,
+                            fontSize: config.template === 'professional' ? 12 : 11,
+                            color: config.template === 'professional' ? '#2c3e50' : 'black',
                             margin: [0, 5, 0, 3]
                         });
                     }
@@ -938,6 +1034,8 @@ export async function createCvDocDefinition(
                     content.push({
                         text: skillTexts.join(', '),
                         style: 'skills',
+                        fontSize: config.template === 'professional' ? 10 : 11,
+                        color: config.template === 'professional' ? '#34495e' : 'black',
                         margin: [0, 0, 0, 5]
                     });
                 }
@@ -947,7 +1045,7 @@ export async function createCvDocDefinition(
 
     // Education
     if (config.sections.education && cvData.education.length > 0) {
-        content.push({ text: 'Education', style: 'subheader' });
+        content.push(...createSectionHeader('Education', config.template));
 
         for (const edu of cvData.education) {
             // Education header with institution and date
@@ -956,7 +1054,9 @@ export async function createCvDocDefinition(
                     {
                         width: '*',
                         text: decodeHtmlEntities(edu.institution),
-                        style: 'institution'
+                        style: 'institution',
+                        fontSize: config.template === 'professional' ? 12 : 11,
+                        color: config.template === 'professional' ? '#2c3e50' : 'black'
                     },
                     {
                         width: 'auto',
@@ -972,6 +1072,8 @@ export async function createCvDocDefinition(
                 content.push({
                     text: decodeHtmlEntities(degreeText),
                     style: 'jobPosition',
+                    fontSize: config.template === 'professional' ? 11 : 12,
+                    color: config.template === 'professional' ? '#34495e' : 'black',
                     margin: [0, 3, 0, 3]
                 });
             }
@@ -1022,7 +1124,7 @@ export async function createCvDocDefinition(
 
     if (config.sections.certifications && certsToProcess.length > 0) {
         console.log('Adding certifications to PDF:', certsToProcess);
-        content.push({ text: 'Certifications', style: 'subheader' });
+        content.push(...createSectionHeader('Certifications', config.template));
 
         certsToProcess.forEach((cert) => {
             try {
@@ -1177,7 +1279,7 @@ export async function createCvDocDefinition(
 
     // Interests
     if (config.sections.interests && cvData.interests && cvData.interests.length > 0) {
-        content.push({ text: 'Interests & Activities', style: 'subheader' });
+        content.push(...createSectionHeader('Interests & Activities', config.template));
 
         for (const interest of cvData.interests) {
             content.push({
