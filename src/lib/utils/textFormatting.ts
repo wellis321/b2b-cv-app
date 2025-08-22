@@ -92,17 +92,39 @@ export function formatDescriptionWithFormatting(description: string): string[] {
         if (line.trim() === '') {
             // Empty line indicates paragraph break
             if (currentParagraph.length > 0) {
-                const paragraphText = currentParagraph.join(' ');
                 // Check if this paragraph contains list items
                 if (currentParagraph.some(line => line.trim().match(/^[•-]\s+/))) {
-                    // Format as a list
-                    const listItems = currentParagraph
-                        .filter(line => line.trim().match(/^[•-]\s+/))
-                        .map(line => line.trim().replace(/^[•-]\s+/, ''));
+                    // Format as a list with continuation text
+                    const listItems: string[] = [];
+                    let currentItem = '';
 
-                    paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+                    for (const paragraphLine of currentParagraph) {
+                        if (paragraphLine.trim().match(/^[•-]\s+/)) {
+                            // If we have a previous item, save it
+                            if (currentItem.trim()) {
+                                listItems.push(currentItem.trim());
+                            }
+                            // Start new item
+                            currentItem = paragraphLine.trim().replace(/^[•-]\s+/, '');
+                        } else {
+                            // This is continuation text for the current item
+                            if (currentItem) {
+                                currentItem += ' ' + paragraphLine.trim();
+                            }
+                        }
+                    }
+
+                    // Don't forget the last item
+                    if (currentItem.trim()) {
+                        listItems.push(currentItem.trim());
+                    }
+
+                    if (listItems.length > 0) {
+                        paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+                    }
                 } else {
                     // Format as regular paragraph with inline formatting
+                    const paragraphText = currentParagraph.join(' ');
                     paragraphs.push(renderFormattedText(paragraphText));
                 }
                 currentParagraph = [];
@@ -114,17 +136,39 @@ export function formatDescriptionWithFormatting(description: string): string[] {
 
     // Add the last paragraph if there is one
     if (currentParagraph.length > 0) {
-        const paragraphText = currentParagraph.join(' ');
         // Check if this paragraph contains list items
         if (currentParagraph.some(line => line.trim().match(/^[•-]\s+/))) {
-            // Format as a list
-            const listItems = currentParagraph
-                .filter(line => line.trim().match(/^[•-]\s+/))
-                .map(line => line.trim().replace(/^[•-]\s+/, ''));
+            // Format as a list with continuation text
+            const listItems: string[] = [];
+            let currentItem = '';
 
-            paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+            for (const paragraphLine of currentParagraph) {
+                if (paragraphLine.trim().match(/^[•-]\s+/)) {
+                    // If we have a previous item, save it
+                    if (currentItem.trim()) {
+                        listItems.push(currentItem.trim());
+                    }
+                    // Start new item
+                    currentItem = paragraphLine.trim().replace(/^[•-]\s+/, '');
+                } else {
+                    // This is continuation text for the current item
+                    if (currentItem) {
+                        currentItem += ' ' + paragraphLine.trim();
+                    }
+                }
+            }
+
+            // Don't forget the last item
+            if (currentItem.trim()) {
+                listItems.push(currentItem.trim());
+            }
+
+            if (listItems.length > 0) {
+                paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+            }
         } else {
             // Format as regular paragraph with inline formatting
+            const paragraphText = currentParagraph.join(' ');
             paragraphs.push(renderFormattedText(paragraphText));
         }
     }
