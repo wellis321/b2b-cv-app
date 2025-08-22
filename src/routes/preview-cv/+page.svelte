@@ -262,6 +262,47 @@
 		goto(`/subscription?required=${feature}`);
 	}
 
+	// Refresh CV data from the store
+	async function refreshCvData(): Promise<void> {
+		if (!browser) return;
+
+		try {
+			loading = true;
+
+			// Get the current user's username and refresh the CV store
+			if ($session?.user?.id) {
+				const { data: profileData } = await supabase
+					.from('profiles')
+					.select('username')
+					.eq('id', $session.user.id)
+					.single();
+
+				if (profileData?.username) {
+					// Refresh the CV store data
+					await cvStore.loadByUsername(profileData.username);
+
+					// Update local variables with fresh data
+					const freshData = $cvStore;
+					profile = freshData.profile;
+					workExperiences = freshData.workExperiences || [];
+					projects = freshData.projects || [];
+					skills = freshData.skills || [];
+					education = freshData.education || [];
+					certifications = freshData.certifications || [];
+					memberships = freshData.memberships || [];
+					interests = freshData.interests || [];
+					qualificationEquivalence = freshData.qualificationEquivalence || [];
+
+					console.log('CV data refreshed successfully');
+				}
+			}
+		} catch (err) {
+			console.error('Error refreshing CV data:', err);
+		} finally {
+			loading = false;
+		}
+	}
+
 	// Generate and download PDF
 	async function generatePdf(): Promise<void> {
 		if (!browser) return;
@@ -491,6 +532,13 @@
 	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-2xl font-bold">CV Preview</h1>
 		<div class="flex gap-2">
+			<button
+				onclick={refreshCvData}
+				disabled={loading}
+				class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:opacity-50"
+			>
+				{loading ? 'Refreshing...' : 'Refresh CV Data'}
+			</button>
 			<button
 				onclick={togglePdfOptions}
 				class="rounded bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 focus:ring-2 focus:ring-gray-300 focus:outline-none"

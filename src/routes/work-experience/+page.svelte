@@ -42,6 +42,7 @@
 		end_date: string | null;
 		description: string | null;
 		created_at: string;
+		sort_order?: number;
 	};
 
 	let { data, form } = $props<{
@@ -73,6 +74,8 @@
 	let editingResponsibilities = $state(false);
 	let warning = $state<string | null>(null);
 	let loadingResponsibilities = $state(false);
+	let isReordering = $state(false);
+	let draggedExperience = $state<WorkExperience | null>(null);
 
 	// Function to format dates with Temporal
 	function formatDate(dateString: string | null): string {
@@ -88,15 +91,206 @@
 		}
 	}
 
-	// Sort experiences by date (newest first)
+	// Sort experiences by sort_order first, then by date (newest first)
 	function sortExperiences(experiences: WorkExperience[]): WorkExperience[] {
 		return [...experiences].sort((a, b) => {
-			// Get the dates to compare (end date if available, otherwise start date)
+			// First sort by sort_order if available
+			if (a.sort_order !== undefined && b.sort_order !== undefined) {
+				return a.sort_order - b.sort_order;
+			}
+
+			// Fall back to date-based sorting (newest first)
 			const dateA = a.end_date || a.start_date;
 			const dateB = b.end_date || b.start_date;
-			// Sort in descending order (newest first)
 			return new Date(dateB).getTime() - new Date(dateA).getTime();
 		});
+	}
+
+	// Function to handle drag start
+	function handleDragStart(experience: WorkExperience) {
+		draggedExperience = experience;
+	}
+
+	// Function to handle drag over
+	function handleDragOver(e: DragEvent, targetExperience: WorkExperience) {
+		e.preventDefault();
+		if (draggedExperience && draggedExperience.id !== targetExperience.id) {
+			e.dataTransfer!.dropEffect = 'move';
+		}
+	}
+
+	// Function to handle drop and reorder
+	async function handleDrop(e: DragEvent, targetExperience: WorkExperience) {
+		e.preventDefault();
+		if (!draggedExperience || draggedExperience.id === targetExperience.id) return;
+
+		try {
+			// Find the indices of the dragged and target experiences
+			const draggedIndex = workExperiences.findIndex((exp) => exp.id === draggedExperience!.id);
+			const targetIndex = workExperiences.findIndex((exp) => exp.id === targetExperience.id);
+
+			if (draggedIndex === -1 || targetIndex === -1) return;
+
+			// Create a new array with the reordered experiences
+			const newOrder = [...workExperiences];
+			const [draggedItem] = newOrder.splice(draggedIndex, 1);
+			newOrder.splice(targetIndex, 0, draggedItem);
+
+			// Update sort_order values
+			const updatedExperiences = newOrder.map((exp, index) => ({
+				...exp,
+				sort_order: index
+			}));
+
+			// Update local state immediately for responsive UI
+			workExperiences = updatedExperiences;
+
+			// Debug logging
+			console.log('Reordered experiences:', updatedExperiences);
+			console.log(
+				'New sort_order values:',
+				updatedExperiences.map((exp) => ({ id: exp.id, sort_order: exp.sort_order }))
+			);
+
+			// Update the database
+			const userId = $session?.user.id || data.session?.user.id;
+			if (userId) {
+				// Update all experiences with new sort_order values
+				const updates = updatedExperiences.map((exp) => ({
+					id: exp.id,
+					sort_order: exp.sort_order
+				}));
+
+				// Update each experience individually to avoid field validation issues
+				let hasError = false;
+				console.log('Updating database with sort_order values:', updates);
+
+				for (const update of updates) {
+					console.log(`Updating experience ${update.id} with sort_order ${update.sort_order}`);
+					const { error: updateError } = await supabase
+						.from('work_experience')
+						.update({ sort_order: update.sort_order })
+						.eq('id', update.id);
+
+					if (updateError) {
+						console.error('Error updating sort order:', updateError);
+						hasError = true;
+						break;
+					} else {
+						console.log(`Successfully updated experience ${update.id}`);
+					}
+				}
+
+				if (hasError) {
+					// Revert to original order on error
+					workExperiences = sortExperiences(data.workExperiences || []);
+					error = 'Failed to save new order. Please try again.';
+				} else {
+					success = 'Work experience order updated successfully!';
+					setTimeout(() => {
+						success = null;
+					}, 3000);
+
+					// Refresh the page data to ensure changes are reflected
+					try {
+						// Reload work experiences from the database
+						const userId = $session?.user.id || data.session?.user.id;
+						if (userId) {
+							const { data: experienceData, error: experienceError } = await supabase
+								.from('work_experience')
+								.select('*')
+								.eq('profile_id', userId)
+								.order('sort_order', { ascending: true })
+								.order('start_date', { ascending: false });
+
+							if (!experienceError && experienceData) {
+								workExperiences = experienceData;
+							}
+
+							// Also refresh the CV store data to update preview-cv page
+							try {
+								await import('$lib/stores/cvDataStore').then(async (module) => {
+									const { cvStore } = module;
+									// Force refresh the CV store data
+									if ($session?.user?.id) {
+										// Get the current username from the profile
+										const { data: profileData } = await supabase
+											.from('profiles')
+											.select('username')
+											.eq('id', $session.user.id)
+											.single();
+
+										if (profileData?.username) {
+											await cvStore.loadByUsername(profileData.username);
+										}
+									}
+								});
+							} catch (err) {
+								console.warn('Could not refresh CV store data:', err);
+							}
+						}
+					} catch (err) {
+						console.warn('Could not refresh work experience data:', err);
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Error reordering experiences:', err);
+			error = 'Failed to reorder experiences. Please try again.';
+		} finally {
+			draggedExperience = null;
+		}
+	}
+
+	// Function to toggle reorder mode
+	function toggleReorderMode() {
+		isReordering = !isReordering;
+		if (!isReordering) {
+			draggedExperience = null;
+		}
+	}
+
+	// Function to reset order to date-based sorting
+	async function resetToDateOrder() {
+		try {
+			const userId = $session?.user.id || data.session?.user.id;
+			if (!userId) return;
+
+			// Sort experiences by date (newest first)
+			const dateSortedExperiences = sortExperiences(workExperiences);
+
+			// Update sort_order values based on date order
+			const updates = dateSortedExperiences.map((exp, index) => ({
+				id: exp.id,
+				sort_order: index
+			}));
+
+			// Update each experience individually
+			for (const update of updates) {
+				const { error: updateError } = await supabase
+					.from('work_experience')
+					.update({ sort_order: update.sort_order })
+					.eq('id', update.id);
+
+				if (updateError) {
+					throw updateError;
+				}
+			}
+
+			// Update local state
+			workExperiences = dateSortedExperiences.map((exp, index) => ({
+				...exp,
+				sort_order: index
+			}));
+
+			success = 'Order reset to date-based sorting!';
+			setTimeout(() => {
+				success = null;
+			}, 3000);
+		} catch (err) {
+			console.error('Error resetting order:', err);
+			error = 'Failed to reset order. Please try again.';
+		}
 	}
 
 	// Check for date overlaps
@@ -199,6 +393,7 @@
 							.from('work_experience')
 							.select('*')
 							.eq('profile_id', userId)
+							.order('sort_order', { ascending: true })
 							.order('start_date', { ascending: false });
 
 						if (experienceError) {
@@ -605,12 +800,22 @@
 	<div class="mx-auto max-w-xl">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-2xl font-bold">Your Work Experience</h2>
-			<button
-				onclick={toggleAddForm}
-				class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-			>
-				{showAddForm ? 'Cancel' : 'Add Experience'}
-			</button>
+			<div class="flex gap-2">
+				{#if workExperiences.length > 1}
+					<button
+						onclick={toggleReorderMode}
+						class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:outline-none"
+					>
+						{isReordering ? 'Done Reordering' : 'Reorder'}
+					</button>
+				{/if}
+				<button
+					onclick={toggleAddForm}
+					class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+				>
+					{showAddForm ? 'Cancel' : 'Add Experience'}
+				</button>
+			</div>
 		</div>
 
 		{#if error}
@@ -760,10 +965,43 @@
 				{/if}
 			</div>
 		{:else}
+			{#if isReordering}
+				<div class="mb-4 rounded-md bg-blue-50 p-4 text-blue-700">
+					<div class="flex items-center justify-between">
+						<p class="text-sm">
+							<strong>Reorder Mode:</strong> Drag and drop work experiences to change their order. The
+							order will be saved automatically. Click "Done Reordering" when finished.
+						</p>
+						<button
+							onclick={resetToDateOrder}
+							class="rounded-md bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+						>
+							Reset to Date Order
+						</button>
+					</div>
+				</div>
+			{/if}
 			<div class="space-y-6">
 				{#each workExperiences as experience}
-					<div class="rounded-md border border-gray-200 bg-white p-4 shadow-sm">
+					<div
+						class="rounded-md border border-gray-200 bg-white p-4 shadow-sm {isReordering
+							? 'cursor-move'
+							: ''} {draggedExperience?.id === experience.id ? 'opacity-50' : ''}"
+						draggable={isReordering}
+						ondragstart={() => handleDragStart(experience)}
+						ondragover={(e) => handleDragOver(e, experience)}
+						ondrop={(e) => handleDrop(e, experience)}
+					>
 						<div class="flex justify-between">
+							{#if isReordering}
+								<div class="mr-3 flex items-center text-gray-400">
+									<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+										<path
+											d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
+										/>
+									</svg>
+								</div>
+							{/if}
 							<div>
 								<h3 class="text-lg font-medium text-gray-900">{experience.position}</h3>
 								<p class="text-gray-600">{experience.company_name}</p>

@@ -75,6 +75,7 @@ const createCvStore = () => {
                 .from('work_experience')
                 .select('*')
                 .eq('profile_id', userId)
+                .order('sort_order', { ascending: true })
                 .order('start_date', { ascending: false });
 
             if (workError || !workExperiences?.length) {
@@ -536,6 +537,7 @@ async function loadUserCvData(userId: string, clientInstance?: any): Promise<CvD
         const workExperiencesResult = await client.from('work_experience')
             .select('*')
             .eq('profile_id', userId)
+            .order('sort_order', { ascending: true })
             .order('start_date', { ascending: false });
 
         const educationResult = await client.from('education')
