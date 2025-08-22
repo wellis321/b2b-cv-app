@@ -34,6 +34,7 @@ export interface PdfWorkExperience {
     start_date: string;
     end_date: string | null;
     description: string | null;
+    hide_date?: boolean;
 }
 
 export interface PdfProject {
@@ -696,23 +697,31 @@ export async function createCvDocDefinition(
         content.push({ text: 'Work Experience', style: 'subheader' });
 
         for (const job of cvData.workExperiences) {
-            // Work experience header with company and date
-            const jobHeader = {
-                columns: [
-                    {
-                        width: '*',
-                        text: decodeHtmlEntities(job.position),
-                        style: 'jobPosition'
-                    },
-                    {
-                        width: 'auto',
-                        text: `${formatDate(job.start_date)} - ${formatDate(job.end_date)}`,
-                        style: 'dates'
-                    }
-                ]
-            };
+            // Work experience header with company and date (only if not hidden)
+            if (!job.hide_date) {
+                const jobHeader = {
+                    columns: [
+                        {
+                            width: '*',
+                            text: decodeHtmlEntities(job.position),
+                            style: 'jobPosition'
+                        },
+                        {
+                            width: 'auto',
+                            text: `${formatDate(job.start_date)} - ${formatDate(job.end_date)}`,
+                            style: 'dates'
+                        }
+                    ]
+                };
 
-            content.push(jobHeader);
+                content.push(jobHeader);
+            } else {
+                // If date is hidden, just show the position without the date column
+                content.push({
+                    text: decodeHtmlEntities(job.position),
+                    style: 'jobPosition'
+                });
+            }
 
             // Company name
             content.push({

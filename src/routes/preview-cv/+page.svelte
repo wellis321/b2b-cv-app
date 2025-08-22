@@ -333,7 +333,8 @@
 					position: exp.position,
 					start_date: exp.start_date,
 					end_date: exp.end_date,
-					description: exp.description ? decodeHtmlEntities(exp.description) : null
+					description: exp.description ? decodeHtmlEntities(exp.description) : null,
+					hide_date: exp.hide_date || false
 				})),
 				projects: projects.map((proj) => ({
 					id: proj.id,
