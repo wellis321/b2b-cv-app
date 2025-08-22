@@ -88,12 +88,12 @@
 	</label>
 
 	<!-- Formatting Toolbar -->
-	<div class="flex flex-wrap gap-1 rounded-t-md border border-gray-300 bg-gray-50 p-2">
+	<div class="flex flex-wrap gap-2 rounded-t-md border border-gray-300 bg-gray-50 p-3">
 		<button
 			type="button"
 			onclick={() => formatText('bold')}
 			title="Bold (Ctrl+B)"
-			class="rounded px-2 py-1 text-sm font-bold text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			class="rounded px-3 py-2 text-sm font-bold text-gray-700 transition-colors hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 		>
 			B
 		</button>
@@ -101,7 +101,7 @@
 			type="button"
 			onclick={() => formatText('italic')}
 			title="Italic (Ctrl+I)"
-			class="rounded px-2 py-1 text-sm text-gray-700 italic hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			class="rounded px-3 py-2 text-sm text-gray-700 italic transition-colors hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 		>
 			I
 		</button>
@@ -110,7 +110,7 @@
 			type="button"
 			onclick={insertBullet}
 			title="Add bullet point"
-			class="rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			class="rounded px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 		>
 			•
 		</button>
@@ -118,7 +118,7 @@
 			type="button"
 			onclick={insertDash}
 			title="Add dash point"
-			class="rounded px-2 py-1 text-sm text-gray-700 hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			class="rounded px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 		>
 			-
 		</button>
@@ -131,7 +131,7 @@
 		oninput={handleInput}
 		{rows}
 		{placeholder}
-		class="block w-full rounded-b-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+		class="block min-h-[200px] w-full resize-y rounded-b-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
 	></textarea>
 
 	<!-- Formatting Help -->

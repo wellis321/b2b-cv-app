@@ -1,6 +1,21 @@
 import type { Content, TDocumentDefinitions, StyleDictionary } from 'pdfmake/interfaces';
 import { decodeHtmlEntities } from './validation';
 
+// Function to convert markdown formatting to plain text for PDF
+function convertMarkdownToPlainText(text: string): string {
+    if (!text) return '';
+
+    return text
+        // Remove bold formatting: **text** -> text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        // Remove italic formatting: *text* -> text
+        .replace(/\*(.*?)\*/g, '$1')
+        // Convert bullet points: • text -> • text (keep the bullet)
+        .replace(/^•\s+/gm, '• ')
+        // Convert dash points: - text -> - text (keep the dash)
+        .replace(/^-\s+/gm, '- ');
+}
+
 export interface PdfProfile {
     id: string;
     full_name: string | null;
@@ -714,8 +729,11 @@ export async function createCvDocDefinition(
                     descriptionText = descriptionText.split('Key Responsibilities:')[0].trim();
                 }
 
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(descriptionText);
+
                 content.push({
-                    text: decodeHtmlEntities(descriptionText),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 5, 0, 3]
                 });
@@ -799,8 +817,11 @@ export async function createCvDocDefinition(
             }
 
             if (qual.description) {
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(qual.description);
+
                 content.push({
-                    text: decodeHtmlEntities(qual.description),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 3, 0, 15]
                 });
@@ -842,8 +863,11 @@ export async function createCvDocDefinition(
 
             // Description if available
             if (project.description) {
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(project.description);
+
                 content.push({
-                    text: decodeHtmlEntities(project.description),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 5, 0, 5]
                 });
@@ -945,8 +969,11 @@ export async function createCvDocDefinition(
 
             // Description if available
             if (edu.description) {
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(edu.description);
+
                 content.push({
-                    text: decodeHtmlEntities(edu.description),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 5, 0, 5]
                 });
@@ -1049,8 +1076,11 @@ export async function createCvDocDefinition(
 
                 // Description if available
                 if (cert.description) {
+                    // Convert markdown formatting to plain text for PDF
+                    const plainTextDescription = convertMarkdownToPlainText(cert.description);
+
                     content.push({
-                        text: decodeHtmlEntities(cert.description),
+                        text: decodeHtmlEntities(plainTextDescription),
                         style: 'normal',
                         margin: [0, 5, 0, 10] as [number, number, number, number]
                     });
@@ -1121,8 +1151,11 @@ export async function createCvDocDefinition(
 
             // Description if available
             if (membership.description) {
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(membership.description);
+
                 content.push({
-                    text: decodeHtmlEntities(membership.description),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 5, 0, 5]
                 });
@@ -1145,8 +1178,11 @@ export async function createCvDocDefinition(
 
             // Description if available
             if (interest.description) {
+                // Convert markdown formatting to plain text for PDF
+                const plainTextDescription = convertMarkdownToPlainText(interest.description);
+
                 content.push({
-                    text: decodeHtmlEntities(interest.description),
+                    text: decodeHtmlEntities(plainTextDescription),
                     style: 'normal',
                     margin: [0, 5, 0, 5]
                 });

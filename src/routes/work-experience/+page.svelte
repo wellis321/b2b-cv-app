@@ -910,7 +910,7 @@
 
 		<!-- Add/Edit form moved to the top and toggleable -->
 		{#if showAddForm && ($session || data.session)}
-			<div id="experienceForm" class="mb-8">
+			<div id="experienceForm" class="mx-auto mb-8 w-full max-w-4xl">
 				<FormSection title={isEditing ? 'Edit Experience' : 'Add New Experience'}>
 					<form
 						onsubmit={handleSubmit}
@@ -963,15 +963,18 @@
 							/>
 						</FormGrid>
 
-						<RichTextEditor
-							bind:value={description}
-							placeholder="Briefly describe your role and responsibilities... Use the toolbar above to make text bold, italic, or add bullet points."
-							rows={4}
-							label="Description"
-						/>
+						<!-- Description section with more space -->
+						<div class="mt-6">
+							<RichTextEditor
+								bind:value={description}
+								placeholder="Briefly describe your role and responsibilities... Use the toolbar above to make text bold, italic, or add bullet points."
+								rows={8}
+								label="Description"
+							/>
+						</div>
 
 						<!-- Hide Date Option -->
-						<div class="flex items-center">
+						<div class="mt-4 flex items-center">
 							<input
 								id="hideDate"
 								type="checkbox"
@@ -1096,7 +1099,7 @@
 									)}
 								</p>
 								{#if experience.description}
-									<div class="mt-2 text-gray-700">
+									<div class="mt-2 space-y-1 text-gray-700">
 										{#each formatDescriptionWithFormatting(experience.description) as paragraph}
 											{@html paragraph}
 										{/each}

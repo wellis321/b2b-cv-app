@@ -802,9 +802,9 @@
 											</header>
 
 											{#if work.description}
-												<div class="my-2 text-gray-600">
+												<div class="my-2 space-y-2 text-gray-600">
 													{#each formatDescriptionWithFormatting(decodeHtmlEntities(work.description)) as paragraph}
-														{@html paragraph}
+														<div>{@html paragraph}</div>
 													{/each}
 												</div>
 											{/if}

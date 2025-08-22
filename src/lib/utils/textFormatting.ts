@@ -10,8 +10,8 @@
 export function formatDescription(description: string): string[] {
     if (!description) return [];
 
-    // Split by newlines and filter out empty lines
-    const lines = description.split('\n').filter(line => line.trim() !== '');
+    // Split by newlines but keep empty lines for paragraph detection
+    const lines = description.split('\n');
 
     // Group consecutive lines into paragraphs
     const paragraphs: string[] = [];
@@ -81,24 +81,53 @@ export function renderFormattedText(text: string): string {
 export function formatDescriptionWithFormatting(description: string): string[] {
     if (!description) return [];
 
-    // Split by double line breaks to separate paragraphs
-    const paragraphs = description.split(/\n\s*\n/);
+    // Split by newlines but keep empty lines for paragraph detection
+    const lines = description.split('\n');
 
-    return paragraphs.map(paragraph => {
-        // Check if paragraph contains list items
-        const lines = paragraph.split('\n');
-        const hasListItems = lines.some(line => line.trim().match(/^[•-]\s+/));
+    // Group consecutive lines into paragraphs
+    const paragraphs: string[] = [];
+    let currentParagraph: string[] = [];
 
-        if (hasListItems) {
+    for (const line of lines) {
+        if (line.trim() === '') {
+            // Empty line indicates paragraph break
+            if (currentParagraph.length > 0) {
+                const paragraphText = currentParagraph.join(' ');
+                // Check if this paragraph contains list items
+                if (currentParagraph.some(line => line.trim().match(/^[•-]\s+/))) {
+                    // Format as a list
+                    const listItems = currentParagraph
+                        .filter(line => line.trim().match(/^[•-]\s+/))
+                        .map(line => line.trim().replace(/^[•-]\s+/, ''));
+
+                    paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
+                } else {
+                    // Format as regular paragraph with inline formatting
+                    paragraphs.push(renderFormattedText(paragraphText));
+                }
+                currentParagraph = [];
+            }
+        } else {
+            currentParagraph.push(line.trim());
+        }
+    }
+
+    // Add the last paragraph if there is one
+    if (currentParagraph.length > 0) {
+        const paragraphText = currentParagraph.join(' ');
+        // Check if this paragraph contains list items
+        if (currentParagraph.some(line => line.trim().match(/^[•-]\s+/))) {
             // Format as a list
-            const listItems = lines
+            const listItems = currentParagraph
                 .filter(line => line.trim().match(/^[•-]\s+/))
                 .map(line => line.trim().replace(/^[•-]\s+/, ''));
 
-            return `<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`;
+            paragraphs.push(`<ul class="list-disc list-inside space-y-1">${listItems.map(item => `<li>${item}</li>`).join('')}</ul>`);
         } else {
             // Format as regular paragraph with inline formatting
-            return renderFormattedText(paragraph.trim());
+            paragraphs.push(renderFormattedText(paragraphText));
         }
-    });
+    }
+
+    return paragraphs;
 }

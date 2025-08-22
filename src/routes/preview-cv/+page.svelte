@@ -1006,9 +1006,9 @@
 										{/if}
 									</div>
 									{#if job.description}
-										<div class="my-3 text-gray-700">
+										<div class="my-3 space-y-2 text-gray-700">
 											{#each formatDescriptionWithFormatting(decodeHtmlEntities(job.description)) as paragraph}
-												{@html paragraph}
+												<div>{@html paragraph}</div>
 											{/each}
 										</div>
 									{/if}
