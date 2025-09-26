@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { getCsrfToken } from '$lib/security/csrf';
 
 // Public routes that don't require authentication
 const publicRoutes = [
@@ -11,6 +12,9 @@ const publicRoutes = [
 ];
 
 export const handle: Handle = async ({ event, resolve }) => {
+    // Generate CSRF token for this request
+    const csrfToken = getCsrfToken(event.cookies);
+
     // Create a Supabase client for the current request
     event.locals.supabase = createServerClient(
         PUBLIC_SUPABASE_URL,
@@ -65,6 +69,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // Process the request
     const response = await resolve(event);
+
+    // Add CSRF token to response headers for client access
+    response.headers.set('X-CSRF-Token', csrfToken);
+
+    // Add CORS headers for development
+    if (process.env.NODE_ENV === 'development') {
+        response.headers.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
 
     // We could track analytics server-side here, but we'll use the client-side
     // approach for better browser detection and to avoid duplicating logic

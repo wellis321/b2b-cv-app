@@ -12,6 +12,7 @@
 	import { initializeSubscription } from '$lib/stores/subscriptionStore';
 	import AnalyticsTracker from '$lib/components/AnalyticsTracker.svelte';
 	import { isAdminUser } from '$lib/adminConfig';
+	import { initializeCsrfToken } from '$lib/security/clientCsrf';
 
 	// Initialize global helpers
 	if (browser) {
@@ -88,6 +89,9 @@
 		console.log('Layout mounted, initializing session...');
 
 		if (browser) {
+			// Initialize CSRF token
+			initializeCsrfToken();
+
 			// Initialize subscription system
 			initializeSubscription();
 

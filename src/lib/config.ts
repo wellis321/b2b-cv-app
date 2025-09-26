@@ -75,7 +75,7 @@ const envConfigs: Record<string, Partial<Config>> = {
             csrfProtection: true,
             strictHeaders: true,
             rateLimiting: false,
-            cspNonce: false
+            cspNonce: true
         }
     },
     test: {

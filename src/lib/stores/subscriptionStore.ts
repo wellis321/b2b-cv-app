@@ -204,9 +204,10 @@ export async function loadUserSubscription() {
         subscriptionError.set(null);
 
         // Get user profile with subscription info
+        // Temporarily disable subscription columns until migration is run
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('subscription_plan_id, subscription_expires_at')
+            .select('id')
             .eq('id', currentSession.user.id)
             .single();
 
@@ -216,18 +217,17 @@ export async function loadUserSubscription() {
             return;
         }
 
-        // If no subscription plan, set to default free plan
-        if (!profile.subscription_plan_id) {
-            const allPlans = get(subscriptionPlans);
-            const freePlan = allPlans.find(plan => plan.price === 0) || DEFAULT_FREE_PLAN;
+        // Temporarily set to default free plan until migration is run
+        // TODO: Re-enable subscription logic after running database migration
+        const allPlans = get(subscriptionPlans);
+        const freePlan = allPlans.find(plan => plan.price === 0) || DEFAULT_FREE_PLAN;
 
-            currentSubscription.set({
-                plan: freePlan,
-                expiresAt: null,
-                isActive: true // Free plan is always active
-            });
-            return;
-        }
+        currentSubscription.set({
+            plan: freePlan,
+            expiresAt: null,
+            isActive: true // Free plan is always active
+        });
+        return;
 
         // Check if user has early access
         if (profile.subscription_plan_id === 'early_access') {
