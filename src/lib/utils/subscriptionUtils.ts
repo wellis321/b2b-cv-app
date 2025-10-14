@@ -72,6 +72,11 @@ export function getMaxSections(): number {
 export function getAvailableTemplates(): string[] {
     if (!browser) return ['basic']; // Default for SSR
 
+    // In development, return all templates
+    if (process.env.NODE_ENV === 'development') {
+        return ['basic', 'professional', 'modern', 'executive', 'creative', 'minimal'];
+    }
+
     const subscription = get(currentSubscription);
     if (!subscription.isActive || !subscription.plan) {
         return ['basic']; // Default for free/no plan
