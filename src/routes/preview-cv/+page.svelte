@@ -832,6 +832,33 @@
 			</div>
 		</div>
 
+		<!-- Photo Inclusion Option -->
+		<div class="mb-4">
+			<div class="flex items-center">
+				<input
+					id="include-photo"
+					type="checkbox"
+					checked={pdfConfig.includePhoto}
+					onchange={(e) => {
+						pdfConfig = {
+							...pdfConfig,
+							includePhoto: e.currentTarget.checked
+						};
+					}}
+					class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+				/>
+				<div class="ml-3 text-sm">
+					<label for="include-photo" class="font-medium text-gray-700">
+						Include Profile Photo
+					</label>
+					<p class="text-xs text-gray-500">
+						Uncheck to exclude your profile photo from the PDF while keeping other profile
+						information
+					</p>
+				</div>
+			</div>
+		</div>
+
 		<!-- Export PDF Button -->
 		<div class="mt-4">
 			{#if canExportPdf()}

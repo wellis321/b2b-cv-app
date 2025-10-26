@@ -6,7 +6,7 @@
 				"-y",
 				"@supabase/mcp-server-supabase@latest",
 				"--access-token",
-				"sbp_0c6b9843c34f4cf24d0e1dcd580e9af601fc5df1"
+				"YOUR_SUPABASE_PERSONAL_ACCESS_TOKEN_HERE"
 			]
 		},
 		"browser-tools-mcp": {
@@ -15,7 +15,7 @@
 		},
 		"VercelMCP": {
 			"command": "npx",
-			"args": ["mcp-remote", "https://cv-app-git-main-william-ellis-projects-69da8b96.vercel.app"]
+			"args": ["mcp-remote", "YOUR_VERCEL_DEPLOYMENT_URL"]
 		}
 	}
 }

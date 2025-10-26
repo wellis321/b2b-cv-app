@@ -7,12 +7,14 @@ The CV Builder app offers a tiered subscription model with free and premium plan
 ## Subscription Plans
 
 ### Free Plan
+
 - Limited to 3 CV sections (Personal Profile + 2 more sections)
 - Basic template for PDF export (PDF export disabled)
 - Online CV sharing enabled
 - No expiration
 
 ### Premium Plan
+
 - Unlimited CV sections
 - PDF export functionality with multiple templates
 - Online CV sharing enabled
@@ -23,6 +25,7 @@ The CV Builder app offers a tiered subscription model with free and premium plan
 The subscription system uses two main tables:
 
 1. **subscription_plans**: Stores the details of available subscription plans
+
    - `id`: UUID primary key
    - `name`: Plan name (e.g., "Free", "Premium")
    - `description`: Text description of the plan
@@ -42,6 +45,7 @@ The subscription system uses two main tables:
 ### Stores
 
 #### subscriptionStore.ts
+
 The subscription store manages the state and operations related to subscription plans:
 
 - `subscriptionPlans`: Writable store containing all available plans
@@ -54,6 +58,7 @@ The subscription store manages the state and operations related to subscription 
 ### Utilities
 
 #### subscriptionUtils.ts
+
 Utility functions for checking feature access:
 
 - `checkFeatureAccess()`: Checks if a user can access a feature
@@ -73,17 +78,17 @@ import { checkFeatureAccess } from '$lib/utils/subscriptionUtils';
 
 // Check if user can export PDF
 if (checkFeatureAccess('pdf_export')) {
-  // Show PDF export button
+	// Show PDF export button
 }
 
 // Check if user can use a specific template
 if (checkFeatureAccess('templates', 'professional')) {
-  // Allow professional template selection
+	// Allow professional template selection
 }
 
 // Check section limits
 if (checkFeatureAccess('max_sections', currentSectionCount)) {
-  // Allow adding more sections
+	// Allow adding more sections
 }
 ```
 
@@ -94,7 +99,7 @@ import { requireFeatureAccess } from '$lib/utils/subscriptionUtils';
 
 // This will redirect to subscription page if the user doesn't have access
 if (requireFeatureAccess('pdf_export')) {
-  // Generate PDF
+	// Generate PDF
 }
 ```
 
@@ -104,16 +109,16 @@ Example of conditionally rendering features based on subscription:
 
 ```svelte
 <script>
-  import { canExportPdf, getAvailableTemplates } from '$lib/utils/subscriptionUtils';
+	import { canExportPdf, getAvailableTemplates } from '$lib/utils/subscriptionUtils';
 
-  // Get available templates
-  const templates = getAvailableTemplates();
+	// Get available templates
+	const templates = getAvailableTemplates();
 </script>
 
 {#if canExportPdf()}
-  <button on:click={generatePdf}>Export PDF</button>
+	<button on:click={generatePdf}>Export PDF</button>
 {:else}
-  <button on:click={goToSubscriptionPage}>Upgrade to Export PDF</button>
+	<button on:click={goToSubscriptionPage}>Upgrade to Export PDF</button>
 {/if}
 ```
 

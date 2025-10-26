@@ -7,11 +7,13 @@ This document provides an overview of the built-in analytics system for tracking
 To get the analytics system up and running:
 
 1. **Apply the Database Migration**:
+
    - Navigate to `/admin/analytics/apply-migration` in your app
    - Follow the instructions to apply the SQL migration
    - Or manually run the SQL in `src/lib/migrations/20240530_create_page_analytics.sql` via Supabase dashboard
 
 2. **Configure Admin Access**:
+
    - By default, `admin@example.com` is set as an admin
    - To add your email, either:
      - Edit `src/lib/adminConfig.ts` to add your email to `defaultAdminEmails`
@@ -21,6 +23,7 @@ To get the analytics system up and running:
        ```
 
 3. **Verify Tracking**:
+
    - The `AnalyticsTracker` component is already included in the main layout
    - Visit a few pages in your application to generate data
    - Check your database for entries in the `page_analytics` table
@@ -134,15 +137,12 @@ To customize which users have admin access:
 ```typescript
 // Example of customizing admin access
 function checkAdmin() {
-  if ($session?.user) {
-    const adminEmails = [
-      'admin@example.com',
-      'your.email@example.com'
-    ];
-    isAdmin = adminEmails.includes($session.user.email);
-  } else {
-    isAdmin = false;
-  }
+	if ($session?.user) {
+		const adminEmails = ['admin@example.com', 'your.email@example.com'];
+		isAdmin = adminEmails.includes($session.user.email);
+	} else {
+		isAdmin = false;
+	}
 }
 ```
 

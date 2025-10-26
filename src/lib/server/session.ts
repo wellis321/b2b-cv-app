@@ -7,18 +7,18 @@ import type { RequestEvent } from '@sveltejs/kit';
  * @returns The current session or null if not authenticated
  */
 export async function getServerSession(locals?: any): Promise<Session | null> {
-    try {
-        // If locals is provided directly, use it
-        if (locals && locals.session) {
-            return locals.session;
-        }
+	try {
+		// If locals is provided directly, use it
+		if (locals && locals.session) {
+			return locals.session;
+		}
 
-        // No session found
-        return null;
-    } catch (error) {
-        console.error('Error getting server session:', error);
-        return null;
-    }
+		// No session found
+		return null;
+	} catch (error) {
+		console.error('Error getting server session:', error);
+		return null;
+	}
 }
 
 /**
@@ -26,5 +26,5 @@ export async function getServerSession(locals?: any): Promise<Session | null> {
  * This is used in endpoints and load functions
  */
 export function getSessionFromEvent(event: RequestEvent): Session | null {
-    return event.locals.session || null;
+	return event.locals.session || null;
 }

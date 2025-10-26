@@ -17,15 +17,18 @@ VITE_STRIPE_EARLY_ACCESS_PRICE_ID=price_your_price_id_here
 ## Stripe Dashboard Setup
 
 1. **Create a Stripe Account**
+
    - Go to [stripe.com](https://stripe.com) and create an account
    - Complete the verification process
 
 2. **Get Your API Keys**
+
    - In the Stripe Dashboard, go to Developers > API keys
    - Copy your publishable key and secret key
    - Use test keys for development, live keys for production
 
 3. **Set Up Webhooks**
+
    - Go to Developers > Webhooks
    - Add endpoint: `https://yourdomain.com/api/stripe/webhook`
    - Select events: `payment_intent.succeeded`, `payment_intent.payment_failed`

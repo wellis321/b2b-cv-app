@@ -12,34 +12,41 @@ This feature allows users to customize the order of their work experiences while
 ## How to Use
 
 ### 1. Enable Reorder Mode
+
 - Click the "Reorder" button in the work experience section
 - The page will enter reorder mode with visual indicators
 
 ### 2. Drag and Drop
+
 - In reorder mode, each work experience becomes draggable
 - Drag experiences to new positions to change their order
 - The order is automatically saved to the database
 
 ### 3. Exit Reorder Mode
+
 - Click "Done Reordering" to exit reorder mode
 - Or click "Reorder" again to toggle off
 
 ### 4. Reset to Date Order
+
 - While in reorder mode, click "Reset to Date Order"
 - This will restore the default date-based sorting
 
 ## Technical Implementation
 
 ### Database Changes
+
 - Added `sort_order` field to `work_experience` table
 - Field defaults to 0 and is used for custom ordering
 
 ### Frontend Changes
+
 - Drag and drop functionality using HTML5 Drag API
 - Visual feedback during reordering (opacity changes, cursor changes)
 - Automatic database updates when order changes
 
 ### Sorting Logic
+
 1. **Primary**: Sort by `sort_order` (ascending)
 2. **Fallback**: Sort by start date (newest first) when `sort_order` is not set
 

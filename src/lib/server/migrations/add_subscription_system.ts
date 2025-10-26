@@ -10,8 +10,8 @@ import * as path from 'path';
 
 // SQL migration statements
 const migrationStatements = [
-    // Create subscription_plans table
-    `CREATE TABLE IF NOT EXISTS public.subscription_plans (
+	// Create subscription_plans table
+	`CREATE TABLE IF NOT EXISTS public.subscription_plans (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -24,39 +24,39 @@ const migrationStatements = [
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );`,
 
-    // Add subscription fields to profiles table
-    `ALTER TABLE public.profiles
+	// Add subscription fields to profiles table
+	`ALTER TABLE public.profiles
    ADD COLUMN IF NOT EXISTS subscription_plan_id UUID REFERENCES public.subscription_plans(id),
    ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WITH TIME ZONE;`,
 
-    // Create RLS policies for subscription_plans
-    `ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;`,
+	// Create RLS policies for subscription_plans
+	`ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;`,
 
-    // Allow all users to view subscription plans
-    `CREATE POLICY IF NOT EXISTS "Allow users to view subscription plans"
+	// Allow all users to view subscription plans
+	`CREATE POLICY IF NOT EXISTS "Allow users to view subscription plans"
    ON public.subscription_plans FOR SELECT
    TO authenticated
    USING (true);`,
 
-    // Create admin_users table if it doesn't exist
-    `CREATE TABLE IF NOT EXISTS public.admin_users (
+	// Create admin_users table if it doesn't exist
+	`CREATE TABLE IF NOT EXISTS public.admin_users (
     email VARCHAR(255) PRIMARY KEY,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );`,
 
-    // Insert yourself as admin
-    `INSERT INTO public.admin_users (email)
+	// Insert yourself as admin
+	`INSERT INTO public.admin_users (email)
    VALUES ('YOUR_EMAIL_HERE')
    ON CONFLICT (email) DO NOTHING;`,
 
-    // Allow only admins to modify subscription plans
-    `CREATE POLICY IF NOT EXISTS "Allow admins to modify subscription plans"
+	// Allow only admins to modify subscription plans
+	`CREATE POLICY IF NOT EXISTS "Allow admins to modify subscription plans"
    ON public.subscription_plans FOR ALL
    TO authenticated
    USING (auth.jwt() ->> 'email' IN (SELECT email FROM public.admin_users));`,
 
-    // Create or replace function to update the updated_at timestamp
-    `CREATE OR REPLACE FUNCTION update_updated_at()
+	// Create or replace function to update the updated_at timestamp
+	`CREATE OR REPLACE FUNCTION update_updated_at()
    RETURNS TRIGGER AS $$
    BEGIN
      NEW.updated_at = CURRENT_TIMESTAMP;
@@ -64,16 +64,16 @@ const migrationStatements = [
    END;
    $$ LANGUAGE plpgsql;`,
 
-    // Add trigger to subscription_plans table
-    `DROP TRIGGER IF EXISTS update_subscription_plans_updated_at ON public.subscription_plans;`,
+	// Add trigger to subscription_plans table
+	`DROP TRIGGER IF EXISTS update_subscription_plans_updated_at ON public.subscription_plans;`,
 
-    `CREATE TRIGGER update_subscription_plans_updated_at
+	`CREATE TRIGGER update_subscription_plans_updated_at
    BEFORE UPDATE ON public.subscription_plans
    FOR EACH ROW
    EXECUTE FUNCTION update_updated_at();`,
 
-    // Insert default subscription plans
-    `INSERT INTO public.subscription_plans (name, description, price, currency, interval, features, is_active)
+	// Insert default subscription plans
+	`INSERT INTO public.subscription_plans (name, description, price, currency, interval, features, is_active)
    VALUES
    ('Free', 'Basic CV features', 0, 'GBP', 'month', '{"max_sections": 3, "pdf_export": false, "online_cv": true, "templates": ["basic"]}', true),
    ('Premium', 'Full CV features with multiple templates', 7.99, 'GBP', 'month', '{"max_sections": -1, "pdf_export": true, "online_cv": true, "templates": ["basic", "professional", "modern", "creative", "executive", "simple", "classic", "elegant", "minimalist", "bold", "academic", "technical"]}', true),
@@ -99,7 +99,7 @@ console.log('=====================================================');
 // Save the SQL to a file
 const outputDir = path.resolve(__dirname, '../../../migrations');
 if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+	fs.mkdirSync(outputDir, { recursive: true });
 }
 
 const outputPath = path.join(outputDir, 'subscription_system.sql');

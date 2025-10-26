@@ -79,6 +79,7 @@
 	let loadingResponsibilities = $state(false);
 	let isReordering = $state(false);
 	let draggedExperience = $state<WorkExperience | null>(null);
+	let dropTargetId = $state<string | null>(null);
 	let dateFormatPreference = $state<'month-year' | 'year-only'>('month-year');
 
 	// Load date format preference from user profile
@@ -93,7 +94,7 @@
 					.single();
 
 				if (profileData?.date_format_preference) {
-					dateFormatPreference = profileData.date_format_preference;
+					dateFormatPreference = profileData.date_format_preference as 'month-year' | 'year-only';
 				}
 			}
 		} catch (err) {
@@ -173,7 +174,13 @@
 		e.preventDefault();
 		if (draggedExperience && draggedExperience.id !== targetExperience.id) {
 			e.dataTransfer!.dropEffect = 'move';
+			dropTargetId = targetExperience.id;
 		}
+	}
+
+	// Function to handle drag leave
+	function handleDragLeave() {
+		dropTargetId = null;
 	}
 
 	// Function to handle drop and reorder
@@ -296,6 +303,7 @@
 			error = 'Failed to reorder experiences. Please try again.';
 		} finally {
 			draggedExperience = null;
+			dropTargetId = null;
 		}
 	}
 
@@ -304,6 +312,7 @@
 		isReordering = !isReordering;
 		if (!isReordering) {
 			draggedExperience = null;
+			dropTargetId = null;
 		}
 	}
 
@@ -543,11 +552,16 @@
 		hideDate = exp.hide_date || false;
 		showAddForm = true;
 
-		// Scroll to the form
+		// Scroll to the form with offset for better visibility
 		if (browser) {
 			setTimeout(() => {
-				document.getElementById('experienceForm')?.scrollIntoView({ behavior: 'smooth' });
-			}, 100);
+				const form = document.getElementById('experienceForm');
+				if (form) {
+					const yOffset = -20; // Small offset from top
+					const y = form.getBoundingClientRect().top + window.pageYOffset + yOffset;
+					window.scrollTo({ top: y, behavior: 'smooth' });
+				}
+			}, 150);
 		}
 	}
 
@@ -1080,17 +1094,28 @@
 			<div class="space-y-6">
 				{#each workExperiences as experience}
 					<div
-						class="rounded-md border border-gray-200 bg-white p-4 shadow-sm {isReordering
+						class="rounded-md border-2 bg-white p-4 shadow-sm transition-all {isReordering
 							? 'cursor-move'
-							: ''} {draggedExperience?.id === experience.id ? 'opacity-50' : ''}"
+							: ''} {draggedExperience?.id === experience.id ? 'opacity-50' : ''} {dropTargetId ===
+							experience.id && isReordering
+							? 'border-blue-500 bg-blue-50'
+							: 'border-gray-200'}"
 						draggable={isReordering}
 						ondragstart={() => handleDragStart(experience)}
 						ondragover={(e) => handleDragOver(e, experience)}
+						ondragleave={handleDragLeave}
 						ondrop={(e) => handleDrop(e, experience)}
+						role="button"
+						tabindex={isReordering ? 0 : -1}
+						onkeydown={(e) => {
+							if ((isReordering && e.key === ' ') || e.key === 'Enter') {
+								e.preventDefault();
+							}
+						}}
 					>
-						<div class="flex justify-between">
+						<div class="flex gap-3">
 							{#if isReordering}
-								<div class="mr-3 flex items-center text-gray-400">
+								<div class="flex flex-shrink-0 items-center text-gray-400">
 									<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
 										<path
 											d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
@@ -1098,59 +1123,63 @@
 									</svg>
 								</div>
 							{/if}
-							<div>
-								<h3 class="text-lg font-medium text-gray-900">{experience.position}</h3>
-								<p class="text-gray-600">{experience.company_name}</p>
-								<p class="text-sm text-gray-500">
+							<div class="min-w-0 flex-1">
+								<h3 class="truncate text-lg font-medium text-gray-900">{experience.position}</h3>
+								<p class="truncate text-gray-600">{experience.company_name}</p>
+								<p class="truncate text-sm text-gray-500">
 									{formatDate(experience.start_date, experience.hide_date)} - {formatDate(
 										experience.end_date,
 										experience.hide_date
 									)}
 								</p>
-								{#if experience.description}
+								{#if !isReordering && experience.description}
 									<div class="mt-2 space-y-1 text-gray-700">
 										{#each formatDescriptionWithFormatting(experience.description) as paragraph}
 											{@html paragraph}
 										{/each}
 									</div>
+								{:else if isReordering && experience.description}
+									<!-- Show only first line of description in reorder mode -->
+									<p class="mt-2 line-clamp-1 text-sm text-gray-600">
+										{experience.description
+											.replace(/<[^>]*>/g, '')
+											.substring(0, 100)}{experience.description.replace(/<[^>]*>/g, '').length >
+										100
+											? '...'
+											: ''}
+									</p>
 								{/if}
 							</div>
-							<div class="flex items-center space-x-2">
-								<button
-									onclick={() => {
-										editingExperience = experience;
-										companyName = experience.company_name;
-										position = experience.position;
-										startDate = experience.start_date;
-										endDate = experience.end_date || '';
-										description = experience.description || '';
-										isEditing = true;
-										showAddForm = true;
-										editingResponsibilities = false;
-									}}
-									class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
-								>
-									Edit
-								</button>
-								<button
-									onclick={() => (deleteConfirmId = experience.id)}
-									class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-red-300 ring-inset hover:bg-red-50"
-								>
-									Delete
-								</button>
-							</div>
+							{#if !isReordering}
+								<div class="ml-2 flex flex-shrink-0 items-start space-x-2">
+									<button
+										onclick={() => editExperience(experience)}
+										class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-gray-300 ring-inset hover:bg-gray-50"
+									>
+										Edit
+									</button>
+									<button
+										onclick={() => (deleteConfirmId = experience.id)}
+										class="inline-flex items-center rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-red-300 ring-inset hover:bg-red-50"
+									>
+										Delete
+									</button>
+								</div>
+							{/if}
 						</div>
 
-						<!-- Display Responsibilities -->
-						<div class="mt-4">
-							<ErrorBoundary fallback={ResponsibilityErrorFallback}>
-								<ResponsibilitiesEditor
-									bind:this={displayResponsibilitiesEditors[experience.id]}
-									workExperienceId={experience.id}
-									readOnly={true}
-								/>
-							</ErrorBoundary>
-						</div>
+						<!-- Display Responsibilities only when NOT reordering -->
+						{#if !isReordering}
+							<div class="mt-4">
+								<ErrorBoundary fallback={ResponsibilityErrorFallback}>
+									<ResponsibilitiesEditor
+										bind:this={displayResponsibilitiesEditors[experience.id]}
+										workExperienceId={experience.id}
+										readOnly={true}
+									/>
+								</ErrorBoundary>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>

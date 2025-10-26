@@ -10,10 +10,10 @@ import { goto } from '$app/navigation';
  * @returns Boolean indicating if user can access the feature
  */
 export function checkFeatureAccess(featureName: string, value?: any): boolean {
-    if (!browser) return true; // Always allow server-side rendering
+	if (!browser) return true; // Always allow server-side rendering
 
-    const featureAccessFn = get(canAccessFeature);
-    return featureAccessFn(featureName, value);
+	const featureAccessFn = get(canAccessFeature);
+	return featureAccessFn(featureName, value);
 }
 
 /**
@@ -23,17 +23,17 @@ export function checkFeatureAccess(featureName: string, value?: any): boolean {
  * @returns Boolean indicating if user can access the feature
  */
 export function requireFeatureAccess(featureName: string, value?: any): boolean {
-    if (!browser) return true;
+	if (!browser) return true;
 
-    const hasAccess = checkFeatureAccess(featureName, value);
+	const hasAccess = checkFeatureAccess(featureName, value);
 
-    if (!hasAccess) {
-        // Redirect to subscription page with a query parameter
-        goto('/subscription?required=' + featureName);
-        return false;
-    }
+	if (!hasAccess) {
+		// Redirect to subscription page with a query parameter
+		goto('/subscription?required=' + featureName);
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 /**
@@ -42,12 +42,12 @@ export function requireFeatureAccess(featureName: string, value?: any): boolean 
  * @returns Boolean indicating if user is within their section limit
  */
 export function checkSectionLimits(sectionCounts: Record<string, number>): boolean {
-    if (!browser) return true;
+	if (!browser) return true;
 
-    // Calculate total sections (excluding profile, which is always allowed)
-    const totalSections = Object.values(sectionCounts).reduce((sum, count) => sum + count, 0);
+	// Calculate total sections (excluding profile, which is always allowed)
+	const totalSections = Object.values(sectionCounts).reduce((sum, count) => sum + count, 0);
 
-    return checkFeatureAccess('max_sections', totalSections);
+	return checkFeatureAccess('max_sections', totalSections);
 }
 
 /**
@@ -55,14 +55,14 @@ export function checkSectionLimits(sectionCounts: Record<string, number>): boole
  * @returns Number representing max sections, or -1 for unlimited
  */
 export function getMaxSections(): number {
-    if (!browser) return -1;
+	if (!browser) return -1;
 
-    const subscription = get(currentSubscription);
-    if (!subscription.isActive || !subscription.plan) {
-        return 3; // Default for free plan
-    }
+	const subscription = get(currentSubscription);
+	if (!subscription.isActive || !subscription.plan) {
+		return 3; // Default for free plan
+	}
 
-    return subscription.plan.features.max_sections;
+	return subscription.plan.features.max_sections;
 }
 
 /**
@@ -70,13 +70,14 @@ export function getMaxSections(): number {
  * @returns Array of template names the user can access
  */
 export function getAvailableTemplates(): string[] {
-    if (!browser) return ['basic']; // Default for SSR
+	if (!browser) return ['basic']; // Default for SSR
 
-    // In development, return all templates
-    if (process.env.NODE_ENV === 'development') {
-        return ['basic', 'professional', 'modern', 'executive', 'creative', 'minimal'];
-    }
+	// Temporarily return all templates in both development and production
+	// until subscription system is fully implemented
+	return ['basic', 'professional', 'modern', 'executive', 'creative', 'minimal'];
 
+	// TODO: Re-enable subscription-based template access after subscription system is fully implemented
+	/*
     const subscription = get(currentSubscription);
     if (!subscription.isActive || !subscription.plan) {
         return ['basic']; // Default for free/no plan
@@ -99,6 +100,7 @@ export function getAvailableTemplates(): string[] {
             // Fall back to plan features if defined, otherwise provide basic
             return subscription.plan.features.templates || ['basic'];
     }
+    */
 }
 
 /**
@@ -106,7 +108,7 @@ export function getAvailableTemplates(): string[] {
  * @returns Boolean indicating if PDF export is available
  */
 export function canExportPdf(): boolean {
-    return checkFeatureAccess('pdf_export');
+	return checkFeatureAccess('pdf_export');
 }
 
 /**
@@ -114,5 +116,5 @@ export function canExportPdf(): boolean {
  * @returns Boolean indicating if online CV is available
  */
 export function canAccessOnlineCV(): boolean {
-    return checkFeatureAccess('online_cv');
+	return checkFeatureAccess('online_cv');
 }
