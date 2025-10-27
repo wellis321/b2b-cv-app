@@ -1,12 +1,29 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Create a professional CV online. Build, share, and download your CV as a PDF. Simple CV builder with real-time updates." />
+    <meta name="keywords" content="CV builder, resume builder, online CV, professional CV, CV template, PDF CV" />
+    <meta name="author" content="CV Builder" />
+
+    <!-- Google Search Console Verification (add your code when provided) -->
+    <meta name="google-site-verification" content="eFM10BCFjkU6C2_g9NPyCGYCekVJu1u6opyO5lklZIY" />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:site_name" content="CV Builder" />
+    <meta property="og:locale" content="en_GB" />
+
+    %sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+</body>
+
 </html>
