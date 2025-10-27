@@ -468,6 +468,141 @@
 			</div>
 		</div>
 
+		<!-- Simple Job Tracker Promotion -->
+		<div class="bg-gradient-to-r from-blue-50 to-green-50 py-12 sm:py-16">
+			<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-xl">
+					<div class="grid lg:grid-cols-2">
+						<!-- Left side: Content -->
+						<div class="flex flex-col justify-center px-6 py-12 sm:px-10 sm:py-16 lg:px-12">
+							<div class="mb-6 flex items-center gap-3">
+								<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
+									<svg
+										class="h-7 w-7 text-green-600"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+										/>
+									</svg>
+								</div>
+								<span
+									class="inline-flex rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800"
+									>Job Search Tools</span
+								>
+							</div>
+							<h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+								Land Your Dream Job
+							</h2>
+							<p class="mt-4 text-lg text-gray-600">
+								Now that you've built your professional CV, track your job applications with
+								<strong>Simple Job Tracker</strong>. Never lose track of where you've applied, stay
+								on top of follow-ups, and land your next role.
+							</p>
+							<ul class="mt-6 space-y-3 text-gray-600">
+								<li class="flex items-start">
+									<svg
+										class="mt-1 mr-3 h-5 w-5 shrink-0 text-green-500"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<span>Track all your job applications in one place</span>
+								</li>
+								<li class="flex items-start">
+									<svg
+										class="mt-1 mr-3 h-5 w-5 shrink-0 text-green-500"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<span>Attach resumes and cover letters to each application</span>
+								</li>
+								<li class="flex items-start">
+									<svg
+										class="mt-1 mr-3 h-5 w-5 shrink-0 text-green-500"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<span>Monitor your progress from application to offer</span>
+								</li>
+							</ul>
+							<div class="mt-8">
+								<a
+									href="https://simple-job-tracker.com/"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center rounded-md bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
+								>
+									Visit Simple Job Tracker
+									<svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+										/>
+									</svg>
+								</a>
+							</div>
+						</div>
+
+						<!-- Right side: Visual -->
+						<div
+							class="flex items-center justify-center bg-gradient-to-br from-green-500 to-green-600 px-6 py-12 sm:px-10 sm:py-16 lg:px-12"
+						>
+							<div class="text-center">
+								<div
+									class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white/20 shadow-lg backdrop-blur-sm"
+								>
+									<svg
+										class="h-12 w-12 text-white"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+										/>
+									</svg>
+								</div>
+								<h3 class="text-2xl font-bold text-white">Simple Job Tracker</h3>
+								<p class="mt-2 text-green-100">Organise • Track • Follow Up</p>
+								<div class="mt-6 text-sm text-white">
+									<p>Free while you're searching</p>
+									<p>£9.99/year once employed</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- Call to Action Section -->
 		<div class="bg-blue-700" id="auth-section">
 			<div class="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6 sm:py-20 lg:px-8">
