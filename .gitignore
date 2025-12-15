@@ -25,8 +25,8 @@ logs
 !.vscode/settings.json
 *.suo
 
-# Cursor MCP configuration (contains sensitive tokens)
-.cursor/mcp.json
+# Cursor configuration and cache
+.cursor/
 
 # Temporary files
 Thumbs.db
