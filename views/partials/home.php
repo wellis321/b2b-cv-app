@@ -433,11 +433,6 @@
                 Log in
             </button>
         </div>
-
-        <p class="mt-6 text-center text-sm text-gray-500">
-            Already building your CV?
-            <button type="button" data-open-login class="text-blue-600 underline hover:text-blue-800">Sign in here</button>
-        </p>
     </div>
 </section>
 
@@ -714,5 +709,3 @@
         });
     })();
 </script>
-
-<?php partial('footer'); ?>
