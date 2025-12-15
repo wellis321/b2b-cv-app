@@ -496,5 +496,6 @@ $canonicalUrl = APP_URL . '/resources/extra-income/legitimate-ways-to-earn-money
 </main>
 
 <?php partial('footer'); ?>
+<?php partial('auth-modals'); ?>
 </body>
 </html>

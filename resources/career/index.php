@@ -151,5 +151,6 @@ $sections = [
 </main>
 
 <?php partial('footer'); ?>
+<?php partial('auth-modals'); ?>
 </body>
 </html>
