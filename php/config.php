@@ -104,6 +104,7 @@ define('STRIPE_SECRET_KEY', env('STRIPE_SECRET_KEY', ''));
 define('STRIPE_WEBHOOK_SECRET', env('STRIPE_WEBHOOK_SECRET', ''));
 define('STRIPE_PRICE_PRO_MONTHLY', env('STRIPE_PRICE_PRO_MONTHLY', ''));
 define('STRIPE_PRICE_PRO_ANNUAL', env('STRIPE_PRICE_PRO_ANNUAL', ''));
+define('STRIPE_PRICE_LIFETIME', env('STRIPE_PRICE_LIFETIME', ''));
 
 // Error reporting (CRITICAL: disable display in production)
 error_reporting(E_ALL);

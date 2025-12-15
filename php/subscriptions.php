@@ -55,6 +55,16 @@ function getSubscriptionPlansConfig(): array {
                 'pdf_enabled' => true,
                 'support_level' => 'priority',
             ],
+            'lifetime' => [
+                'label' => 'Lifetime',
+                'description' => 'One-time payment for lifetime access. All Pro features, forever.',
+                'limits' => [],
+                'word_limits' => [],
+                'allowed_templates' => ['professional', 'minimal'],
+                'default_template' => 'professional',
+                'pdf_enabled' => true,
+                'support_level' => 'priority',
+            ],
         ];
     }
 
@@ -310,6 +320,8 @@ function getStripePriceIdForPlan(string $planId): ?string {
             return STRIPE_PRICE_PRO_MONTHLY ?: null;
         case 'pro_annual':
             return STRIPE_PRICE_PRO_ANNUAL ?: null;
+        case 'lifetime':
+            return STRIPE_PRICE_LIFETIME ?: null;
         default:
             return null;
     }
@@ -324,6 +336,9 @@ function getPlanIdForStripePrice(string $priceId): ?string {
     }
     if (!empty(STRIPE_PRICE_PRO_ANNUAL) && $priceId === STRIPE_PRICE_PRO_ANNUAL) {
         return 'pro_annual';
+    }
+    if (!empty(STRIPE_PRICE_LIFETIME) && $priceId === STRIPE_PRICE_LIFETIME) {
+        return 'lifetime';
     }
     return null;
 }

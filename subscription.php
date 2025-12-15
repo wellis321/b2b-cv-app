@@ -27,6 +27,10 @@ $pricingDetails = [
         'price' => '£0',
         'subtext' => 'Forever free',
     ],
+    'lifetime' => [
+        'price' => '£34.99',
+        'subtext' => 'one-time payment',
+    ],
     'pro_monthly' => [
         'price' => '£4.99',
         'subtext' => 'per month',
@@ -117,7 +121,7 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
         <?php endif; ?>
         <div data-subscription-message class="hidden mb-6 rounded-md p-4 text-sm font-medium"></div>
 
-        <div class="grid gap-6 lg:grid-cols-3">
+        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <?php foreach ($plans as $planId => $planConfig): ?>
                 <?php
                 $isCurrentPlan = subscriptionPlanId($subscriptionContext) === $planId;
@@ -129,7 +133,9 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                 <div class="rounded-xl border <?php echo $isCurrentPlan ? 'border-blue-500 shadow-lg ring-1 ring-blue-200' : 'border-gray-200 shadow-sm'; ?> bg-white p-6 flex flex-col">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold text-gray-900"><?php echo e($planConfig['label']); ?></h2>
-                        <?php if ($planId === 'pro_annual'): ?>
+                        <?php if ($planId === 'lifetime'): ?>
+                            <span class="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">Beta Special</span>
+                        <?php elseif ($planId === 'pro_annual'): ?>
                             <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Best value</span>
                         <?php endif; ?>
                     </div>
@@ -190,7 +196,7 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
             <?php endforeach; ?>
         </div>
 
-        <?php if (subscriptionIsPaid($subscriptionContext) && !empty($subscriptionContext['stripe_customer_id']) && stripeIsConfigured()): ?>
+        <?php if (subscriptionIsPaid($subscriptionContext) && !empty($subscriptionContext['stripe_customer_id']) && stripeIsConfigured() && subscriptionPlanId($subscriptionContext) !== 'lifetime'): ?>
             <div class="mt-10 text-center">
                 <button
                     type="button"

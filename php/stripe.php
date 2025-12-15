@@ -147,8 +147,12 @@ function stripeCreateCheckoutSession(string $userId, string $planId): array {
     $successUrl = APP_URL . '/subscription.php?checkout=success&session_id={CHECKOUT_SESSION_ID}';
     $cancelUrl = APP_URL . '/subscription.php?checkout=cancelled';
 
+    // Lifetime is a one-time payment, others are subscriptions
+    $isLifetime = ($planId === 'lifetime');
+    $mode = $isLifetime ? 'payment' : 'subscription';
+
     $params = [
-        'mode' => 'subscription',
+        'mode' => $mode,
         'customer' => $customerId,
         'client_reference_id' => $userId,
         'success_url' => $successUrl,
@@ -158,9 +162,13 @@ function stripeCreateCheckoutSession(string $userId, string $planId): array {
         'line_items[0][quantity]' => 1,
         'metadata[user_id]' => $userId,
         'metadata[plan_id]' => $planId,
-        'subscription_data[metadata][user_id]' => $userId,
-        'subscription_data[metadata][plan_id]' => $planId,
     ];
+
+    // Only add subscription_data for subscription mode
+    if (!$isLifetime) {
+        $params['subscription_data[metadata][user_id]'] = $userId;
+        $params['subscription_data[metadata][plan_id]'] = $planId;
+    }
 
     $session = stripeRequest(
         'POST',

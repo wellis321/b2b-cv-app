@@ -2,6 +2,26 @@
 // Marketing page for non-logged in users
 ?>
 
+<!-- Beta Banner -->
+<div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 text-center sm:text-left">
+            <div class="flex items-center gap-2">
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="font-semibold">We're in Beta!</span>
+            </div>
+            <p class="text-sm sm:text-base text-blue-100">
+                Simple CV Builder is currently in beta. While we build based on your feedback, get <strong>lifetime access for just £34.99</strong> - no recurring fees, forever.
+            </p>
+            <a href="#pricing" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap">
+                View Pricing
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Hero Section -->
 <div class="relative overflow-hidden bg-white">
     <div class="pt-32 pb-80 sm:pt-36 sm:pb-40 lg:pt-56 lg:pb-48">
@@ -191,7 +211,7 @@
                 Start for free, then upgrade when you need unlimited sections, premium templates, and priority support.
             </p>
         </div>
-        <div class="mt-12 grid gap-6 lg:grid-cols-3">
+        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <?php
             $pricingCards = [
                 [
@@ -208,17 +228,32 @@
                     'button' => ['text' => 'Start for free', 'href' => '#auth-section'],
                 ],
                 [
+                    'label' => 'Lifetime',
+                    'price' => '£34.99',
+                    'detail' => 'one-time payment',
+                    'highlight' => true,
+                    'badge' => 'Beta Special',
+                    'features' => [
+                        'Unlimited sections & entries',
+                        'Professional template with colours',
+                        'Download print-ready PDFs',
+                        'Priority email support',
+                        'Lifetime access - no recurring fees',
+                    ],
+                    'button' => ['text' => 'Get lifetime access', 'href' => '#auth-section'],
+                ],
+                [
                     'label' => 'Pro Monthly',
                     'price' => '£4.99',
                     'detail' => 'per month',
-                    'highlight' => true,
+                    'highlight' => false,
                     'features' => [
                         'Unlimited sections & entries',
                         'Professional template with colours',
                         'Download print-ready PDFs',
                         'Priority email support',
                     ],
-                    'button' => ['text' => 'View full plans', 'href' => '/subscription.php'],
+                    'button' => ['text' => 'View full plans', 'href' => '#auth-section'],
                 ],
                 [
                     'label' => 'Pro Annual',
@@ -231,7 +266,7 @@
                         'Annual billing with Stripe',
                         'Priority email support',
                     ],
-                    'button' => ['text' => 'View full plans', 'href' => '/subscription.php'],
+                    'button' => ['text' => 'View full plans', 'href' => '#auth-section'],
                 ],
             ];
             foreach ($pricingCards as $card):
@@ -239,7 +274,14 @@
                     ? 'border-blue-500 ring-1 ring-blue-200 bg-white text-gray-900'
                     : 'border-gray-700 bg-gray-800 text-gray-100';
                 ?>
-                <div class="flex flex-col rounded-2xl border <?php echo $classes; ?> p-8 shadow-xl">
+                <div class="flex flex-col rounded-2xl border <?php echo $classes; ?> p-8 shadow-xl relative">
+                    <?php if (!empty($card['badge'])): ?>
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+                            <span class="inline-flex items-center rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-lg">
+                                <?php echo e($card['badge']); ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
                     <div>
                         <h3 class="text-xl font-semibold"><?php echo e($card['label']); ?></h3>
                         <div class="mt-6 flex items-baseline gap-2">
