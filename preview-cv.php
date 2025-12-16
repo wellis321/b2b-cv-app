@@ -382,6 +382,28 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 pdfContainer.innerHTML = previewDiv.innerHTML;
                 document.body.appendChild(pdfContainer);
 
+                // Convert all images to base64 to avoid CORS issues
+                const images = pdfContainer.getElementsByTagName('img');
+                const imagePromises = Array.from(images).map(async (img) => {
+                    try {
+                        if (img.src && !img.src.startsWith('data:')) {
+                            const response = await fetch(img.src);
+                            const blob = await response.blob();
+                            const reader = new FileReader();
+                            return new Promise((resolve) => {
+                                reader.onloadend = () => {
+                                    img.src = reader.result;
+                                    resolve();
+                                };
+                                reader.readAsDataURL(blob);
+                            });
+                        }
+                    } catch (error) {
+                        console.warn('Failed to load image:', img.src, error);
+                    }
+                });
+                await Promise.all(imagePromises);
+
                 // Add QR code if requested
                 const includeQR = document.getElementById('include-qr')?.checked ?? true;
                 if (includeQR && cvUrl) {
@@ -415,20 +437,7 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     }
                 }
 
-                // Convert HTML to canvas
-                const canvas = await html2canvas(pdfContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    windowWidth: pdfContainer.scrollWidth,
-                    windowHeight: pdfContainer.scrollHeight
-                });
-
-                // Clean up temporary container
-                document.body.removeChild(pdfContainer);
-
-                // Create PDF
+                // Create PDF with better page break handling
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
@@ -437,36 +446,38 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     compress: true
                 });
 
-                const imgWidth = 210; // A4 width in mm
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const pageHeight = 297; // A4 height in mm
-                let heightLeft = imgHeight;
-                let position = 0;
+                // Use jsPDF's html method for better page breaks
+                await pdf.html(pdfContainer, {
+                    callback: function(doc) {
+                        // Clean up temporary container
+                        document.body.removeChild(pdfContainer);
 
-                // Add first page
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                        // Download the PDF
+                        const fileName = `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`;
+                        doc.save(fileName);
 
-                // Add additional pages if content is longer than one page
-                while (heightLeft > 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
+                        console.log('✅ PDF generated successfully using HTML-to-PDF approach');
 
-                // Download the PDF
-                const fileName = `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`;
-                pdf.save(fileName);
+                        // Restore button
+                        if (button) {
+                            button.disabled = false;
+                            button.textContent = originalText;
+                        }
+                    },
+                    x: 0,
+                    y: 0,
+                    width: 210, // A4 width in mm
+                    windowWidth: 794, // A4 width in pixels at 96 DPI (210mm)
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    },
+                    autoPaging: 'text' // Better page break handling for text
+                });
 
-                console.log('✅ PDF generated successfully using HTML-to-PDF approach');
-
-                // Restore button
-                if (button) {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
+                return; // Exit early since callback handles cleanup and download
 
             } catch (error) {
                 console.error('PDF generation error:', error);
