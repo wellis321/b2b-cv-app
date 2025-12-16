@@ -120,7 +120,7 @@ function createSectionHeader(title, template = {}) {
     const lineColor = template.sectionHeaderLineColor || palette.divider || ACCENT_COLOR
 
     return {
-        margin: variant === 'minimal' ? [0, 10, 0, 10] : [0, 6, 0, 12],
+        margin: variant === 'minimal' ? [0, 8, 0, 6] : [0, 6, 0, 8],
         table: {
             widths: ['*'],
             body: [
@@ -128,7 +128,7 @@ function createSectionHeader(title, template = {}) {
                     {
                         text: title,
                         style: 'subheader',
-                        margin: [0, 0, 0, variant === 'minimal' ? 6 : 6],
+                        margin: [0, 0, 0, variant === 'minimal' ? 4 : 4],
                         border: [false, false, false, false]
                     }
                 ]
@@ -147,7 +147,7 @@ function createSectionHeader(title, template = {}) {
             paddingLeft: () => 0,
             paddingRight: () => 0,
             paddingTop: () => 0,
-            paddingBottom: () => (variant === 'minimal' ? 6 : 8)
+            paddingBottom: () => (variant === 'minimal' ? 4 : 6)
         },
         width: availableWidth
     }
@@ -277,7 +277,7 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
             hLineDistance: () => 0
         },
         width: availableWidth,
-        margin: [0, 10, 0, 12]
+        margin: [0, 6, 0, 8]
     })
 
     return qrInHeader
@@ -298,7 +298,7 @@ function pushParagraphs(content, value, palette) {
         content.push({
             text: decodeHtmlEntities(paragraph.trim()),
             style: 'paragraph',
-            margin: [0, index === 0 ? 5 : 3, 0, index === paragraphs.length - 1 ? 8 : 2],
+            margin: [0, index === 0 ? 2 : 2, 0, index === paragraphs.length - 1 ? 4 : 1],
             color: palette.body || '#374151'
         })
     })
@@ -311,19 +311,19 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
     console.log('PDF Builder - includeQRCode:', config.includeQRCode, 'qrCodeImage provided:', !!qrCodeImage, 'cvUrl:', cvUrl)
 
     const styles = {
-        header: { fontSize: 22, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 8] },
-        tagline: { fontSize: 12, color: palette.accent || ACCENT_COLOR, margin: [0, 0, 0, 15] },
-        contactInfo: { fontSize: 10, color: palette.body || '#374151', margin: [0, 2, 0, 2] },
-        linkedIn: { fontSize: 10, color: palette.link || ACCENT_COLOR, decoration: 'underline', margin: [0, 8, 0, 0] },
+        header: { fontSize: 22, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 4] },
+        tagline: { fontSize: 12, color: palette.accent || ACCENT_COLOR, margin: [0, 0, 0, 6] },
+        contactInfo: { fontSize: 10, color: palette.body || '#374151', margin: [0, 1, 0, 1] },
+        linkedIn: { fontSize: 10, color: palette.link || ACCENT_COLOR, decoration: 'underline', margin: [0, 4, 0, 0] },
         subheader: { fontSize: 15, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 0] },
         sectionDivider: { margin: [0, 0, 0, 0] },
-        jobPosition: { fontSize: 13, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 3] },
-        company: { fontSize: 11, italics: true, color: palette.body || '#374151', margin: [0, 3, 0, 5] },
+        jobPosition: { fontSize: 13, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 2] },
+        company: { fontSize: 11, italics: true, color: palette.body || '#374151', margin: [0, 2, 0, 3] },
         dates: { fontSize: 10, color: palette.muted || '#6b7280' },
-        paragraph: { fontSize: 11, color: palette.body || '#374151', lineHeight: 1.44 },
-        bulletList: { fontSize: 11, color: palette.body || '#374151', margin: [0, 2, 0, 8] },
-        skillsCategory: { fontSize: 12, bold: true, color: palette.header || '#2c3e50', margin: [0, 6, 0, 3] },
-        skillsList: { fontSize: 10.5, color: palette.body || '#374151', margin: [0, 0, 0, 6] },
+        paragraph: { fontSize: 11, color: palette.body || '#374151', lineHeight: 1.3 },
+        bulletList: { fontSize: 11, color: palette.body || '#374151', margin: [0, 1, 0, 4] },
+        skillsCategory: { fontSize: 12, bold: true, color: palette.header || '#2c3e50', margin: [0, 4, 0, 2] },
+        skillsList: { fontSize: 10.5, color: palette.body || '#374151', margin: [0, 0, 0, 3] },
         footer: { fontSize: 9, color: palette.muted || '#9ca3af', margin: [0, 10, 0, 0] },
         link: { fontSize: 11, color: palette.link || ACCENT_COLOR, decoration: 'underline' }
     }
@@ -332,8 +332,8 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
 
     const docDefinition = {
         pageSize: 'A4',
-        pageMargins: template.pageMargins || [40, 60, 40, 60],
-        defaultStyle: { font: 'Roboto', fontSize: 11, color: palette.body || '#374151', lineHeight: 1.44 },
+        pageMargins: template.pageMargins || [30, 40, 30, 40],
+        defaultStyle: { font: 'Roboto', fontSize: 11, color: palette.body || '#374151', lineHeight: 1.3 },
         footer: (currentPage, pageCount) => ({ text: `${currentPage} / ${pageCount}`, alignment: 'center', style: 'footer' }),
         content,
         styles
@@ -412,7 +412,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                 })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
@@ -439,7 +439,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                 }
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
@@ -464,10 +464,10 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
             pushParagraphs(content, project.description, palette)
 
             if (project.url) {
-                content.push({ text: decodeHtmlEntities(project.url), style: 'link', link: project.url, margin: [0, 0, 0, 6] })
+                content.push({ text: decodeHtmlEntities(project.url), style: 'link', link: project.url, margin: [0, 0, 0, 4] })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
@@ -528,7 +528,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
             }
 
             pushParagraphs(content, entry.description, palette)
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
@@ -569,7 +569,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                 content.push({ text: decodeHtmlEntities(cert.url), style: 'link', link: cert.url, margin: [0, 0, 0, 6] })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
@@ -592,7 +592,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
             }
 
             pushParagraphs(content, membership.description, palette)
-            content.push({ text: '', margin: [0, 0, 0, 10] })
+            content.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
