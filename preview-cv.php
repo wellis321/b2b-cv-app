@@ -495,7 +495,7 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
             }
         }
 
-        function renderPreview() {
+        async function renderPreview() {
             try {
                 const previewDiv = document.getElementById('cv-preview');
                 if (!previewDiv) {
@@ -522,7 +522,10 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     return;
                 }
 
-                previewRenderer.render(previewDiv, {
+                // Load the actual render function (async loader)
+                const renderFunction = await previewRenderer.render();
+
+                renderFunction(previewDiv, {
                     cvData,
                     profile,
                     sections,
