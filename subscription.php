@@ -10,6 +10,9 @@ $error = getFlash('error');
 $success = getFlash('success');
 $pageCsrfToken = csrfToken();
 
+// Check if a plan is specified in URL to auto-trigger checkout
+$autoCheckoutPlan = get('plan', '');
+
 $checkoutStatus = get('checkout');
 if ($checkoutStatus === 'success' && empty($success)) {
     $success = 'Thanks! Your payment was successful. It can take a few seconds for your plan to update - please refresh if it does not update automatically.';
@@ -256,6 +259,7 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
         (() => {
             const csrfToken = '<?php echo $pageCsrfToken; ?>';
             const messageBox = document.querySelector('[data-subscription-message]');
+            const autoCheckoutPlan = <?php echo json_encode($autoCheckoutPlan); ?>;
 
             const showMessage = (text, variant = 'error') => {
                 if (!text) {
@@ -294,28 +298,47 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                 return data;
             };
 
+            const triggerCheckout = async (plan) => {
+                if (!plan) {
+                    return;
+                }
+
+                // Find the button for this plan
+                const button = document.querySelector(`[data-plan-button][data-plan="${plan}"]`);
+                if (!button) {
+                    showMessage('Plan not found. Please select a plan from the options below.');
+                    return;
+                }
+
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Redirecting...';
+
+                try {
+                    const data = await fetchJson('/api/stripe/create-checkout-session.php', { plan });
+                    if (!data.url) {
+                        throw new Error('Checkout link was not returned. Please try again.');
+                    }
+                    window.location.href = data.url;
+                } catch (error) {
+                    showMessage(error.message);
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            };
+
+            // Auto-trigger checkout if plan is specified in URL
+            if (autoCheckoutPlan) {
+                // Small delay to ensure page is fully loaded
+                setTimeout(() => {
+                    triggerCheckout(autoCheckoutPlan);
+                }, 100);
+            }
+
             document.querySelectorAll('[data-plan-button]').forEach((button) => {
                 button.addEventListener('click', async () => {
                     const plan = button.dataset.plan;
-                    if (!plan) {
-                        return;
-                    }
-
-                    const originalText = button.textContent;
-                    button.disabled = true;
-                    button.textContent = 'Redirecting...';
-
-                    try {
-                        const data = await fetchJson('/api/stripe/create-checkout-session.php', { plan });
-                        if (!data.url) {
-                            throw new Error('Checkout link was not returned. Please try again.');
-                        }
-                        window.location.href = data.url;
-                    } catch (error) {
-                        showMessage(error.message);
-                        button.disabled = false;
-                        button.textContent = originalText;
-                    }
+                    await triggerCheckout(plan);
                 });
             });
 

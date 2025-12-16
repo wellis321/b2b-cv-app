@@ -13,7 +13,8 @@
                 <span class="font-semibold">We're in Beta!</span>
             </div>
             <p class="text-sm sm:text-base text-blue-100">
-                Simple CV Builder is currently in beta. While we build based on your feedback, get <strong>lifetime access for just £34.99</strong> - no recurring fees, forever.
+                Simple CV Builder is currently in beta.<br>
+                While we build based on your feedback, get <strong>lifetime access for just £34.99</strong> - no recurring fees, forever.
             </p>
             <a href="#pricing" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap">
                 View Pricing
@@ -240,7 +241,7 @@
                         'Priority email support',
                         'Lifetime access - no recurring fees',
                     ],
-                    'button' => ['text' => 'Get lifetime access', 'href' => '#auth-section'],
+                    'button' => ['text' => 'Get lifetime access', 'href' => '/subscription.php', 'plan' => 'lifetime'],
                 ],
                 [
                     'label' => 'Pro Monthly',
@@ -253,7 +254,7 @@
                         'Download print-ready PDFs',
                         'Priority email support',
                     ],
-                    'button' => ['text' => 'View full plans', 'href' => '#auth-section'],
+                    'button' => ['text' => 'View full plans', 'href' => '/subscription.php', 'plan' => 'pro_monthly'],
                 ],
                 [
                     'label' => 'Pro Annual',
@@ -266,7 +267,7 @@
                         'Annual billing with Stripe',
                         'Priority email support',
                     ],
-                    'button' => ['text' => 'View full plans', 'href' => '#auth-section'],
+                    'button' => ['text' => 'View full plans', 'href' => '/subscription.php', 'plan' => 'pro_annual'],
                 ],
             ];
             foreach ($pricingCards as $card):
@@ -300,7 +301,14 @@
                         <?php endforeach; ?>
                     </ul>
                     <div class="mt-8">
-                        <a href="<?php echo e($card['button']['href']); ?>"
+                        <?php
+                        $buttonHref = $card['button']['href'] ?? '#auth-section';
+                        $buttonPlan = $card['button']['plan'] ?? null;
+                        if ($buttonPlan && $buttonHref === '/subscription.php') {
+                            $buttonHref .= '?plan=' . urlencode($buttonPlan);
+                        }
+                        ?>
+                        <a href="<?php echo e($buttonHref); ?>"
                            class="inline-flex w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition
                            <?php echo $card['highlight']
                                ? 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white'
