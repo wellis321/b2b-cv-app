@@ -513,29 +513,49 @@ function buildTemplatedCvHtml($cvData, $profile, $sections, $includePhoto, $incl
             $html .= '<div class="job-entry">';
             $html .= '<div class="job-header">';
             $html .= '<div class="job-header-left">';
-            $html .= '<h3 class="job-title">' . htmlspecialchars($work['job_title'] ?? '') . '</h3>';
-            $html .= '<p class="company-name">' . htmlspecialchars($work['company'] ?? '') . '</p>';
+            // Use position OR job_title (with fallback)
+            $html .= '<h3 class="job-title">' . htmlspecialchars($work['position'] ?? $work['job_title'] ?? '') . '</h3>';
+            // Use company_name (not company)
+            $html .= '<p class="company-name">' . htmlspecialchars($work['company_name'] ?? '') . '</p>';
             $html .= '</div>';
-            $html .= '<div class="job-header-right">';
-            $startDate = formatCvDateAsMonthYear($work['start_date'] ?? '');
-            $endDate = !empty($work['current']) ? 'Present' : formatCvDateAsMonthYear($work['end_date'] ?? '');
-            $html .= '<p class="job-dates">' . htmlspecialchars($startDate) . ($endDate ? ' - ' . htmlspecialchars($endDate) : '') . '</p>';
-            $html .= '</div>';
+
+            // Only show dates if not hidden
+            if (empty($work['hide_date'])) {
+                $html .= '<div class="job-header-right">';
+                $startDate = formatCvDateAsMonthYear($work['start_date'] ?? '');
+                // Use current_job (not current)
+                $endDate = !empty($work['current_job']) ? 'Present' : formatCvDateAsMonthYear($work['end_date'] ?? '');
+                $html .= '<p class="job-dates">' . htmlspecialchars($startDate) . ($endDate ? ' - ' . htmlspecialchars($endDate) : '') . '</p>';
+                $html .= '</div>';
+            }
+
             $html .= '</div>';
 
             if (!empty($work['description'])) {
                 $html .= '<p class="description">' . nl2br(htmlspecialchars($work['description'])) . '</p>';
             }
 
-            if (!empty($work['responsibilities']) && is_array($work['responsibilities'])) {
-                $html .= '<div class="responsibilities"><ul>';
-                foreach ($work['responsibilities'] as $resp) {
-                    $respText = is_array($resp) ? ($resp['description'] ?? $resp['responsibility'] ?? '') : $resp;
-                    if (!empty($respText)) {
-                        $html .= '<li>' . htmlspecialchars($respText) . '</li>';
+            // Handle responsibility_categories structure
+            if (!empty($work['responsibility_categories']) && is_array($work['responsibility_categories'])) {
+                foreach ($work['responsibility_categories'] as $category) {
+                    if (!empty($category['items']) && is_array($category['items'])) {
+                        $html .= '<div class="responsibilities">';
+
+                        // Add category name if present
+                        if (!empty($category['name'])) {
+                            $html .= '<p style="font-weight: 600; margin-bottom: 6px; color: ' . $colors['header'] . ';">' . htmlspecialchars($category['name']) . ':</p>';
+                        }
+
+                        $html .= '<ul>';
+                        foreach ($category['items'] as $item) {
+                            $itemText = $item['content'] ?? $item['description'] ?? '';
+                            if (!empty($itemText)) {
+                                $html .= '<li>' . htmlspecialchars($itemText) . '</li>';
+                            }
+                        }
+                        $html .= '</ul></div>';
                     }
                 }
-                $html .= '</ul></div>';
             }
 
             $html .= '</div>';
@@ -671,6 +691,7 @@ function buildTemplatedCvHtml($cvData, $profile, $sections, $includePhoto, $incl
             $html .= '<div class="membership-entry">';
             $html .= '<div class="job-header">';
             $html .= '<div class="job-header-left">';
+            // Use organisation OR organization_name (with fallback)
             $html .= '<h3 class="job-title">' . htmlspecialchars($membership['organisation'] ?? $membership['organization_name'] ?? '') . '</h3>';
 
             if (!empty($membership['role'])) {
@@ -679,6 +700,7 @@ function buildTemplatedCvHtml($cvData, $profile, $sections, $includePhoto, $incl
             $html .= '</div>';
             $html .= '<div class="job-header-right">';
             $startDate = formatCvDateAsMonthYear($membership['start_date'] ?? '');
+            // Use current_member (not current)
             $endDate = !empty($membership['current_member']) ? 'Present' : formatCvDateAsMonthYear($membership['end_date'] ?? '');
             $html .= '<p class="job-dates">' . htmlspecialchars($startDate) . ($endDate ? ' - ' . htmlspecialchars($endDate) : '') . '</p>';
             $html .= '</div>';
