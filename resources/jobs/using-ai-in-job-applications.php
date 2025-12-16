@@ -277,13 +277,13 @@ $sections = [
                 </a>
             </div>
             <div class="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-900/5">
-                <h2 class="text-2xl font-semibold text-slate-900">AI prompt cheat sheet (coming soon)</h2>
+                <h2 class="text-2xl font-semibold text-slate-900">AI Prompt Cheat Sheet</h2>
                 <p class="mt-4 text-base text-slate-600">
-                    Placeholder for future lead magnet or resource download. Replace this copy and button once you have an asset ready.
+                    Copy-paste ready prompts for ChatGPT, Claude, and other AI tools. Get better results for CV writing, cover letters, and interview prep.
                 </p>
-                <button type="button" class="mt-6 inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-900">
-                    Get the cheat sheet (placeholder)
-                </button>
+                <a href="/resources/jobs/ai-prompt-cheat-sheet.php" class="mt-6 inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800">
+                    View Cheat Sheet →
+                </a>
             </div>
         </div>
     </section>
