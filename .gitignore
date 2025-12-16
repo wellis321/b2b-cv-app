@@ -1,6 +1,7 @@
 # PHP
 /vendor
 composer.lock
+composer.phar
 /storage/*
 !/storage/.gitkeep
 *.php~

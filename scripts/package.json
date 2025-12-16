@@ -1,0 +1,15 @@
+{
+  "name": "cv-app-pdf-generator",
+  "version": "1.0.0",
+  "description": "Server-side PDF generation using Puppeteer",
+  "main": "generate-pdf.js",
+  "scripts": {
+    "test": "node generate-pdf.js https://example.com ./test-output.pdf"
+  },
+  "dependencies": {
+    "puppeteer": "^21.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

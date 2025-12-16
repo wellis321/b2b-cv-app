@@ -57,8 +57,6 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview & PDF - CV Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
     <script>
         window.addEventListener('load', function() {
             if (typeof QRCode === 'undefined') {
@@ -67,8 +65,6 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
         })
     </script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script type="module" src="/js/pdf-generator.js?v=<?php echo time(); ?>"></script>
 </head>
 <body class="bg-gray-50">
@@ -314,7 +310,7 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
 
         async function generatePDF() {
             try {
-                console.log('🎨 Using HTML-to-PDF approach (html2canvas + jsPDF)');
+                console.log('🎨 Using server-side PDF generation with Dompdf');
 
                 if (!SubscriptionContext?.pdfEnabled) {
                     const message = 'PDF export is available on Pro plans.';
@@ -334,28 +330,6 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     return;
                 }
 
-                // Check for html2canvas and jsPDF
-                if (typeof html2canvas === 'undefined') {
-                    alert('Error: html2canvas library not loaded. Please refresh the page.');
-                    console.error('html2canvas is not defined');
-                    return;
-                }
-
-                if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-                    alert('Error: jsPDF library not loaded. Please refresh the page.');
-                    console.error('jsPDF is not defined');
-                    return;
-                }
-
-                // Update the preview to make sure it's current
-                await renderPreview();
-
-                const previewDiv = document.getElementById('cv-preview');
-                if (!previewDiv || !previewDiv.innerHTML.trim()) {
-                    alert('Error: Preview not rendered. Please ensure at least one section is selected.');
-                    return;
-                }
-
                 // Show loading state
                 const button = document.getElementById('generate-pdf-button');
                 const originalText = button?.textContent;
@@ -364,138 +338,120 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     button.textContent = 'Generating PDF...';
                 }
 
-                // Create a temporary container optimized for PDF
-                const pdfContainer = document.createElement('div');
-                pdfContainer.style.cssText = `
-                    position: absolute;
-                    left: -9999px;
-                    top: 0;
-                    width: 210mm;
-                    padding: 15mm;
-                    background: white;
-                    font-family: Arial, Helvetica, sans-serif;
-                    font-size: 11pt;
-                    line-height: 1.5;
-                    color: #000;
-                    box-sizing: border-box;
-                `;
-                pdfContainer.innerHTML = previewDiv.innerHTML;
-                document.body.appendChild(pdfContainer);
+                // Get selected sections
+                const sections = [];
+                const sectionCheckboxes = {
+                    'profile': 'section-profile',
+                    'summary': 'section-summary',
+                    'work': 'section-work',
+                    'education': 'section-education',
+                    'skills': 'section-skills',
+                    'projects': 'section-projects',
+                    'certifications': 'section-certifications',
+                    'qualifications': 'section-qualifications',
+                    'memberships': 'section-memberships',
+                    'interests': 'section-interests'
+                };
 
-                // Convert all images to base64 to avoid CORS issues
-                const images = pdfContainer.getElementsByTagName('img');
-                const imagePromises = Array.from(images).map(async (img) => {
-                    try {
-                        if (img.src && !img.src.startsWith('data:')) {
-                            const response = await fetch(img.src);
-                            const blob = await response.blob();
-                            const reader = new FileReader();
-                            return new Promise((resolve) => {
-                                reader.onloadend = () => {
-                                    img.src = reader.result;
-                                    resolve();
-                                };
-                                reader.readAsDataURL(blob);
-                            });
-                        }
-                    } catch (error) {
-                        console.warn('Failed to load image:', img.src, error);
+                for (const [sectionName, checkboxId] of Object.entries(sectionCheckboxes)) {
+                    const checkbox = document.getElementById(checkboxId);
+                    if (checkbox && checkbox.checked) {
+                        sections.push(sectionName);
                     }
-                });
-                await Promise.all(imagePromises);
+                }
 
-                // Add QR code if requested
-                const includeQR = document.getElementById('include-qr')?.checked ?? true;
-                if (includeQR && cvUrl) {
+                // Get include photo and QR code settings
+                const includePhoto = document.getElementById('include-photo')?.checked ?? true;
+                const includeQr = document.getElementById('include-qr')?.checked ?? true;
+
+                // Generate QR code if needed
+                let qrCodeImage = null;
+                if (includeQr && cvUrl) {
                     try {
-                        const qrContainer = document.createElement('div');
-                        qrContainer.style.cssText = 'margin-top: 20px; text-align: right;';
-
                         const qrDiv = document.createElement('div');
-                        qrDiv.style.display = 'inline-block';
-                        qrContainer.appendChild(qrDiv);
+                        qrDiv.style.cssText = 'position: absolute; left: -9999px;';
+                        document.body.appendChild(qrDiv);
 
                         let QRCodeLib = typeof QRCode !== 'undefined' ? QRCode : window.QRCode;
                         if (QRCodeLib) {
                             new QRCodeLib(qrDiv, {
                                 text: cvUrl,
-                                width: 100,
-                                height: 100,
+                                width: 200,
+                                height: 200,
                                 colorDark: '#000000',
                                 colorLight: '#FFFFFF'
                             });
 
-                            const qrLabel = document.createElement('p');
-                            qrLabel.textContent = 'View my CV online';
-                            qrLabel.style.cssText = 'font-size: 9pt; color: #6b7280; margin: 5px 0 0 0;';
-                            qrContainer.appendChild(qrLabel);
+                            // Wait a moment for QR code to render
+                            await new Promise(resolve => setTimeout(resolve, 100));
 
-                            pdfContainer.appendChild(qrContainer);
+                            // Get the canvas element
+                            const qrCanvas = qrDiv.querySelector('canvas');
+                            if (qrCanvas) {
+                                qrCodeImage = qrCanvas.toDataURL('image/png');
+                                console.log('QR code generated, length:', qrCodeImage.length);
+                            }
                         }
+
+                        document.body.removeChild(qrDiv);
                     } catch (qrError) {
                         console.warn('QR code generation failed:', qrError);
                     }
                 }
 
-                // Convert HTML to canvas with better settings
-                const canvas = await html2canvas(pdfContainer, {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    windowWidth: pdfContainer.scrollWidth,
-                    windowHeight: pdfContainer.scrollHeight,
-                    onclone: (clonedDoc) => {
-                        // Ensure all styles are preserved in the clone
-                        const clonedContainer = clonedDoc.querySelector('div');
-                        if (clonedContainer) {
-                            clonedContainer.style.display = 'block';
-                            clonedContainer.style.position = 'relative';
-                        }
+                // Get selected template
+                const selectedTemplate = getSelectedTemplate();
+
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
+                formData.append('sections', JSON.stringify(sections));
+                formData.append('includePhoto', includePhoto ? '1' : '0');
+                formData.append('includeQr', includeQr ? '1' : '0');
+                formData.append('templateId', selectedTemplate);
+                if (qrCodeImage) {
+                    formData.append('qrCodeImage', qrCodeImage);
+                }
+
+                // Call server-side endpoint
+                console.log('Calling server-side PDF generation endpoint...');
+                const response = await fetch('/api/generate-pdf-dompdf.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
+                }
+
+                // Get the PDF blob
+                const blob = await response.blob();
+
+                // Check if response is actually a PDF
+                if (blob.type !== 'application/pdf') {
+                    // Try to parse as JSON error
+                    const text = await blob.text();
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.error || 'Failed to generate PDF');
+                    } catch (e) {
+                        throw new Error('Server returned invalid response');
                     }
-                });
-
-                // Clean up temporary container
-                document.body.removeChild(pdfContainer);
-
-                // Create PDF
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                    compress: true
-                });
-
-                const pageWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
-                const margin = 0; // No margins since we already have them in the container
-
-                const imgWidth = pageWidth - (2 * margin);
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-                let heightLeft = imgHeight;
-                let position = margin;
-
-                // Add first page
-                pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST');
-                heightLeft -= pageHeight;
-
-                // Add additional pages if needed
-                while (heightLeft > 0) {
-                    position = margin - (imgHeight - heightLeft);
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, '', 'FAST');
-                    heightLeft -= pageHeight;
                 }
 
                 // Download the PDF
                 const fileName = `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`;
-                pdf.save(fileName);
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
 
-                console.log('✅ PDF generated successfully using HTML-to-PDF approach');
+                console.log('✅ PDF generated successfully using Dompdf');
 
                 // Restore button
                 if (button) {
