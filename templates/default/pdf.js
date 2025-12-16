@@ -7,7 +7,7 @@ const pdfTemplates = {
         id: 'professional',
         name: 'Professional Blue',
         description: 'Structured business layout with blue accent lines and refined typography.',
-        pageMargins: [40, 60, 40, 60],
+        pageMargins: [30, 40, 30, 40],
         colors: {
             header: '#2c3e50',
             body: '#374151',
@@ -23,7 +23,7 @@ const pdfTemplates = {
         id: 'minimal',
         name: 'Minimal',
         description: 'Clean monochrome layout with subtle dividers and generous spacing.',
-        pageMargins: [45, 60, 45, 60],
+        pageMargins: [35, 40, 35, 40],
         colors: {
             header: '#111827',
             body: '#374151',
@@ -218,6 +218,7 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
 
     let qrInHeader = false
     if (config.includeQRCode && qrCodeImage) {
+        console.log('Adding QR code to header')
         headerImages.push({
             width: 'auto',
             image: qrCodeImage,
@@ -227,6 +228,8 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
             link: cvUrl
         })
         qrInHeader = true
+    } else {
+        console.log('QR code NOT added to header. includeQRCode:', config.includeQRCode, 'qrCodeImage:', !!qrCodeImage)
     }
 
     if (headerImages.length) {
@@ -304,6 +307,8 @@ function pushParagraphs(content, value, palette) {
 function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}, cvUrl, qrCodeImage, templateId = DEFAULT_TEMPLATE_ID }) {
     const template = getTemplate(templateId)
     const palette = template.colors || {}
+
+    console.log('PDF Builder - includeQRCode:', config.includeQRCode, 'qrCodeImage provided:', !!qrCodeImage, 'cvUrl:', cvUrl)
 
     const styles = {
         header: { fontSize: 22, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 8] },
@@ -609,6 +614,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
     }
 
     if (config.includeQRCode && qrCodeImage && !qrInHeader) {
+        console.log('Adding QR code to footer')
         content.push({
             columns: [
                 { width: '*', text: '' },
@@ -616,6 +622,8 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
             ]
         })
         content.push({ text: 'View my full CV online', alignment: 'right', fontSize: 9, color: palette.muted || '#6b7280', margin: [0, 6, 0, 0] })
+    } else {
+        console.log('QR code NOT added to footer. includeQRCode:', config.includeQRCode, 'qrCodeImage:', !!qrCodeImage, 'qrInHeader:', qrInHeader)
     }
 
     return docDefinition

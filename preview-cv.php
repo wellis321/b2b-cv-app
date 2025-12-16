@@ -364,9 +364,13 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
 
                 let qrCodeImage = null;
                 if (includeQR && cvUrl) {
+                    console.log('Attempting to generate QR code for URL:', cvUrl);
                     try {
                         let QRCodeLib = typeof QRCode !== 'undefined' ? QRCode : window.QRCode;
+                        console.log('QRCode library available:', !!QRCodeLib);
+
                         if (QRCodeLib && QRCodeLib.prototype && typeof QRCodeLib === 'function') {
+                            console.log('Using QRCode constructor approach');
                             const container = document.createElement('div');
                             container.style.position = 'absolute';
                             container.style.left = '-9999px';
@@ -384,21 +388,32 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                             const canvas = container.querySelector('canvas');
                             if (canvas) {
                                 qrCodeImage = canvas.toDataURL('image/png');
+                                console.log('QR code generated successfully via constructor, length:', qrCodeImage.length);
+                            } else {
+                                console.warn('Canvas not found after QRCode generation');
                             }
 
                             document.body.removeChild(container);
                         } else if (QRCodeLib && typeof QRCodeLib.toDataURL === 'function') {
+                            console.log('Using QRCode.toDataURL approach');
                             qrCodeImage = await QRCodeLib.toDataURL(cvUrl, {
                                 width: 200,
                                 margin: 2,
                                 color: { dark: '#000000', light: '#FFFFFF' }
                             });
+                            console.log('QR code generated successfully via toDataURL, length:', qrCodeImage.length);
+                        } else {
+                            console.warn('QRCode library not available or incompatible format');
                         }
                     } catch (qrError) {
                         console.error('Error generating QR code:', qrError);
                         qrCodeImage = null;
                     }
+                } else {
+                    console.log('QR code not requested or CV URL not available. includeQR:', includeQR, 'cvUrl:', cvUrl);
                 }
+
+                console.log('Final qrCodeImage status:', qrCodeImage ? 'Generated' : 'null');
 
                 const pdfConfig = {
                     sections,

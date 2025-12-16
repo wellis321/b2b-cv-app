@@ -231,12 +231,12 @@ export function getDefaultPdfStyles(template, preset = 'conservative', customiza
  */
 export function getPageMargins(preset = 'conservative', customization = {}) {
     const margins = {
-        conservative: [40, 60, 40, 60],
-        modern: [45, 65, 45, 65],
-        compact: [35, 50, 35, 50],
-        spacious: [50, 70, 50, 70],
-        creative: [40, 60, 40, 60],
-        technical: [40, 55, 40, 55]
+        conservative: [30, 40, 30, 40],
+        modern: [35, 45, 35, 45],
+        compact: [25, 35, 25, 35],
+        spacious: [40, 50, 40, 50],
+        creative: [30, 40, 30, 40],
+        technical: [30, 40, 30, 40]
     }
 
     return margins[preset] || margins.conservative
