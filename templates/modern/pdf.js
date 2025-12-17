@@ -79,10 +79,8 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
 
         if (profile.location) {
             contactItems.push({
-                text: [
-                    { text: '📍 ', fontSize: 10 },
-                    { text: decodeHtmlEntities(profile.location), fontSize: 9 }
-                ],
+                text: decodeHtmlEntities(profile.location),
+                fontSize: 9,
                 color: template.colors.body,
                 margin: [0, 0, 0, 4]
             })
@@ -90,10 +88,8 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
 
         if (profile.phone) {
             contactItems.push({
-                text: [
-                    { text: '📞 ', fontSize: 10 },
-                    { text: decodeHtmlEntities(profile.phone), fontSize: 9 }
-                ],
+                text: decodeHtmlEntities(profile.phone),
+                fontSize: 9,
                 color: template.colors.body,
                 margin: [0, 0, 0, 4]
             })
@@ -101,10 +97,8 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
 
         if (profile.email) {
             contactItems.push({
-                text: [
-                    { text: '✉ ', fontSize: 10 },
-                    { text: decodeHtmlEntities(profile.email), fontSize: 9 }
-                ],
+                text: decodeHtmlEntities(profile.email),
+                fontSize: 9,
                 color: template.colors.body,
                 margin: [0, 0, 0, 4]
             })

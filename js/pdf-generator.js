@@ -43,25 +43,44 @@ async function getImageAsBase64(url) {
 
         // If URL points to storage, use storage proxy
         let fetchUrl = url
+        let useStorageProxy = false
         if (url.includes('/storage/')) {
             // Extract the path after /storage/ (handles both relative and absolute URLs)
             const storageMatch = url.match(/\/storage\/(.+)$/)
             if (storageMatch) {
                 // Use relative path for storage proxy
                 fetchUrl = `/api/storage-proxy?path=${encodeURIComponent(storageMatch[1])}`
+                useStorageProxy = true
+                console.log('Using storage proxy for image:', fetchUrl, 'Original:', url)
             }
-        } else if (url.startsWith('http') && !url.startsWith(window.location.origin)) {
-            // External URL - might need CORS handling
-            // For now, try direct fetch
         }
 
-        const response = await fetch(fetchUrl, {
-            credentials: 'include'
-        })
+        console.log('Fetching image from:', fetchUrl)
+        let response
+        try {
+            response = await fetch(fetchUrl, {
+                credentials: 'include',
+                mode: 'same-origin'
+            })
+        } catch (fetchError) {
+            // If storage proxy fails and we haven't tried direct URL, try direct
+            if (useStorageProxy && url.startsWith('http')) {
+                console.warn('Storage proxy failed, trying direct URL:', fetchError)
+                response = await fetch(url, {
+                    credentials: 'include',
+                    mode: 'cors'
+                })
+            } else {
+                throw fetchError
+            }
+        }
+
         if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status}`)
+            console.error('Image fetch failed:', response.status, response.statusText, 'URL:', fetchUrl)
+            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
         }
         const blob = await response.blob()
+        console.log('Image blob loaded, type:', blob.type, 'size:', blob.size)
 
         if (blob.type === 'image/webp' || blob.type.includes('webp')) {
             return new Promise((resolve, reject) => {
@@ -83,7 +102,15 @@ async function getImageAsBase64(url) {
             })
         }
 
-        return getImageAsBase64FromBlob(blob)
+        const dataUrl = await getImageAsBase64FromBlob(blob)
+        // Validate dataURL format for pdfmake
+        if (dataUrl && typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+            console.log('Image converted to dataURL, length:', dataUrl.length)
+            return dataUrl
+        } else {
+            console.error('Invalid dataURL format:', dataUrl ? dataUrl.substring(0, 50) : 'null')
+            return null
+        }
     } catch (error) {
         console.error('Error loading image for PDF:', error)
         return null

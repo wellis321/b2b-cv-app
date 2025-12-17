@@ -206,10 +206,10 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
     const headerImages = []
     const includePhoto = config.includePhoto !== false
 
-    if (includePhoto && (profile.photo_base64 || profile.photo_url)) {
+    if (includePhoto && profile.photo_base64) {
         headerImages.push({
             width: 'auto',
-            image: profile.photo_base64 || profile.photo_url,
+            image: profile.photo_base64,
             fit: [70, 70],
             alignment: 'right',
             margin: [0, 0, 5, 0]

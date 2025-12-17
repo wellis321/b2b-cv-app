@@ -407,7 +407,15 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 // Get profile photo as base64 if needed
                 let photoBase64 = null;
                 if (includePhoto && profile.photo_url) {
-                    photoBase64 = await window.PdfGenerator.getImageAsBase64(profile.photo_url);
+                    try {
+                        photoBase64 = await window.PdfGenerator.getImageAsBase64(profile.photo_url);
+                        if (!photoBase64) {
+                            console.warn('Failed to load profile photo, continuing without it');
+                        }
+                    } catch (error) {
+                        console.error('Error loading profile photo:', error);
+                        // Continue without photo
+                    }
                 }
 
                 // Prepare config
@@ -418,9 +426,18 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 };
 
                 // Build document definition using the template system
+                // Only include photo_base64 if we successfully loaded it
+                const profileWithPhoto = { ...profile }
+                if (photoBase64) {
+                    profileWithPhoto.photo_base64 = photoBase64
+                } else {
+                    // Remove photo_base64 if it wasn't loaded successfully
+                    delete profileWithPhoto.photo_base64
+                }
+
                 const docDefinition = await window.PdfGenerator.buildDocDefinition(
                     cvData,
-                    { ...profile, photo_base64: photoBase64 },
+                    profileWithPhoto,
                     config,
                     selectedTemplate,
                     cvUrl,
