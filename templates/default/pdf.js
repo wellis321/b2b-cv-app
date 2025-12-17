@@ -339,7 +339,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
         footer: (currentPage, pageCount) => ({ text: `${currentPage} / ${pageCount}`, alignment: 'center', style: 'footer' }),
         content,
         styles,
-        pageBreakBefore: function(currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
+        pageBreakBefore: function (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
             // Don't force page breaks before section headers if they have content following
             if (currentNode.style === 'subheader' && followingNodesOnPage.length > 2) {
                 return false;
