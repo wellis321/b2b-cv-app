@@ -174,13 +174,14 @@ export function createSideBorderHeader(title, template, options = {}) {
         fontSize = 15,
         bold = true,
         borderWidth = 3,
-        margin = [0, 12, 0, 8]
+        margin = [0, 12, 0, 8],
+        uppercase = true
     } = options
 
     const accentColor = getColor(template, 'accent', '#2563eb')
     const headerColor = getColor(template, 'header', '#1f2937')
 
-    return {
+    return [{
         columns: [
             {
                 canvas: [
@@ -194,18 +195,19 @@ export function createSideBorderHeader(title, template, options = {}) {
                         lineColor: accentColor
                     }
                 ],
-                width: borderWidth + 6
+                width: borderWidth + 12
             },
             {
-                text: title,
+                text: uppercase ? title.toUpperCase() : title,
                 fontSize: fontSize,
                 bold: bold,
                 color: headerColor,
-                width: '*'
+                width: '*',
+                margin: [0, 0, 0, 0]
             }
         ],
         margin: [0, margin[0], 0, margin[3]]
-    }
+    }]
 }
 
 /**

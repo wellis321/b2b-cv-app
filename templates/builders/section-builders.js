@@ -42,9 +42,10 @@ export function buildWorkExperienceSection(experiences, template, options = {}) 
             expContent.push({
                 text: decodeHtmlEntities(exp.position),
                 style: 'jobPosition',
-                fontSize: fontSize + 2,
+                fontSize: fontSize + 1.5,
                 bold: true,
-                color: bodyColor
+                color: bodyColor,
+                margin: [0, 0, 0, 2]
             })
         }
 
@@ -52,9 +53,10 @@ export function buildWorkExperienceSection(experiences, template, options = {}) 
             expContent.push({
                 text: decodeHtmlEntities(exp.company_name),
                 style: 'company',
-                fontSize: fontSize,
+                fontSize: fontSize + 0.5,
+                bold: true,
                 color: accentColor,
-                margin: [0, 2, 0, 2]
+                margin: [0, 0, 0, 2]
             })
         }
 
@@ -63,7 +65,7 @@ export function buildWorkExperienceSection(experiences, template, options = {}) 
             expContent.push({
                 text: formatDateRange(exp.start_date, exp.end_date),
                 style: 'dates',
-                fontSize: fontSize - 1,
+                fontSize: fontSize - 0.5,
                 color: mutedColor,
                 margin: [0, 0, 0, 4]
             })
@@ -336,9 +338,10 @@ export function buildProjectsSection(projects, template, options = {}) {
         if (project.title) {
             projectContent.push({
                 text: decodeHtmlEntities(project.title),
-                fontSize: fontSize + 1,
+                fontSize: fontSize + 2,
                 bold: true,
-                color: bodyColor
+                color: bodyColor,
+                margin: [0, 0, 0, 2]
             })
         }
 
@@ -348,7 +351,7 @@ export function buildProjectsSection(projects, template, options = {}) {
                 text: formatDateRange(project.start_date, project.end_date),
                 fontSize: fontSize - 1,
                 color: mutedColor,
-                margin: [0, 2, 0, 4]
+                margin: [0, 0, 0, 4]
             })
         }
 
@@ -358,7 +361,8 @@ export function buildProjectsSection(projects, template, options = {}) {
                 text: convertMarkdownToPlainText(decodeHtmlEntities(project.description)),
                 fontSize: fontSize,
                 color: bodyColor,
-                margin: [0, 2, 0, 4]
+                lineHeight: 1.5,
+                margin: [0, 0, 0, 4]
             })
         }
 
@@ -592,8 +596,8 @@ export function buildProfessionalSummarySection(summary, template, options = {})
             text: convertMarkdownToPlainText(decodeHtmlEntities(summary.description)),
             fontSize: fontSize,
             color: bodyColor,
-            lineHeight: 1.5,
-            margin: [0, 0, 0, showStrengths && Array.isArray(summary.strengths) ? 8 : 0]
+            lineHeight: 1.6,
+            margin: [0, 0, 0, showStrengths && Array.isArray(summary.strengths) ? 12 : 0]
         })
     }
 
@@ -606,9 +610,9 @@ export function buildProfessionalSummarySection(summary, template, options = {})
         if (strengthTexts.length > 0) {
             content.push({
                 ul: strengthTexts,
-                fontSize: fontSize - 0.5,
+                fontSize: fontSize - 1,
                 color: bodyColor,
-                margin: [15, 0, 0, 0]
+                margin: [15, 0, 0, 24]
             })
         }
     }

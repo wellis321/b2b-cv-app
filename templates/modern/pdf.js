@@ -324,40 +324,41 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
         if (profile.full_name) {
             mainContent.push({
                 text: decodeHtmlEntities(profile.full_name).toUpperCase(),
-                fontSize: 24,
+                fontSize: 32,
                 bold: true,
                 color: template.colors.header,
-                margin: [0, 0, 0, 4]
+                margin: [0, 0, 0, 6],
+                letterSpacing: 1
             })
         }
 
         if (profile.bio) {
             mainContent.push({
                 text: decodeHtmlEntities(profile.bio),
-                fontSize: 11,
+                fontSize: 14,
                 color: template.colors.accent,
                 italics: true,
-                margin: [0, 0, 0, 12]
+                margin: [0, 0, 0, 6]
             })
         }
 
-        mainContent.push(createDivider(template.colors.accent, 2, [0, 0, 0, 16]))
+        mainContent.push(createDivider(template.colors.accent, 3, [0, 0, 0, 24]))
     }
 
     // PROFESSIONAL SUMMARY
     if (sections.professionalSummary !== false && cvData.professional_summary) {
-        mainContent.push(...createSideBorderHeader('Professional Summary', template, { fontSize: 14, borderWidth: 3 }))
+        mainContent.push(...createSideBorderHeader('Professional Summary', template, { fontSize: 16, borderWidth: 4, margin: [0, 0, 0, 16] }))
         mainContent.push(...buildProfessionalSummarySection(
             cvData.professional_summary,
             template,
-            { fontSize: 10.5, showStrengths: true }
+            { fontSize: 13, showStrengths: true }
         ))
         mainContent.push({ text: '', margin: [0, 0, 0, 12] })
     }
 
     // WORK EXPERIENCE
     if (sections.workExperience !== false && Array.isArray(cvData.work_experience) && cvData.work_experience.length > 0) {
-        mainContent.push(...createSideBorderHeader('Experience', template, { fontSize: 14, borderWidth: 3 }))
+        mainContent.push(...createSideBorderHeader('Experience', template, { fontSize: 16, borderWidth: 4, margin: [0, 0, 0, 16] }))
         mainContent.push(...buildWorkExperienceSection(
             cvData.work_experience,
             template,
@@ -365,8 +366,8 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
                 showDates: true,
                 showDescription: true,
                 showResponsibilities: true,
-                fontSize: 10.5,
-                spacing: 1.0
+                fontSize: 12,
+                spacing: 1.5
             }
         ))
         mainContent.push({ text: '', margin: [0, 0, 0, 12] })
@@ -374,14 +375,14 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
 
     // PROJECTS
     if (sections.projects !== false && Array.isArray(cvData.projects) && cvData.projects.length > 0) {
-        mainContent.push(...createSideBorderHeader('Projects', template, { fontSize: 14, borderWidth: 3 }))
+        mainContent.push(...createSideBorderHeader('Projects', template, { fontSize: 16, borderWidth: 4, margin: [0, 0, 0, 16] }))
         mainContent.push(...buildProjectsSection(
             cvData.projects,
             template,
             {
                 showDates: true,
                 showUrl: true,
-                fontSize: 10.5
+                fontSize: 12
             }
         ))
         mainContent.push({ text: '', margin: [0, 0, 0, 12] })
@@ -389,13 +390,13 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
 
     // PROFESSIONAL MEMBERSHIPS
     if (sections.memberships !== false && Array.isArray(cvData.professional_memberships) && cvData.professional_memberships.length > 0) {
-        mainContent.push(...createSideBorderHeader('Memberships', template, { fontSize: 14, borderWidth: 3 }))
+        mainContent.push(...createSideBorderHeader('Memberships', template, { fontSize: 16, borderWidth: 4, margin: [0, 0, 0, 16] }))
         mainContent.push(...buildMembershipsSection(
             cvData.professional_memberships,
             template,
             {
                 showDates: true,
-                fontSize: 10.5
+                fontSize: 12
             }
         ))
     }
