@@ -19,6 +19,9 @@ RewriteRule ^cv/@([a-z0-9][a-z0-9\-_]+)$ cv.php?username=$1 [L,QSA]
 # Handle CV routes: /cv/userid -> cv.php?userid=userid (for backward compatibility)
 RewriteRule ^cv/([a-f0-9\-]{36})$ cv.php?userid=$1 [L,QSA]
 
+# Handle organisation public pages: /agency/{slug} -> agency-public.php?slug={slug}
+RewriteRule ^agency/([a-z0-9\-]+)$ agency-public.php?slug=$1 [L,QSA]
+
 # Redirect to index.php if file doesn't exist (for routing)
 RewriteRule ^(.*)$ index.php [QSA,L]
 

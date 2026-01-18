@@ -25,6 +25,13 @@ if (preg_match('#^/cv/([a-f0-9\-]{36})$#', $requestPath, $matches)) {
     exit;
 }
 
+// Handle organisation public pages: /agency/{slug} -> agency-public.php?slug={slug}
+if (preg_match('#^/agency/([a-z0-9\-]+)$#', $requestPath, $matches)) {
+    $_GET['slug'] = $matches[1];
+    require __DIR__ . '/agency-public.php';
+    exit;
+}
+
 // Don't process as homepage if it's a specific file request
 if ($requestPath !== '/' && $requestPath !== '/index.php' && $requestPath !== '') {
     // Check if the requested file exists
