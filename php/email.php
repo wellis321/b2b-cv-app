@@ -206,8 +206,16 @@ function sendUsernameReminderEmail($email, $fullName, $username) {
 
 /**
  * Send candidate invitation email
+ * @param string $email Recipient email
+ * @param string|null $fullName Recipient full name
+ * @param string $organisationName Organisation name
+ * @param string $inviterName Name of person sending invitation
+ * @param string $token Invitation token
+ * @param string|null $personalMessage Optional personal message
+ * @param string|null $organisationEmail Optional organisation email address to send from
+ * @param string|null $organisationEmailName Optional organisation email display name
  */
-function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inviterName, $token, $personalMessage = null) {
+function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inviterName, $token, $personalMessage = null, $organisationEmail = null, $organisationEmailName = null) {
     // #region agent log
     debugLog([
         'id' => 'log_' . time() . '_' . uniqid(),
@@ -289,7 +297,11 @@ function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inv
     ]);
     // #endregion
 
-    $emailResult = sendEmail($email, $subject, $message);
+    // Use organisation email if provided, otherwise fall back to default
+    $fromEmail = $organisationEmail;
+    $fromName = $organisationEmailName ?: ($organisationName . ' Team');
+    
+    $emailResult = sendEmail($email, $subject, $message, $fromEmail, $fromName);
     
     // #region agent log
     debugLog([
@@ -313,8 +325,16 @@ function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inv
 
 /**
  * Send team member invitation email
+ * @param string $email Recipient email
+ * @param string $organisationName Organisation name
+ * @param string $role Team member role
+ * @param string $inviterName Name of person sending invitation
+ * @param string $token Invitation token
+ * @param string|null $personalMessage Optional personal message
+ * @param string|null $organisationEmail Optional organisation email address to send from
+ * @param string|null $organisationEmailName Optional organisation email display name
  */
-function sendTeamInvitationEmail($email, $organisationName, $role, $inviterName, $token, $personalMessage = null) {
+function sendTeamInvitationEmail($email, $organisationName, $role, $inviterName, $token, $personalMessage = null, $organisationEmail = null, $organisationEmailName = null) {
     $acceptUrl = APP_URL . '/accept-invitation.php?token=' . urlencode($token) . '&type=team';
 
     $roleDescriptions = [
@@ -367,5 +387,9 @@ function sendTeamInvitationEmail($email, $organisationName, $role, $inviterName,
     </body>
     </html>';
 
-    return sendEmail($email, $subject, $message);
+    // Use organisation email if provided, otherwise fall back to default
+    $fromEmail = $organisationEmail;
+    $fromName = $organisationEmailName ?: ($organisationName . ' Team');
+    
+    return sendEmail($email, $subject, $message, $fromEmail, $fromName);
 }

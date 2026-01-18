@@ -266,6 +266,38 @@ if (isPost()) {
         redirect('/agency/settings.php');
     }
 
+    // Update email settings
+    if ($action === 'update_email_settings') {
+        $organisationEmail = sanitizeInput(post('organisation_email'));
+        $organisationEmailName = sanitizeInput(post('organisation_email_name'));
+
+        // Validate email if provided
+        if (!empty($organisationEmail) && !filter_var($organisationEmail, FILTER_VALIDATE_EMAIL)) {
+            setFlash('error', 'Please enter a valid email address.');
+            redirect('/agency/settings.php');
+        }
+
+        try {
+            db()->update('organisations',
+                [
+                    'organisation_email' => $organisationEmail ?: null,
+                    'organisation_email_name' => $organisationEmailName ?: null,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ],
+                'id = ?',
+                [$org['organisation_id']]
+            );
+
+            logActivity('organisation.email_settings_updated');
+
+            setFlash('success', 'Email settings updated successfully.');
+        } catch (Exception $e) {
+            setFlash('error', 'Failed to update email settings. Please try again.');
+        }
+
+        redirect('/agency/settings.php');
+    }
+
     // Update organisation AI settings
     if ($action === 'update_ai_settings') {
         // Only owners and admins can configure organisation AI
@@ -516,6 +548,9 @@ $orgAiSettings = [
                             </li>
                             <li>
                                 <a href="#candidate-settings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Candidate Settings</a>
+                            </li>
+                            <li>
+                                <a href="#email-settings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Email Settings</a>
                             </li>
                             <?php if ($isOwnerOrAdmin): ?>
                             <li>

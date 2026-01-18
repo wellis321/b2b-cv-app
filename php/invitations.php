@@ -75,7 +75,8 @@ function createCandidateInvitation($organisationId, $email, $invitedBy, $fullNam
                 'organisationName' => $org['name'],
                 'inviterName' => $inviter['full_name'] ?? 'A recruiter',
                 'tokenLength' => strlen($token),
-                'hasMessage' => !empty($message)
+                'hasMessage' => !empty($message),
+                'orgEmail' => $org['organisation_email'] ?? null
             ],
             'sessionId' => 'email-debug',
             'runId' => 'run1',
@@ -83,13 +84,16 @@ function createCandidateInvitation($organisationId, $email, $invitedBy, $fullNam
         ]);
         // #endregion
         
+        // Use organisation email if configured, otherwise use default
         $emailSent = sendCandidateInvitationEmail(
             $email,
             $fullName,
             $org['name'],
             $inviter['full_name'] ?? 'A recruiter',
             $token,
-            $message
+            $message,
+            $org['organisation_email'] ?? null,
+            $org['organisation_email_name'] ?? null
         );
 
         // #region agent log
@@ -190,13 +194,16 @@ function createTeamInvitation($organisationId, $email, $role, $invitedBy, $messa
         $inviter = db()->fetchOne("SELECT full_name FROM profiles WHERE id = ?", [$invitedBy]);
 
         // Send invitation email
+        // Use organisation email if configured, otherwise use default
         $emailSent = sendTeamInvitationEmail(
             $email,
             $org['name'],
             $role,
             $inviter['full_name'] ?? 'An administrator',
             $token,
-            $message
+            $message,
+            $org['organisation_email'] ?? null,
+            $org['organisation_email_name'] ?? null
         );
 
         logActivity('team.invited', null, [

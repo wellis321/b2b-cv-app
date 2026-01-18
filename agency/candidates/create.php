@@ -61,7 +61,19 @@ if (isPost()) {
     );
 
     if ($result['success']) {
-        setFlash('success', 'Invitation sent successfully to ' . $email);
+        // Check if we're on localhost and email might not be sent
+        $emailSent = $result['email_sent'] ?? false;
+        $isLocalhost = (parse_url(APP_URL, PHP_URL_HOST) === 'localhost' || 
+                       strpos(parse_url(APP_URL, PHP_URL_HOST), '127.0.0.1') === 0 ||
+                       parse_url(APP_URL, PHP_URL_HOST) === 'localhost:8000');
+        
+        if ($isLocalhost && !$emailSent) {
+            setFlash('warning', 'Invitation created successfully, but email delivery may not work on localhost. The invitation link can be shared manually from the pending invitations list.');
+        } elseif (!$emailSent) {
+            setFlash('warning', 'Invitation created successfully, but the email may not have been sent. Please check your email configuration.');
+        } else {
+            setFlash('success', 'Invitation sent successfully to ' . $email);
+        }
         redirect('/agency/candidates.php');
     } else {
         setFlash('error', $result['error']);
