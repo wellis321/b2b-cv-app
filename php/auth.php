@@ -171,11 +171,34 @@ function loginUser($email, $password) {
  * Logout user
  */
 function logoutUser() {
-    session_unset();
+    // Unset all session variables
+    $_SESSION = [];
+    
+    // Get session cookie parameters
+    $cookieParams = session_get_cookie_params();
+    $cookieName = session_name();
+    
+    // Delete the session cookie if it exists
+    if (isset($_COOKIE[$cookieName])) {
+        setcookie(
+            $cookieName,
+            '',
+            time() - 3600,
+            $cookieParams['path'],
+            $cookieParams['domain'],
+            $cookieParams['secure'],
+            $cookieParams['httponly']
+        );
+    }
+    
+    // Destroy the session
     session_destroy();
-
+    
     // Start new session to avoid errors
     session_start();
+    
+    // Regenerate session ID to prevent session fixation
+    session_regenerate_id(true);
 }
 
 /**
