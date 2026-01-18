@@ -70,6 +70,24 @@ function currentUrl() {
 }
 
 /**
+ * Get current base URL (scheme + host, no path)
+ * Uses current request when available, falls back to APP_URL
+ */
+function currentBaseUrl() {
+    if (PHP_SAPI !== 'cli' && isset($_SERVER['HTTP_HOST'])) {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'];
+        // Remove port if it's a standard port (80 for http, 443 for https)
+        if (($scheme === 'http' && strpos($host, ':80') === strlen($host) - 3) ||
+            ($scheme === 'https' && strpos($host, ':443') === strlen($host) - 4)) {
+            $host = str_replace([':80', ':443'], '', $host);
+        }
+        return $scheme . '://' . $host;
+    }
+    return APP_URL;
+}
+
+/**
  * Check if request is POST
  */
 function isPost() {

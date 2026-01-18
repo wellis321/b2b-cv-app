@@ -237,7 +237,9 @@ function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inv
     ]);
     // #endregion
     
-    $acceptUrl = APP_URL . '/accept-invitation.php?token=' . urlencode($token) . '&type=candidate';
+    // Use current request URL when available (more reliable for production), fallback to APP_URL
+    $baseUrl = currentBaseUrl();
+    $acceptUrl = $baseUrl . '/accept-invitation.php?token=' . urlencode($token) . '&type=candidate';
 
     $subject = 'You\'ve been invited to create your CV with ' . $organisationName;
 
@@ -335,7 +337,9 @@ function sendCandidateInvitationEmail($email, $fullName, $organisationName, $inv
  * @param string|null $organisationEmailName Optional organisation email display name
  */
 function sendTeamInvitationEmail($email, $organisationName, $role, $inviterName, $token, $personalMessage = null, $organisationEmail = null, $organisationEmailName = null) {
-    $acceptUrl = APP_URL . '/accept-invitation.php?token=' . urlencode($token) . '&type=team';
+    // Use current request URL when available (more reliable for production), fallback to APP_URL
+    $baseUrl = currentBaseUrl();
+    $acceptUrl = $baseUrl . '/accept-invitation.php?token=' . urlencode($token) . '&type=team';
 
     $roleDescriptions = [
         'admin' => 'an Administrator with full access to manage candidates and team settings',
