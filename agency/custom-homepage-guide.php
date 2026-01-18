@@ -28,7 +28,7 @@ $canonicalUrl = APP_URL . '/agency/custom-homepage-guide.php';
     <?php partial('agency/header'); ?>
 
     <main id="main-content" class="py-8">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Page Header -->
             <div class="mb-8">
                 <a href="/agency/settings.php" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium mb-4">
@@ -40,19 +40,42 @@ $canonicalUrl = APP_URL . '/agency/custom-homepage-guide.php';
                 </p>
             </div>
 
-            <!-- Table of Contents -->
-            <div class="bg-white rounded-lg shadow p-6 mb-8 border-l-4 border-blue-500">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Contents</h2>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li><a href="#getting-started" class="text-blue-600 hover:text-blue-800">1. Getting Started</a></li>
-                    <li><a href="#placeholders" class="text-blue-600 hover:text-blue-800">2. Using Placeholders</a></li>
-                    <li><a href="#html-basics" class="text-blue-600 hover:text-blue-800">3. HTML Basics</a></li>
-                    <li><a href="#css-styling" class="text-blue-600 hover:text-blue-800">4. CSS Styling</a></li>
-                    <li><a href="#examples" class="text-blue-600 hover:text-blue-800">5. Examples</a></li>
-                    <li><a href="#best-practices" class="text-blue-600 hover:text-blue-800">6. Best Practices</a></li>
-                    <li><a href="#troubleshooting" class="text-blue-600 hover:text-blue-800">7. Troubleshooting</a></li>
-                </ul>
-            </div>
+            <!-- Two Column Layout: Sidebar + Content -->
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Sticky Sidebar Navigation -->
+                <aside class="lg:w-64 flex-shrink-0">
+                    <div class="sticky top-24">
+                        <nav class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                            <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Contents</h2>
+                            <ul class="space-y-1">
+                                <li>
+                                    <a href="#getting-started" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Getting Started</a>
+                                </li>
+                                <li>
+                                    <a href="#placeholders" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Using Placeholders</a>
+                                </li>
+                                <li>
+                                    <a href="#html-basics" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">HTML Basics</a>
+                                </li>
+                                <li>
+                                    <a href="#css-styling" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">CSS Styling</a>
+                                </li>
+                                <li>
+                                    <a href="#examples" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Examples</a>
+                                </li>
+                                <li>
+                                    <a href="#best-practices" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Best Practices</a>
+                                </li>
+                                <li>
+                                    <a href="#troubleshooting" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Troubleshooting</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="flex-1 min-w-0">
 
             <!-- Getting Started -->
             <section id="getting-started" class="bg-white rounded-lg shadow p-6 mb-8 scroll-mt-24">
@@ -420,10 +443,81 @@ $canonicalUrl = APP_URL . '/agency/custom-homepage-guide.php';
                     </a>
                 </div>
             </div>
+                </div>
+            </div>
         </div>
     </main>
 
     <?php partial('footer'); ?>
+
+    <style>
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Active sidebar link highlighting */
+        nav a.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            font-weight: 500;
+        }
+    </style>
+    <script>
+        // Smooth scrolling for sidebar navigation links
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('aside nav a[href^="#"]');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        // Calculate offset for header (96px = top-24)
+                        const headerOffset = 96;
+                        const elementPosition = targetElement.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                        
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+
+        // Highlight active sidebar link on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('[id^="getting-started"], [id^="placeholders"], [id^="html-basics"], [id^="css-styling"], [id^="examples"], [id^="best-practices"], [id^="troubleshooting"]');
+            const navLinks = document.querySelectorAll('aside nav a');
+            
+            function updateActiveLink() {
+                let current = '';
+                const scrollPosition = window.scrollY + 150; // Offset for header
+                
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', updateActiveLink);
+            updateActiveLink(); // Initial call
+        });
+    </script>
 </body>
 </html>
 

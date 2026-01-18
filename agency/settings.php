@@ -435,6 +435,9 @@ if (isPost()) {
 // Refresh organisation data after potential updates
 $organisation = getOrganisationById($org['organisation_id']);
 
+// Check if user is owner or admin (for conditional UI)
+$isOwnerOrAdmin = in_array($org['role'], ['owner', 'admin']);
+
 // Load organisation AI settings
 $orgAiSettings = [
     'org_ai_enabled' => $organisation['org_ai_enabled'] ?? false,
@@ -481,16 +484,58 @@ $orgAiSettings = [
         <?php endif; ?>
 
         <!-- Page Header -->
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
             <h1 class="text-2xl font-bold text-gray-900">Organisation Settings</h1>
             <p class="mt-1 text-sm text-gray-500">
                 Manage your organisation's profile, branding, and preferences.
             </p>
         </div>
 
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <!-- Two Column Layout: Sidebar + Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-8">
+            <!-- Sticky Sidebar Navigation -->
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="sticky top-24">
+                    <nav class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <h2 class="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wide">Settings</h2>
+                        <ul class="space-y-1">
+                            <li>
+                                <a href="#general-settings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">General Settings</a>
+                            </li>
+                            <li>
+                                <a href="#logo" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Logo</a>
+                            </li>
+                            <li>
+                                <a href="#branding-colours" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Branding Colours</a>
+                            </li>
+                            <li>
+                                <a href="#custom-homepage" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Custom Homepage</a>
+                            </li>
+                            <li>
+                                <a href="#limit-increase" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Limit Increase</a>
+                            </li>
+                            <li>
+                                <a href="#candidate-settings" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Candidate Settings</a>
+                            </li>
+                            <?php if ($isOwnerOrAdmin): ?>
+                            <li>
+                                <a href="#organisation-ai" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Organisation AI</a>
+                            </li>
+                            <?php endif; ?>
+                            <?php if ($org['role'] === 'owner'): ?>
+                            <li>
+                                <a href="#danger-zone" class="block px-3 py-2 text-sm text-red-700 hover:bg-red-50 hover:text-red-600 rounded-md transition-colors">Danger Zone</a>
+                            </li>
+                            <?php endif; ?>
+                        </ul>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="flex-1 min-w-0 space-y-6">
             <!-- General Settings -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="general-settings" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">General Settings</h2>
                     <form method="POST">
@@ -539,7 +584,7 @@ $orgAiSettings = [
             </div>
 
             <!-- Logo -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="logo" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">Organisation Logo</h2>
 
@@ -595,7 +640,7 @@ $orgAiSettings = [
             </div>
 
             <!-- Branding Colours -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="branding-colours" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">Branding Colours</h2>
                     <p class="text-sm text-gray-500 mb-4">These colours will be used in candidate CVs and branded materials.</p>
@@ -653,7 +698,7 @@ $orgAiSettings = [
             </div>
 
             <!-- Custom Homepage -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="custom-homepage" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-medium text-gray-900">Custom Homepage</h2>
@@ -771,7 +816,7 @@ $orgAiSettings = [
             </div>
 
             <!-- Limit Increase Requests -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="limit-increase" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">Request Limit Increase</h2>
                     <p class="text-sm text-gray-500 mb-4">Request an increase in your candidate or team member limits. Super admins will review your request.</p>
@@ -977,7 +1022,7 @@ $orgAiSettings = [
             </div>
 
             <!-- Candidate Settings -->
-            <div class="bg-white shadow rounded-lg">
+            <div id="candidate-settings" class="bg-white shadow rounded-lg scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-gray-900 mb-4">Candidate Settings</h2>
 
@@ -1213,7 +1258,7 @@ $orgAiSettings = [
 
             <!-- Danger Zone (Owner only) -->
             <?php if ($org['role'] === 'owner'): ?>
-            <div class="bg-white shadow rounded-lg border-2 border-red-200">
+            <div id="danger-zone" class="bg-white shadow rounded-lg border-2 border-red-200 scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <h2 class="text-lg font-medium text-red-600 mb-4">Danger Zone</h2>
 
@@ -1245,12 +1290,81 @@ $orgAiSettings = [
                 </div>
             </div>
             <?php endif; ?>
+                </div>
+            </div>
         </div>
     </main>
 
     <?php partial('footer'); ?>
 
+    <style>
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Active sidebar link highlighting */
+        nav a.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            font-weight: 500;
+        }
+    </style>
     <script>
+        // Smooth scrolling for sidebar navigation links
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinks = document.querySelectorAll('aside nav a[href^="#"]');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        // Calculate offset for header (96px = top-24)
+                        const headerOffset = 96;
+                        const elementPosition = targetElement.getBoundingClientRect().top;
+                        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                        
+                        window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+
+        // Highlight active sidebar link on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('[id^="general-settings"], [id^="logo"], [id^="branding-colours"], [id^="custom-homepage"], [id^="limit-increase"], [id^="candidate-settings"], [id^="organisation-ai"], [id^="danger-zone"]');
+            const navLinks = document.querySelectorAll('aside nav a');
+            
+            function updateActiveLink() {
+                let current = '';
+                const scrollPosition = window.scrollY + 150; // Offset for header
+                
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            window.addEventListener('scroll', updateActiveLink);
+            updateActiveLink(); // Initial call
+        });
+
         // Sync colour picker with text display
         document.querySelectorAll('input[type="color"]').forEach(picker => {
             const textInput = picker.parentElement.querySelector('input[type="text"]');
