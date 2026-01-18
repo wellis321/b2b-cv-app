@@ -318,6 +318,7 @@ $gettingStartedTips = [
                         ?>
                             <?php
                             // Generate responsive image URLs for article images
+                            // Only include srcset entries for variants that actually exist
                             $imageBasePath = dirname($encodedImagePath);
                             $imageFileName = basename($encodedImagePath);
                             $pathInfo = pathinfo($imageFileName);
@@ -331,11 +332,19 @@ $gettingStartedTips = [
                                 'large' => ['width' => 1200, 'height' => 1200]
                             ];
                             
+                            // Get full path to original image for checking variant existence
+                            $originalFullPath = $_SERVER['DOCUMENT_ROOT'] . '/' . str_replace('%20', ' ', $imagePath);
+                            
                             $srcsetParts = [];
                             foreach ($responsiveSizes as $sizeName => $dimensions) {
                                 $responsiveFileName = $baseName . '_' . $sizeName . '.' . $ext;
+                                $responsiveFullPath = dirname($originalFullPath) . '/' . str_replace('%20', ' ', $responsiveFileName);
                                 $responsivePath = '/' . $imageBasePath . '/' . $responsiveFileName;
-                                $srcsetParts[] = $responsivePath . ' ' . $dimensions['width'] . 'w';
+                                
+                                // Only add to srcset if the file actually exists
+                                if (file_exists($responsiveFullPath)) {
+                                    $srcsetParts[] = $responsivePath . ' ' . $dimensions['width'] . 'w';
+                                }
                             }
                             $srcset = implode(', ', $srcsetParts);
                             $sizesAttr = '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 800px';

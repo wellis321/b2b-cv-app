@@ -57,13 +57,6 @@ $sections = [
                 'cta' => 'Read full guide',
                 'badge' => 'Toolkit',
             ],
-            [
-                'title' => 'Extra Income Ideas',
-                'excerpt' => 'Practical, flexible extra-income ideas you can start this week.',
-                'href' => '/resources/extra-income/',
-                'cta' => 'Read full guide',
-                'badge' => 'Guide',
-            ],
         ],
     ],
 ];

@@ -736,6 +736,55 @@ $orgAiSettings = [
                             </p>
                         </div>
 
+                        <!-- AI Template Generation -->
+                        <div class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-3">✨ Generate with AI</h3>
+                            <p class="text-sm text-gray-700 mb-4">
+                                Find a website template you like? Enter the URL below and our AI will adapt it for your homepage. 
+                                Or describe your ideal design and we'll create it for you.
+                            </p>
+                            
+                            <div id="ai-template-generator" class="space-y-4">
+                                <!-- Template URL Input -->
+                                <div>
+                                    <label for="template_reference_url" class="block text-sm font-medium text-gray-900 mb-2">
+                                        Template URL (Optional)
+                                    </label>
+                                    <input type="url"
+                                           id="template_reference_url"
+                                           placeholder="https://example.com/beautiful-template"
+                                           class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                                    <p class="mt-1 text-xs text-gray-500">Paste a URL to a website or template you'd like to use as inspiration</p>
+                                </div>
+                                
+                                <!-- Description Input -->
+                                <div>
+                                    <label for="template_description" class="block text-sm font-medium text-gray-900 mb-2">
+                                        Description (Optional)
+                                    </label>
+                                    <textarea id="template_description"
+                                              rows="3"
+                                              placeholder="Describe your ideal homepage design, or leave blank to use the template URL as reference"
+                                              class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"></textarea>
+                                </div>
+                                
+                                <!-- Generate Button -->
+                                <div>
+                                    <button type="button"
+                                            id="generate-template-btn"
+                                            class="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-purple-200">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                        Generate Homepage with AI
+                                    </button>
+                                    <span id="generate-template-status" class="ml-3 text-sm text-gray-600 hidden"></span>
+                                </div>
+                                
+                                <div id="generate-template-error" class="hidden p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700"></div>
+                            </div>
+                        </div>
+
                         <!-- HTML Editor -->
                         <div class="mb-6">
                             <label for="custom_homepage_html" class="block text-base font-semibold text-gray-900 mb-3">
@@ -1092,7 +1141,7 @@ $orgAiSettings = [
 
             <!-- Organisation AI Settings (Owner/Admin only) -->
             <?php if (in_array($org['role'], ['owner', 'admin'])): ?>
-            <div class="bg-white shadow rounded-lg border-2 border-yellow-200">
+            <div id="organisation-ai" class="bg-white shadow rounded-lg border-2 border-yellow-200 scroll-mt-24">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center space-x-2 mb-4">
                         <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1415,6 +1464,83 @@ $orgAiSettings = [
                 }
             });
         }
+
+        // AI Template Generation
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generate-template-btn');
+            const templateUrlInput = document.getElementById('template_reference_url');
+            const templateDescriptionInput = document.getElementById('template_description');
+            const statusSpan = document.getElementById('generate-template-status');
+            const errorDiv = document.getElementById('generate-template-error');
+            const htmlTextarea = document.getElementById('custom_homepage_html');
+            const cssTextarea = document.getElementById('custom_homepage_css');
+            
+            if (!generateBtn) return;
+            
+            generateBtn.addEventListener('click', async function() {
+                const referenceUrl = templateUrlInput.value.trim();
+                const description = templateDescriptionInput.value.trim();
+                
+                if (!referenceUrl && !description) {
+                    errorDiv.textContent = 'Please provide either a template URL or a description.';
+                    errorDiv.classList.remove('hidden');
+                    return;
+                }
+                
+                // Disable button and show loading state
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...';
+                statusSpan.textContent = 'Generating your homepage template...';
+                statusSpan.classList.remove('hidden');
+                errorDiv.classList.add('hidden');
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('csrf_token', '<?php echo csrfToken(); ?>');
+                    formData.append('description', description);
+                    formData.append('reference_url', referenceUrl);
+                    formData.append('options', JSON.stringify({}));
+                    
+                    const response = await fetch('/api/ai-generate-homepage-template.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Populate textareas with generated content
+                        if (htmlTextarea && result.html) {
+                            htmlTextarea.value = result.html;
+                        }
+                        if (cssTextarea && result.css) {
+                            cssTextarea.value = result.css;
+                        }
+                        
+                        statusSpan.textContent = '✓ Template generated! Review and save when ready.';
+                        statusSpan.className = 'ml-3 text-sm text-green-600';
+                        
+                        // Scroll to HTML editor
+                        if (htmlTextarea) {
+                            htmlTextarea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            setTimeout(() => htmlTextarea.focus(), 300);
+                        }
+                    } else {
+                        errorDiv.textContent = result.error || 'Failed to generate template. Please try again.';
+                        errorDiv.classList.remove('hidden');
+                        statusSpan.classList.add('hidden');
+                    }
+                } catch (error) {
+                    errorDiv.textContent = 'An error occurred while generating the template. Please try again.';
+                    errorDiv.classList.remove('hidden');
+                    statusSpan.classList.add('hidden');
+                } finally {
+                    // Re-enable button
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Homepage with AI';
+                }
+            });
+        });
     </script>
 </body>
 </html>

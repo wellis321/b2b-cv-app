@@ -1377,6 +1377,167 @@ class AIService {
     }
     
     /**
+     * Generate a custom homepage template based on organisation description or URL reference
+     * @param array $orgData The organisation data structure
+     * @param string $userDescription User's description of desired design
+     * @param array $options Additional options (reference URL, image path, etc.)
+     */
+    public function generateHomepageTemplate($orgData, $userDescription, $options = []) {
+        $prompt = $this->buildHomepageTemplatePrompt($orgData, $userDescription, $options);
+        
+        // Prepare image data if provided
+        $imageData = null;
+        if (!empty($options['reference_image_path']) && file_exists($options['reference_image_path'])) {
+            $imageData = [
+                'path' => $options['reference_image_path'],
+                'base64' => base64_encode(file_get_contents($options['reference_image_path'])),
+                'mime_type' => mime_content_type($options['reference_image_path'])
+            ];
+        }
+        
+        $response = $this->callAI($prompt, [
+            'temperature' => 0.7,
+            'max_tokens' => 8000, // HTML/CSS can be long
+            'image_data' => $imageData
+        ]);
+        
+        if (!$response['success']) {
+            return [
+                'success' => false,
+                'error' => $response['error'] ?? 'Template generation failed',
+                'raw_response' => $response['raw_response'] ?? null
+            ];
+        }
+        
+        $content = $response['content'] ?? '';
+        $template = $this->parseJsonResponse($content);
+        
+        if (!$template || !isset($template['html'])) {
+            return [
+                'success' => false,
+                'error' => 'Failed to parse AI response. The AI may not have returned valid JSON.',
+                'raw_response' => $content
+            ];
+        }
+        
+        // Validate template
+        $validation = $this->validateHomepageTemplate($template);
+        if (!$validation['valid']) {
+            return [
+                'success' => false,
+                'error' => $validation['error'] ?? 'Template validation failed',
+                'raw_response' => $content
+            ];
+        }
+        
+        return [
+            'success' => true,
+            'html' => $template['html'],
+            'css' => $template['css'] ?? '',
+            'instructions' => $template['instructions'] ?? ''
+        ];
+    }
+    
+    /**
+     * Build prompt for homepage template generation
+     */
+    private function buildHomepageTemplatePrompt($orgData, $userDescription, $options = []) {
+        $prompt = "You are a professional website designer. Generate a custom homepage template for a recruitment agency organisation based on the user's description.\n\n";
+        
+        $prompt .= "User's Design Description:\n" . $userDescription . "\n\n";
+        
+        if (!empty($options['reference_url'])) {
+            $prompt .= "Reference URL: " . $options['reference_url'] . "\n";
+            $prompt .= "Use this URL as inspiration for the design, layout, and styling. Adapt it for a recruitment agency homepage.\n\n";
+        }
+        
+        $prompt .= "Organisation Data Available:\n";
+        $prompt .= "- Name: " . ($orgData['name'] ?? 'N/A') . "\n";
+        $prompt .= "- Slug: " . ($orgData['slug'] ?? 'N/A') . "\n";
+        $prompt .= "- Logo URL: " . ($orgData['logo_url'] ?? 'Not set') . "\n";
+        $prompt .= "- Primary Colour: " . ($orgData['primary_colour'] ?? '#4338ca') . "\n";
+        $prompt .= "- Secondary Colour: " . ($orgData['secondary_colour'] ?? '#7e22ce') . "\n";
+        $prompt .= "- Candidate Count: " . ($orgData['candidate_count'] ?? 0) . "\n";
+        $prompt .= "- Public URL: " . ($orgData['public_url'] ?? '') . "\n\n";
+        
+        $prompt .= "Requirements:\n";
+        $prompt .= "1. Must use Tailwind CSS classes (no inline styles except where necessary)\n";
+        $prompt .= "2. Must be responsive (mobile-friendly)\n";
+        $prompt .= "3. Must maintain accessibility (proper headings, alt text, semantic HTML)\n";
+        $prompt .= "4. Use placeholder variables for dynamic content: {{organisation_name}}, {{logo_url}}, {{primary_colour}}, {{secondary_colour}}, {{candidate_count}}, {{public_url}}\n";
+        $prompt .= "5. Include sections suitable for a recruitment agency (hero, features, testimonials, call-to-action)\n";
+        $prompt .= "6. Make it visually appealing and professional\n";
+        $prompt .= "7. Use the organisation's primary and secondary colours for branding\n";
+        $prompt .= "8. The template will be inserted into a page that already has header/footer\n\n";
+        
+        $prompt .= "CRITICAL: You MUST return ONLY valid JSON. No markdown, no explanations, no code blocks - just pure JSON.\n\n";
+        $prompt .= "Output Format (JSON only):\n";
+        $prompt .= "{\n";
+        $prompt .= "  \"html\": \"Complete HTML structure with placeholder variables\",\n";
+        $prompt .= "  \"css\": \"Additional custom CSS (if needed, otherwise empty string)\",\n";
+        $prompt .= "  \"instructions\": \"Brief description of the template design\"\n";
+        $prompt .= "}\n\n";
+        
+        $prompt .= "IMPORTANT JSON REQUIREMENTS:\n";
+        $prompt .= "- Return ONLY the JSON object, nothing else\n";
+        $prompt .= "- Escape all quotes inside strings using backslash: \\\"\n";
+        $prompt .= "- Escape all backslashes: \\\\\n";
+        $prompt .= "- Do NOT wrap the JSON in markdown code blocks\n";
+        $prompt .= "- Do NOT include any text before or after the JSON\n";
+        $prompt .= "- Ensure all strings are properly quoted\n";
+        $prompt .= "- Ensure all brackets and braces are properly matched\n\n";
+        
+        $prompt .= "Template Requirements:\n";
+        $prompt .= "- The HTML should be a complete, self-contained homepage section\n";
+        $prompt .= "- Use Tailwind utility classes for styling\n";
+        $prompt .= "- Ensure proper semantic HTML structure\n";
+        $prompt .= "- Replace dynamic values with placeholders like {{organisation_name}}\n";
+        $prompt .= "- Example: <h1>{{organisation_name}}</h1>\n";
+        $prompt .= "- Example: <div style=\"background-color: {{primary_colour}}\">...</div>\n";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Validate generated homepage template for security and structure
+     */
+    private function validateHomepageTemplate($template) {
+        if (!isset($template['html']) || empty($template['html'])) {
+            return ['valid' => false, 'error' => 'HTML content is missing'];
+        }
+        
+        // Check for dangerous patterns
+        $dangerousPatterns = [
+            '/<script/i',
+            '/javascript:/i',
+            '/on\w+\s*=/i', // onclick, onload, etc.
+            '/<iframe/i',
+            '/<object/i',
+            '/<embed/i',
+            '/@import/i', // CSS imports
+            '/url\(javascript:/i',
+            '/expression\(/i', // CSS expressions
+        ];
+        
+        $html = $template['html'];
+        $css = $template['css'] ?? '';
+        $combined = $html . $css;
+        
+        foreach ($dangerousPatterns as $pattern) {
+            if (preg_match($pattern, $combined)) {
+                return ['valid' => false, 'error' => 'Template contains potentially dangerous code'];
+            }
+        }
+        
+        // Basic HTML structure check
+        if (!preg_match('/<div|<section|<article/i', $html)) {
+            return ['valid' => false, 'error' => 'Template must include proper HTML structure'];
+        }
+        
+        return ['valid' => true];
+    }
+    
+    /**
      * Validate generated template for security and structure
      */
     private function validateTemplate($template) {
