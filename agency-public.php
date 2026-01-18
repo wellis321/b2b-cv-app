@@ -40,6 +40,11 @@ $candidateCount = db()->fetchOne(
     [$organisation['id']]
 )['count'] ?? 0;
 
+// Check if custom homepage is enabled and has content
+$customHomepageEnabled = !empty($organisation['custom_homepage_enabled']);
+$customHomepageHtml = $organisation['custom_homepage_html'] ?? null;
+$customHomepageCss = $organisation['custom_homepage_css'] ?? null;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -54,12 +59,36 @@ $candidateCount = db()->fetchOne(
             --org-primary: <?php echo e($primaryColour); ?>;
             --org-secondary: <?php echo e($secondaryColour); ?>;
         }
+        <?php if ($customHomepageEnabled && !empty($customHomepageCss)): ?>
+        /* Custom Organisation CSS */
+        <?php echo $customHomepageCss; ?>
+        <?php endif; ?>
     </style>
 </head>
 <body class="bg-gray-50">
     <?php partial('header'); ?>
 
     <main id="main-content" role="main">
+<?php if ($customHomepageEnabled && !empty($customHomepageHtml)): ?>
+        <!-- Custom Homepage Content -->
+        <?php 
+        // Replace template variables in custom HTML
+        $customContent = $customHomepageHtml;
+        
+        // Replace organisation variables (using placeholders that users can use)
+        $customContent = str_replace('{{organisation_name}}', e($organisation['name']), $customContent);
+        $customContent = str_replace('{{organisation_slug}}', e($organisation['slug']), $customContent);
+        $customContent = str_replace('{{logo_url}}', e($logoUrl ?? ''), $customContent);
+        $customContent = str_replace('{{primary_colour}}', e($primaryColour), $customContent);
+        $customContent = str_replace('{{secondary_colour}}', e($secondaryColour), $customContent);
+        $customContent = str_replace('{{candidate_count}}', number_format($candidateCount), $customContent);
+        $customContent = str_replace('{{public_url}}', APP_URL . '/agency/' . e($organisation['slug']), $customContent);
+        
+        // Output the custom HTML
+        echo $customContent;
+        ?>
+<?php else: ?>
+        <!-- Default Homepage Template -->
         <!-- Hero Section -->
         <div class="bg-gradient-to-r" style="background: linear-gradient(to right, <?php echo e($primaryColour); ?>, <?php echo e($secondaryColour); ?>);">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -168,6 +197,7 @@ $candidateCount = db()->fetchOne(
                 </div>
             </div>
         </div>
+<?php endif; ?>
     </main>
 
     <?php partial('footer'); ?>

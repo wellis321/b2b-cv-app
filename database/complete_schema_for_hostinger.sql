@@ -134,6 +134,11 @@ CREATE TABLE IF NOT EXISTS organisations (
     org_browser_ai_model VARCHAR(100),
     org_ai_enabled BOOLEAN DEFAULT FALSE,
 
+    -- Custom Homepage
+    custom_homepage_enabled BOOLEAN DEFAULT FALSE COMMENT 'Enable custom homepage instead of default template',
+    custom_homepage_html TEXT NULL COMMENT 'Custom homepage HTML content',
+    custom_homepage_css TEXT NULL COMMENT 'Custom homepage CSS styles',
+
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -141,7 +146,8 @@ CREATE TABLE IF NOT EXISTS organisations (
     INDEX idx_organisations_slug (slug),
     INDEX idx_organisations_custom_domain (custom_domain),
     INDEX idx_organisations_subscription_status (subscription_status),
-    INDEX idx_org_ai_enabled (org_ai_enabled)
+    INDEX idx_org_ai_enabled (org_ai_enabled),
+    INDEX idx_custom_homepage_enabled (custom_homepage_enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
