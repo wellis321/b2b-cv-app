@@ -252,20 +252,25 @@ CREATE TABLE IF NOT EXISTS activity_log (
 CREATE TABLE IF NOT EXISTS limit_increase_requests (
     id VARCHAR(36) PRIMARY KEY,
     organisation_id VARCHAR(36) NOT NULL,
+    requested_by VARCHAR(36) NOT NULL,
     request_type ENUM('candidates', 'team_members') NOT NULL,
     current_limit INT NOT NULL,
     requested_limit INT NOT NULL,
     reason TEXT,
     status ENUM('pending', 'approved', 'denied', 'cancelled') DEFAULT 'pending',
     reviewed_by VARCHAR(36),
-    reviewed_at TIMESTAMP,
+    reviewed_at DATETIME,
+    review_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES profiles(id) ON DELETE CASCADE,
     FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL,
     INDEX idx_requests_org (organisation_id),
-    INDEX idx_requests_status (status)
+    INDEX idx_requests_status (status),
+    INDEX idx_requests_type (request_type),
+    INDEX idx_requests_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
@@ -834,10 +839,13 @@ CREATE TABLE IF NOT EXISTS user_feedback (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- Add Foreign Key Constraints
+-- Add Foreign Key Constraints (after all tables exist)
 -- =====================================================
-ALTER TABLE profiles ADD CONSTRAINT fk_profiles_organisation
-    FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE SET NULL;
+-- Note: Profiles table is created before organisations, so we add the FK constraint here.
+-- If you get a "Duplicate key" error, the constraint already exists - that's OK, skip this.
+-- Uncomment the line below if you need to add the foreign key constraint:
+
+-- ALTER TABLE profiles ADD CONSTRAINT fk_profiles_organisation FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE SET NULL;
 
 SET FOREIGN_KEY_CHECKS=1;
 
