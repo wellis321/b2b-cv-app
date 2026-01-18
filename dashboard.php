@@ -7,13 +7,8 @@ require_once __DIR__ . '/php/helpers.php';
 
 requireAuth();
 
-// Redirect candidates to candidate dashboard
-if (isCandidate()) {
-    redirect('/candidate/dashboard.php');
-}
-
-// Note: Organisation members can access their CV sections via this dashboard
-// They can also access the agency dashboard via the "Agency Dashboard" link in navigation
+// Note: Candidates and organisation members can access their CV sections via this dashboard
+// Organisation members can also access the agency dashboard via the "Agency Dashboard" link in navigation
 
 $user = getCurrentUser();
 $error = getFlash('error');

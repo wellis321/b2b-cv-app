@@ -568,10 +568,7 @@ function getDashboardUrl() {
         return '/agency/dashboard.php';
     }
 
-    if (isCandidate()) {
-        return '/candidate/dashboard.php';
-    }
-
+    // Candidates use the same dashboard as individual users to edit their CV sections
     return '/dashboard.php';
 }
 
