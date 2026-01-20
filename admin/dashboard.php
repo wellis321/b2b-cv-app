@@ -300,7 +300,7 @@ $pendingRequestsCount = count($pendingLimitRequests);
         <!-- Quick Actions -->
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
             <h2 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <a href="/admin/organisations.php"
                    class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-gray-400 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
                     <div class="flex-shrink-0">
@@ -340,6 +340,20 @@ $pendingRequestsCount = count($pendingLimitRequests);
                         <span class="absolute inset-0" aria-hidden="true"></span>
                         <p class="text-sm font-medium text-gray-900">Activity Log</p>
                         <p class="truncate text-sm text-gray-500">System-wide activity</p>
+                    </div>
+                </a>
+
+                <a href="/admin/security-logs.php"
+                   class="relative flex items-center space-x-3 rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-gray-400 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <span class="absolute inset-0" aria-hidden="true"></span>
+                        <p class="text-sm font-medium text-gray-900">Security Logs</p>
+                        <p class="truncate text-sm text-gray-500">Security events</p>
                     </div>
                 </a>
 

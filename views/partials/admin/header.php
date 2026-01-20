@@ -53,6 +53,11 @@ $user = getCurrentUser();
                     Activity
                 </a>
 
+                <a href="/admin/security-logs.php"
+                   class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $currentPage === 'security-logs.php' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-green-50 hover:text-green-700'; ?> focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    Security
+                </a>
+
                 <a href="/admin/limit-requests.php"
                    class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $currentPage === 'limit-requests.php' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-green-50 hover:text-green-700'; ?> focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                     Limits
@@ -121,6 +126,11 @@ $user = getCurrentUser();
                 <a href="/admin/activity.php"
                    class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'activity.php' ? 'text-green-700 bg-green-100' : 'text-gray-700 hover:bg-green-100 hover:text-green-700'; ?> focus:outline-none focus:ring-2 focus:ring-green-500">
                     Activity
+                </a>
+
+                <a href="/admin/security-logs.php"
+                   class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'security-logs.php' ? 'text-green-700 bg-green-100' : 'text-gray-700 hover:bg-green-100 hover:text-green-700'; ?> focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Security
                 </a>
 
                 <a href="/admin/limit-requests.php"

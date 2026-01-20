@@ -151,6 +151,9 @@ try {
     $promptMode = $_POST['prompt_instructions_mode'] ?? 'default';
     $customInstructions = null;
     
+    // Load prompt security functions
+    require_once __DIR__ . '/../php/prompt-security.php';
+    
     if ($promptMode === 'saved') {
         // Use saved custom instructions from user's profile
         $userProfile = db()->fetchOne(
@@ -158,6 +161,21 @@ try {
             [$user['id']]
         );
         $customInstructions = $userProfile['cv_rewrite_prompt_instructions'] ?? null;
+        
+        // Sanitize saved instructions (they may have been saved before security was added)
+        if (!empty($customInstructions)) {
+            $sanitizationResult = sanitizePromptInstructions($customInstructions);
+            if ($sanitizationResult['blocked']) {
+                // If blocked, fall back to defaults
+                $customInstructions = null;
+            } else {
+                $customInstructions = $sanitizationResult['sanitized'];
+            }
+            // Log if there were warnings
+            if (!empty($sanitizationResult['warnings'])) {
+                logPromptSecurityEvent($user['id'], $customInstructions, $sanitizationResult);
+            }
+        }
     } elseif ($promptMode === 'custom') {
         // Use custom instructions provided for this generation only
         $customInstructions = trim($_POST['prompt_custom_text'] ?? '');
@@ -168,6 +186,26 @@ try {
         if (strlen($customInstructions) > 2000) {
             throw new Exception('Custom instructions must be 2000 characters or less');
         }
+        
+        // Sanitize and validate custom instructions
+        $sanitizationResult = sanitizePromptInstructions($customInstructions);
+        $validationResult = validatePromptInstructions($sanitizationResult['sanitized']);
+        
+        // Log security events
+        logPromptSecurityEvent($user['id'], $customInstructions, $sanitizationResult);
+        
+        // If blocked, reject
+        if ($sanitizationResult['blocked']) {
+            throw new Exception('Custom instructions contain prohibited content. Please ensure your instructions relate only to CV rewriting.');
+        }
+        
+        // If validation failed, return errors
+        if (!$validationResult['valid']) {
+            throw new Exception(implode('. ', $validationResult['errors']));
+        }
+        
+        // Use sanitized version
+        $customInstructions = $sanitizationResult['sanitized'];
     }
     // If mode is 'default', $customInstructions remains null and defaults will be used
     
