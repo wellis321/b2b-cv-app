@@ -283,7 +283,7 @@ if (isPost()) {
                     <?php echo getPlanLimitMessage($subscriptionContext, 'work_experience'); ?>
                 </div>
             <?php else: ?>
-            <form method="POST" action="/work-experience.php">
+            <form method="POST" action="/work-experience.php" id="work-experience-form">
                 <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                 <input type="hidden" name="action" value="<?php echo $editingExperience ? 'update' : 'create'; ?>">
                 <?php if ($editingExperience): ?>
@@ -326,7 +326,7 @@ if (isPost()) {
                 </div>
 
                 <div class="mt-6">
-                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
+                    <button type="submit" id="work-experience-save-btn" class="<?php echo $editingExperience ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'; ?> text-white px-6 py-2 rounded-md font-medium">
                         <?php echo $editingExperience ? 'Update Work Experience' : 'Add Work Experience'; ?>
                     </button>
                     <?php if ($editingExperience): ?>
@@ -343,6 +343,18 @@ if (isPost()) {
                     <div id="responsibilities-editor-<?php echo e($editingExperience['id']); ?>"
                          data-work-experience-id="<?php echo e($editingExperience['id']); ?>">
                         <!-- Responsibilities will be loaded here via JavaScript -->
+                    </div>
+                    <!-- Bottom Save Button -->
+                    <div class="mt-6 pt-6 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <button type="button" onclick="document.getElementById('work-experience-form')?.submit();" class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-medium shadow-sm">
+                                    Update Work Experience
+                                </button>
+                                <a href="/work-experience.php" class="ml-4 text-gray-700 hover:text-gray-900">Cancel</a>
+                            </div>
+                            <p class="text-sm text-gray-600">Save after adding categories and responsibilities</p>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>

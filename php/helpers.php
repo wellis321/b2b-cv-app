@@ -592,13 +592,13 @@ function getResponsiveImageAttributes($imageData, $fallbackUrl = '', $context = 
             break;
         case 'cv':
             // CV page: Container is max-w-6xl (1152px) with px-4 sm:px-6 lg:px-8 padding
-            // More granular sizes for better image selection at different viewport widths:
-            // - Very small mobile (< 400px): 100vw (up to 400px) → thumb (150w) or small (400w)
-            // - Small mobile (400-640px): 100vw (up to 640px) → small (400w) or medium (800w)
-            // - Tablet (640-1024px): 100vw (up to 1024px) → medium (800w) or large (1200w)
-            // - Desktop (> 1024px): ~1100px (max-w-6xl minus padding) → large (1200w)
-            // This helps browser choose appropriate size based on actual rendered width
-            $sizesAttr = '(max-width: 400px) 100vw, (max-width: 640px) 100vw, (max-width: 1024px) 100vw, 1100px';
+            // Project images are in the right column (lg:col-span-2, takes 2/3 width on large screens)
+            // Actual rendered widths at different breakpoints:
+            // - Mobile (< 640px): Container is ~calc(100vw - 2rem), image is w-full → small (400w) or medium (800w)
+            // - Tablet (640-1024px): Container is ~calc(100vw - 3rem), image is w-full → medium (800w) or large (1200w)
+            // - Desktop (> 1024px): Container is max-w-6xl, right column is 2/3 width (~700px) → large (1200w)
+            // More specific sizes help browser choose appropriate image when viewport changes
+            $sizesAttr = '(max-width: 640px) 100vw, (max-width: 1024px) 100vw, (max-width: 1280px) 700px, 700px';
             break;
         default:
             // Default: Full width with reasonable max

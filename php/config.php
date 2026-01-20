@@ -200,7 +200,7 @@ define('PASSWORD_MIN_LENGTH', 8);
 // AI Service Configuration
 define('AI_SERVICE', env('AI_SERVICE', 'ollama')); // 'ollama', 'openai', 'anthropic'
 define('OLLAMA_BASE_URL', env('OLLAMA_BASE_URL', 'http://localhost:11434'));
-define('OLLAMA_MODEL', env('OLLAMA_MODEL', 'llama3.2:3b')); // Lightweight for local dev
+define('OLLAMA_MODEL', env('OLLAMA_MODEL', 'llama3:latest')); // Default model - change to match your installed Ollama model
 define('OPENAI_API_KEY', env('OPENAI_API_KEY', ''));
 define('OPENAI_MODEL', env('OPENAI_MODEL', 'gpt-4-turbo-preview'));
 define('ANTHROPIC_API_KEY', env('ANTHROPIC_API_KEY', ''));

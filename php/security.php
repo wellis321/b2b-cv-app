@@ -263,8 +263,8 @@ function setSecurityHeaders() {
 
     // Content Security Policy (basic)
     // Allow connections to localhost for Ollama and other local services
-    // Allow cdnjs.cloudflare.com for pdfmake and other libraries
-    $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;";
+    // Allow cdnjs.cloudflare.com for pdfmake source maps and other CDN resources
+    $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://cdnjs.cloudflare.com;";
     header("Content-Security-Policy: {$csp}");
 
     // HSTS (only if HTTPS)

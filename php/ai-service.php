@@ -190,7 +190,7 @@ class AIService {
         $this->config = [
             'ollama' => [
                 'base_url' => $userOllamaUrl ?: ($orgOllamaUrl ?: env('OLLAMA_BASE_URL', 'http://localhost:11434')),
-                'model' => $userOllamaModel ?: ($orgOllamaModel ?: env('OLLAMA_MODEL', 'llama3.2:3b')),
+                'model' => $userOllamaModel ?: ($orgOllamaModel ?: env('OLLAMA_MODEL', 'llama3:latest')),
             ],
             'openai' => [
                 'api_key' => $decryptedOpenAiKey ?: ($decryptedOrgOpenAiKey ?: env('OPENAI_API_KEY', '')),
@@ -273,6 +273,281 @@ class AIService {
             'cv_data' => $rewritten,
             'raw_response' => $response['content']
         ];
+    }
+    
+    /**
+     * Generate a cover letter based on CV data and job application details
+     * @param array $cvData The CV data structure
+     * @param array $jobApplication Job application details (company_name, job_title, job_description, etc.)
+     * @param array $options Additional options (custom_instructions, etc.)
+     */
+    public function generateCoverLetter($cvData, $jobApplication, $options = []) {
+        $prompt = $this->buildCoverLetterPrompt($cvData, $jobApplication, $options);
+        
+        $response = $this->callAI($prompt, [
+            'temperature' => 0.8,
+            'max_tokens' => 2000,
+        ]);
+        
+        if (!$response['success']) {
+            return $response;
+        }
+        
+        // Clean the response - remove markdown formatting, extra whitespace
+        $coverLetterText = $this->cleanCoverLetterText($response['content']);
+        
+        return [
+            'success' => true,
+            'cover_letter_text' => $coverLetterText,
+            'raw_response' => $response['content']
+        ];
+    }
+    
+    /**
+     * Build prompt for cover letter generation
+     */
+    private function buildCoverLetterPrompt($cvData, $jobApplication, $options = []) {
+        $customInstructions = $options['custom_instructions'] ?? null;
+        
+        $prompt = "You are a professional cover letter writer. Write a compelling, personalized cover letter for this job application.\n\n";
+        
+        // Job application details
+        $prompt .= "Job Application Details:\n";
+        $prompt .= "- Company: " . ($jobApplication['company_name'] ?? 'Unknown Company') . "\n";
+        $prompt .= "- Job Title: " . ($jobApplication['job_title'] ?? 'Position') . "\n";
+        if (!empty($jobApplication['job_description'])) {
+            $prompt .= "- Job Description:\n" . $jobApplication['job_description'] . "\n";
+        }
+        if (!empty($jobApplication['job_location'])) {
+            $prompt .= "- Location: " . $jobApplication['job_location'] . "\n";
+        }
+        $prompt .= "\n";
+        
+        // CV data
+        $prompt .= "Candidate Information (from CV):\n";
+        
+        // Profile information
+        if (!empty($cvData['profile'])) {
+            $profile = $cvData['profile'];
+            $prompt .= "- Name: " . ($profile['full_name'] ?? 'Candidate') . "\n";
+            if (!empty($profile['email'])) {
+                $prompt .= "- Email: " . $profile['email'] . "\n";
+            }
+            if (!empty($profile['phone'])) {
+                $prompt .= "- Phone: " . $profile['phone'] . "\n";
+            }
+            if (!empty($profile['location'])) {
+                $prompt .= "- Location: " . $profile['location'] . "\n";
+            }
+        }
+        
+        // Professional summary
+        if (!empty($cvData['professional_summary'])) {
+            $prompt .= "\n- Professional Summary: " . ($cvData['professional_summary']['description'] ?? '') . "\n";
+        }
+        
+        // Work experience
+        if (!empty($cvData['work_experience'])) {
+            $prompt .= "\n- Work Experience:\n";
+            foreach (array_slice($cvData['work_experience'], 0, 5) as $work) {
+                $prompt .= "  * " . ($work['position'] ?? '') . " at " . ($work['company_name'] ?? '') . "\n";
+                if (!empty($work['start_date']) && !empty($work['end_date'])) {
+                    $startDate = date('M Y', strtotime($work['start_date']));
+                    $endDate = !empty($work['end_date']) ? date('M Y', strtotime($work['end_date'])) : 'Present';
+                    $prompt .= "    Period: " . $startDate . " to " . $endDate . "\n";
+                }
+                if (!empty($work['description'])) {
+                    $prompt .= "    " . substr($work['description'], 0, 200) . "\n";
+                }
+                if (!empty($work['responsibility_categories'])) {
+                    foreach (array_slice($work['responsibility_categories'], 0, 2) as $cat) {
+                        if (!empty($cat['items'])) {
+                            foreach (array_slice($cat['items'], 0, 2) as $item) {
+                                $prompt .= "    - " . substr($item['content'], 0, 150) . "\n";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Skills
+        if (!empty($cvData['skills'])) {
+            $skills = array_map(function($s) { return $s['name']; }, array_slice($cvData['skills'], 0, 15));
+            $prompt .= "\n- Key Skills: " . implode(', ', $skills) . "\n";
+        }
+        
+        // Education
+        if (!empty($cvData['education'])) {
+            $prompt .= "\n- Education:\n";
+            foreach (array_slice($cvData['education'], 0, 3) as $edu) {
+                $prompt .= "  * " . ($edu['degree'] ?? '') . " from " . ($edu['institution'] ?? '') . "\n";
+            }
+        }
+        
+        $prompt .= "\n";
+        
+        // Instructions
+        $defaultInstructions = "Write a professional cover letter that:\n";
+        $defaultInstructions .= "1. Addresses the hiring manager or company directly\n";
+        $defaultInstructions .= "2. Opens with a strong, engaging introduction that shows genuine interest in the role\n";
+        $defaultInstructions .= "3. Highlights 2-3 most relevant experiences or achievements from the candidate's background\n";
+        $defaultInstructions .= "4. Demonstrates knowledge of the company or role (if information is available)\n";
+        $defaultInstructions .= "5. Connects the candidate's skills and experience to the job requirements\n";
+        $defaultInstructions .= "6. Closes with enthusiasm and a clear call to action\n";
+        $defaultInstructions .= "7. Is professional, concise (3-4 paragraphs), and well-structured\n";
+        $defaultInstructions .= "8. Uses a professional but personable tone\n";
+        $defaultInstructions .= "9. Includes specific examples and achievements where relevant\n";
+        $defaultInstructions .= "10. Does NOT include placeholders, brackets, or generic text\n";
+        $defaultInstructions .= "11. Uses British English spelling (e.g., 'organised' not 'organized', 'colour' not 'color', 'centre' not 'center')\n\n";
+        $defaultInstructions .= "CRITICAL FORMATTING RULES:\n";
+        $defaultInstructions .= "- Return ONLY plain text - NO JSON, NO markdown, NO code blocks\n";
+        $defaultInstructions .= "- Do NOT wrap the text in curly braces { } or quotation marks\n";
+        $defaultInstructions .= "- Do NOT put quotation marks around paragraphs\n";
+        $defaultInstructions .= "- Do NOT use markdown formatting (no **bold**, no headers, no lists)\n";
+        $defaultInstructions .= "- Do NOT include explanatory text before or after the letter\n";
+        $defaultInstructions .= "- Do NOT include placeholder text or brackets\n";
+        $defaultInstructions .= "- Do NOT include the words 'Cover Letter' as a title\n";
+        $defaultInstructions .= "- Start directly with the greeting (e.g., 'Dear Hiring Manager,' or 'Dear [Company Name] Team,')\n";
+        $defaultInstructions .= "- End with a professional closing (e.g., 'Sincerely,' followed by the candidate's name)\n";
+        $defaultInstructions .= "- Write the letter as plain text paragraphs, separated by blank lines\n";
+        
+        $instructions = $defaultInstructions;
+        if (!empty($customInstructions)) {
+            $instructions = $defaultInstructions . "\n\nAdditional User Instructions:\n" . $customInstructions;
+        }
+        
+        $prompt .= "Instructions:\n" . $instructions . "\n\n";
+        $prompt .= "IMPORTANT: Write the cover letter as plain text. Do NOT use JSON format. Do NOT wrap it in { } or use \"letter\": \"...\" format.\n";
+        $prompt .= "Start directly with the greeting and write the letter as normal paragraphs.\n\n";
+        $prompt .= "Now write the cover letter:\n";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Clean cover letter text - remove markdown, JSON formatting, quotation marks, etc.
+     */
+    private function cleanCoverLetterText($text) {
+        // Trim whitespace first
+        $text = trim($text);
+        
+        // First, try to extract JSON content if the entire response is JSON
+        // This handles cases where AI returns {"letter": "..."} or similar
+        $decoded = json_decode($text, true);
+        if ($decoded !== null && is_array($decoded)) {
+            // If it's valid JSON, look for common keys that might contain the letter
+            if (isset($decoded['letter']) && is_string($decoded['letter'])) {
+                $text = $decoded['letter'];
+            } elseif (isset($decoded['cover_letter']) && is_string($decoded['cover_letter'])) {
+                $text = $decoded['cover_letter'];
+            } elseif (isset($decoded['text']) && is_string($decoded['text'])) {
+                $text = $decoded['text'];
+            } elseif (isset($decoded['content']) && is_string($decoded['content'])) {
+                $text = $decoded['content'];
+            } elseif (isset($decoded['message']) && is_string($decoded['message'])) {
+                $text = $decoded['message'];
+            } else {
+                // If it's an array of strings, join them
+                $stringValues = [];
+                foreach ($decoded as $value) {
+                    if (is_string($value) && strlen($value) > 10) {
+                        $stringValues[] = $value;
+                    }
+                }
+                if (count($stringValues) > 0) {
+                    $text = implode("\n\n", $stringValues);
+                }
+            }
+        } else {
+            // Try to extract JSON-like patterns even if not valid JSON
+            // Handle multiline JSON strings with escaped newlines - use a more permissive pattern
+            // Match "letter": "..." where ... can contain escaped characters
+            $extracted = false;
+            
+            // Try to match the pattern: "letter": "content" where content may span multiple lines
+            // This regex handles escaped quotes, newlines, and other escape sequences
+            if (preg_match('/"letter"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $matches)) {
+                $text = $matches[1];
+                $text = stripcslashes($text); // Convert \n to actual newlines, etc.
+                $extracted = true;
+            } elseif (preg_match('/"cover_letter"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $matches)) {
+                $text = $matches[1];
+                $text = stripcslashes($text);
+                $extracted = true;
+            } elseif (preg_match('/"text"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $matches)) {
+                $text = $matches[1];
+                $text = stripcslashes($text);
+                $extracted = true;
+            } elseif (preg_match('/"content"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $matches)) {
+                $text = $matches[1];
+                $text = stripcslashes($text);
+                $extracted = true;
+            }
+            
+            // If extraction failed, try a different approach: find content between quotes after "letter":
+            if (!$extracted && preg_match('/"letter"\s*:\s*"([^"]*(?:\\\\.[^"]*)*)"/s', $text, $matches)) {
+                $text = $matches[1];
+                $text = stripcslashes($text);
+                $extracted = true;
+            }
+        }
+        
+        // If we still have escaped newlines, convert them (fallback)
+        if (strpos($text, '\\n') !== false) {
+            $text = str_replace('\\n', "\n", $text);
+        }
+        
+        // Remove JSON wrapping (curly braces at start/end) if still present
+        $text = preg_replace('/^\s*\{[\s\n]*/', '', $text); // Remove opening { and whitespace
+        $text = preg_replace('/[\s\n]*\}\s*$/', '', $text); // Remove closing } and whitespace
+        
+        // Remove any remaining JSON key patterns (e.g., "letter": at the start)
+        $text = preg_replace('/^["\']?\w+["\']?\s*:\s*/', '', $text);
+        
+        // Remove quotation marks around paragraphs (standalone quotes at start/end of lines)
+        // Pattern: "text" on its own line or at start/end of paragraph
+        $text = preg_replace('/^"([^"]+)"\s*$/m', '$1', $text); // Lines wrapped in quotes
+        $text = preg_replace('/^"([^"]+)"\s*\n/m', '$1\n', $text); // Quotes at start of line
+        $text = preg_replace('/\n"([^"]+)"\s*$/m', '\n$1', $text); // Quotes at end of line
+        
+        // Remove markdown formatting
+        $text = preg_replace('/\*\*(.*?)\*\*/', '$1', $text); // Bold
+        $text = preg_replace('/\*(.*?)\*/', '$1', $text); // Italic
+        $text = preg_replace('/#+\s*(.*?)$/m', '$1', $text); // Headers
+        $text = preg_replace('/```[\s\S]*?```/', '', $text); // Code blocks
+        
+        // Remove common AI prefixes/suffixes
+        $text = preg_replace('/^(Here is|Here\'s|This is|I\'ve written|I\'ll write)[\s\S]*?(?=Dear|To|Dear Hiring)/i', '', $text);
+        $text = preg_replace('/^(Cover Letter|Letter)[\s\S]*?(?=Dear|To|Dear Hiring)/i', '', $text);
+        
+        // Convert American to British spelling (common words)
+        $text = preg_replace('/\borganized\b/i', 'organised', $text);
+        $text = preg_replace('/\borganization\b/i', 'organisation', $text);
+        $text = preg_replace('/\borganizing\b/i', 'organising', $text);
+        $text = preg_replace('/\bcolor\b/i', 'colour', $text);
+        $text = preg_replace('/\bcolors\b/i', 'colours', $text);
+        $text = preg_replace('/\bcenter\b/i', 'centre', $text);
+        $text = preg_replace('/\bcenters\b/i', 'centres', $text);
+        $text = preg_replace('/\brealize\b/i', 'realise', $text);
+        $text = preg_replace('/\brealized\b/i', 'realised', $text);
+        $text = preg_replace('/\brecognize\b/i', 'recognise', $text);
+        $text = preg_replace('/\brecognized\b/i', 'recognised', $text);
+        $text = preg_replace('/\banalyze\b/i', 'analyse', $text);
+        $text = preg_replace('/\banalyzed\b/i', 'analysed', $text);
+        $text = preg_replace('/\bfavor\b/i', 'favour', $text);
+        $text = preg_replace('/\bfavors\b/i', 'favours', $text);
+        $text = preg_replace('/\bhonor\b/i', 'honour', $text);
+        $text = preg_replace('/\bhonors\b/i', 'honours', $text);
+        $text = preg_replace('/\blabor\b/i', 'labour', $text);
+        $text = preg_replace('/\bneighbor\b/i', 'neighbour', $text);
+        $text = preg_replace('/\bneighbors\b/i', 'neighbours', $text);
+        
+        // Clean up whitespace
+        $text = preg_replace('/\n{3,}/', "\n\n", $text); // Multiple newlines to double
+        $text = trim($text);
+        
+        return $text;
     }
     
     /**
@@ -900,6 +1175,35 @@ class AIService {
                 $errorData = json_decode($response, true);
                 if (isset($errorData['error'])) {
                     $errorMsg .= ' - ' . $errorData['error'];
+                    
+                    // If model not found, provide helpful suggestions
+                    if ($httpCode === 404 && strpos($errorData['error'], 'model') !== false) {
+                        // Try to get available models for better error message
+                        try {
+                            $tagsUrl = $this->config['ollama']['base_url'] . '/api/tags';
+                            $ch2 = curl_init($tagsUrl);
+                            curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                            curl_setopt($ch2, CURLOPT_TIMEOUT, 5);
+                            $tagsResponse = curl_exec($ch2);
+                            $tagsHttpCode = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                            curl_close($ch2);
+                            
+                            if ($tagsHttpCode === 200 && $tagsResponse) {
+                                $tagsData = json_decode($tagsResponse, true);
+                                $availableModels = $tagsData['models'] ?? [];
+                                if (!empty($availableModels)) {
+                                    $modelNames = array_column($availableModels, 'name');
+                                    $errorMsg .= '. Available models: ' . implode(', ', $modelNames) . '. Please update your AI settings to use one of these models.';
+                                } else {
+                                    $errorMsg .= '. Please check your AI settings and ensure you have a model installed. Go to Settings > AI Settings to configure your model.';
+                                }
+                            } else {
+                                $errorMsg .= '. Please check your AI settings at Settings > AI Settings. Make sure the model name matches exactly what you have installed in Ollama (e.g., llama3:latest).';
+                            }
+                        } catch (Exception $e) {
+                            $errorMsg .= '. Please check your AI settings at Settings > AI Settings. Make sure the model name matches exactly what you have installed in Ollama (e.g., llama3:latest).';
+                        }
+                    }
                 } elseif ($httpCode === 500) {
                     $errorMsg .= ' - Server error. The model may have run out of memory or the prompt may be too long. Try using a smaller model or reducing CV content.';
                 }

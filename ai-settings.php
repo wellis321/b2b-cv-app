@@ -1,14 +1,17 @@
 <?php
 /**
  * AI Settings Page
- * Allows users to configure their local Ollama connection
+ * Allows users to configure their AI service preferences
+ * Super admins can use local Ollama; regular users can use cloud APIs or browser-based AI
  */
 
 require_once __DIR__ . '/php/helpers.php';
+require_once __DIR__ . '/php/authorisation.php';
 
 requireAuth();
 
 $user = getCurrentUser();
+$isSuperAdmin = isSuperAdmin($user['id']);
 $error = getFlash('error');
 $success = getFlash('success');
 
@@ -55,6 +58,12 @@ if (isPost()) {
     $browserModel = post('browser_ai_model');
     
     // Validate inputs based on selected service
+    // Only super admins can use Ollama
+    if ($aiService === 'ollama' && !isSuperAdmin($user['id'])) {
+        setFlash('error', 'Only super administrators can use local Ollama.');
+        redirect('/ai-settings.php');
+    }
+    
     if ($aiService === 'ollama') {
         if (empty($ollamaUrl)) {
             setFlash('error', 'Ollama base URL is required when using Ollama.');
@@ -201,7 +210,7 @@ if (isPost()) {
             <div class="mb-8">
                 <h1 class="text-4xl font-bold text-gray-900 mb-4">AI Settings</h1>
                 <p class="text-lg text-gray-600">
-                    Configure your local AI connection to use Ollama for CV rewriting and quality assessment.
+                    Configure your AI service preferences for CV rewriting and quality assessment.
                 </p>
             </div>
 
@@ -288,9 +297,9 @@ if (isPost()) {
                 <div id="cost-warning-content" class="hidden px-4 pt-4 pb-4 bg-white">
                     <div class="text-sm text-gray-700 space-y-2">
                         <p><strong class="text-gray-900">Cloud AI services (OpenAI, Anthropic, Gemini, Grok) charge per use.</strong> Costs are based on the amount of text processed and can add up quickly with repeated CV generations.</p>
-                        <p><strong class="text-gray-900">Free options:</strong> Local Ollama and Browser-Based AI are completely free - they run on your computer or in your browser with no API costs.</p>
+                        <p><strong class="text-gray-900">Free options:</strong> Browser-Based AI is completely free - it runs in your browser with no API costs.</p>
                         <p><strong class="text-gray-900">Free tiers:</strong> Some services offer limited free tiers, but these have usage limits. Check each provider's pricing page for current free tier details.</p>
-                        <p><strong class="text-gray-900">Recommendation:</strong> Start with Local Ollama or Browser-Based AI to avoid costs. Only use paid APIs if you need specific features or higher quality outputs.</p>
+                        <p><strong class="text-gray-900">Recommendation:</strong> Start with Browser-Based AI to avoid costs. Only use paid APIs if you need specific features or higher quality outputs.</p>
                     </div>
                 </div>
             </div>
@@ -305,8 +314,9 @@ if (isPost()) {
                 </button>
                 <div id="service-comparison-content" class="hidden px-4 pt-4 pb-4 bg-white">
                     <p class="text-gray-700 mb-4">
-                        Select how you want to use AI features. You can use your own API keys (no cost to us), browser-based AI (runs entirely in your browser), or local Ollama installation.
+                        Select how you want to use AI features. You can use your own API keys (no cost to us) or browser-based AI (runs entirely in your browser).
                     </p>
+                    <?php if ($isSuperAdmin): ?>
                     <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <p class="text-sm text-gray-700 mb-2">
                             <strong>Need setup instructions?</strong> 
@@ -316,6 +326,17 @@ if (isPost()) {
                             For external API setup, see the configuration sections below when you select a service.
                         </p>
                     </div>
+                    <?php else: ?>
+                    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-sm text-gray-700 mb-2">
+                            <strong>Need setup instructions?</strong> 
+                            <a href="/resources/ai/setup-ollama.php" class="text-blue-600 hover:text-blue-800 underline font-medium">View complete setup guide for Browser-Based AI →</a>
+                        </p>
+                        <p class="text-sm text-gray-700">
+                            For external API setup, see the configuration sections below when you select a service.
+                        </p>
+                    </div>
+                    <?php endif; ?>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div class="bg-white p-3 rounded border border-gray-200">
                         <h3 class="font-semibold text-gray-900 mb-2">Your API Keys <span class="text-red-600 text-sm">(Paid)</span></h3>
@@ -336,8 +357,9 @@ if (isPost()) {
                             <li>Models cached locally</li>
                         </ul>
                     </div>
+                    <?php if ($isSuperAdmin): ?>
                     <div class="bg-white p-3 rounded border border-green-200 bg-green-50">
-                        <h3 class="font-semibold text-gray-900 mb-2">Local Ollama <span class="text-green-600 text-sm">(Free)</span></h3>
+                        <h3 class="font-semibold text-gray-900 mb-2">Local Ollama <span class="text-green-600 text-sm">(Free - Admin Only)</span></h3>
                         <ul class="list-disc list-inside space-y-1 text-gray-700 ml-2">
                             <li>Runs on your computer</li>
                             <li><strong class="text-green-600">Completely free</strong></li>
@@ -345,6 +367,7 @@ if (isPost()) {
                             <li>Works offline</li>
                         </ul>
                     </div>
+                    <?php endif; ?>
                     <div class="bg-white p-3 rounded border border-gray-200">
                         <h3 class="font-semibold text-gray-900 mb-2">Site Default</h3>
                         <ul class="list-disc list-inside space-y-1 text-gray-700 ml-2">
@@ -375,7 +398,6 @@ if (isPost()) {
                     <div>
                         <h4 class="font-semibold text-gray-900 mb-2">Free Options (Recommended)</h4>
                         <ul class="list-disc list-inside ml-4 space-y-1">
-                            <li><strong>Local Ollama:</strong> Free forever - runs on your computer, no internet required</li>
                             <li><strong>Browser-Based AI:</strong> Free forever - runs in your browser, models cached locally</li>
                         </ul>
                     </div>
@@ -423,14 +445,20 @@ if (isPost()) {
                             <option value="grok" <?php echo $currentSettings['ai_service_preference'] === 'grok' ? 'selected' : ''; ?>>xAI Grok | Paid (Your API Key)</option>
                             <option value="huggingface" <?php echo $currentSettings['ai_service_preference'] === 'huggingface' ? 'selected' : ''; ?>>Hugging Face | Freemium (Your API Token)</option>
                             <option value="browser" <?php echo $currentSettings['ai_service_preference'] === 'browser' ? 'selected' : ''; ?>>Browser-Based AI | Free</option>
-                            <option value="ollama" <?php echo $currentSettings['ai_service_preference'] === 'ollama' ? 'selected' : ''; ?>>Local Ollama | Free</option>
+                            <?php if ($isSuperAdmin): ?>
+                            <option value="ollama" <?php echo $currentSettings['ai_service_preference'] === 'ollama' ? 'selected' : ''; ?>>Local Ollama | Free (Admin Only)</option>
+                            <?php endif; ?>
                         </select>
                         <p class="mt-2 text-sm text-gray-500">
-                            Select your preferred AI service. Use your own API keys, browser-based AI, or local Ollama installation.
+                            Select your preferred AI service. Use your own API keys or browser-based AI.
+                            <?php if ($isSuperAdmin): ?>
+                            Super admins can also use local Ollama installation.
+                            <?php endif; ?>
                         </p>
                     </div>
 
-                    <!-- Ollama Configuration (shown when Ollama is selected) -->
+                    <!-- Ollama Configuration (shown when Ollama is selected, super admin only) -->
+                    <?php if ($isSuperAdmin): ?>
                     <div id="ollama-config" style="display: <?php echo $currentSettings['ai_service_preference'] === 'ollama' ? 'block' : 'none'; ?>;">
                         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p class="text-sm text-gray-700 mb-2">
@@ -489,7 +517,7 @@ if (isPost()) {
                                    placeholder="llama3.2"
                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <p class="mt-2 text-sm text-gray-500">
-                                The name of the model you downloaded (e.g., <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3.2</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3.1:8b</code>, or <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3.3</code>)
+                                The name of the model you downloaded (e.g., <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3:latest</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3.1:8b</code>, or <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">llama3.3</code>). Click "Test Connection" to auto-detect and update this field.
                             </p>
                         </div>
 
@@ -915,6 +943,76 @@ if (isPost()) {
                 if (result.success) {
                     testResult.innerHTML = '<span class="inline-flex items-center gap-1.5"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>' + escapeHtml(result.message) + '</span></span>';
                     testResult.className = 'mt-2 text-sm ' + (result.model_count > 0 ? 'text-green-600' : 'text-yellow-600');
+                    
+                    // Auto-populate model field if models are found
+                    if (result.models && result.models.length > 0) {
+                        const modelInput = document.getElementById('ollama_model');
+                        if (modelInput) {
+                            const currentModel = modelInput.value.trim();
+                            const availableModelNames = result.models.map(m => m.name || m);
+                            
+                            // Check if current model exists in available models (exact match or base name match)
+                            const modelExists = availableModelNames.some(name => {
+                                const modelName = typeof name === 'string' ? name : (name.name || '');
+                                return modelName === currentModel || 
+                                       (currentModel && modelName.startsWith(currentModel.split(':')[0] + ':'));
+                            });
+                            
+                            // If model doesn't exist or field is empty, update it
+                            if (!modelExists || !currentModel) {
+                                // Use the first available model, prefer llama3 if available
+                                let suggestedModel = availableModelNames[0];
+                                if (typeof suggestedModel !== 'string') {
+                                    suggestedModel = suggestedModel.name || suggestedModel;
+                                }
+                                
+                                const llama3Model = availableModelNames.find(m => {
+                                    const modelName = typeof m === 'string' ? m : (m.name || '');
+                                    return modelName.includes('llama3');
+                                });
+                                if (llama3Model) {
+                                    suggestedModel = typeof llama3Model === 'string' ? llama3Model : (llama3Model.name || llama3Model);
+                                }
+                                
+                                modelInput.value = suggestedModel;
+                                
+                                // Show a helpful message
+                                if (!modelExists && currentModel) {
+                                    // Remove any existing warning messages
+                                    const existingWarnings = testResult.parentNode.querySelectorAll('.model-warning-message');
+                                    existingWarnings.forEach(w => w.remove());
+                                    
+                                    const warningMsg = document.createElement('div');
+                                    warningMsg.className = 'model-warning-message mt-2 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded p-2';
+                                    warningMsg.innerHTML = '⚠️ The model "' + escapeHtml(currentModel) + '" was not found. Auto-updated to "' + escapeHtml(suggestedModel) + '"';
+                                    testResult.parentNode.insertBefore(warningMsg, testResult.nextSibling);
+                                    
+                                    // Remove warning after 8 seconds
+                                    setTimeout(() => {
+                                        if (warningMsg.parentNode) {
+                                            warningMsg.parentNode.removeChild(warningMsg);
+                                        }
+                                    }, 8000);
+                                } else if (!currentModel) {
+                                    // Remove any existing info messages
+                                    const existingInfo = testResult.parentNode.querySelectorAll('.model-info-message');
+                                    existingInfo.forEach(i => i.remove());
+                                    
+                                    const infoMsg = document.createElement('div');
+                                    infoMsg.className = 'model-info-message mt-2 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2';
+                                    infoMsg.innerHTML = '✓ Auto-filled model name: "' + escapeHtml(suggestedModel) + '"';
+                                    testResult.parentNode.insertBefore(infoMsg, testResult.nextSibling);
+                                    
+                                    // Remove info message after 6 seconds
+                                    setTimeout(() => {
+                                        if (infoMsg.parentNode) {
+                                            infoMsg.parentNode.removeChild(infoMsg);
+                                        }
+                                    }, 6000);
+                                }
+                            }
+                        }
+                    }
                 } else {
                     testResult.innerHTML = '<span class="inline-flex items-center gap-1.5"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span>' + escapeHtml(result.error || 'Connection failed. Make sure Ollama is running and the URL is correct.') + '</span></span>';
                     testResult.className = 'mt-2 text-sm text-red-600';

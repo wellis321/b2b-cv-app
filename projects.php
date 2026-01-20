@@ -543,7 +543,7 @@ if ($editingId) {
             showProjectImageStatus('Uploading image...', 'info');
 
             // #region agent log
-            fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:536',message:'Starting fetch upload',data:{fileName:file.name,fileSize:file.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId':'A1'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:536',message:'Starting fetch upload',data:{fileName:file.name,fileSize:file.size},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A1'})}).catch(()=>{});
             // #endregion
             fetch('/api/upload-project-image.php', {
                 method: 'POST',
@@ -565,7 +565,7 @@ if ($editingId) {
                 })
                 .then((data) => {
                     // #region agent log
-                    fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:520',message:'Upload response received',data:{success:data.success,url:data.url,responsiveCount:data.responsive?Object.keys(data.responsive).length:0},timestamp:Date.now(),sessionId:'debug-session',runId':'run1','hypothesisId':'A1'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:520',message:'Upload response received',data:{success:data.success,url:data.url,responsiveCount:data.responsive?Object.keys(data.responsive).length:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A1'})}).catch(()=>{});
                     // #endregion
                     isUploading = false;
                     if (data.success && data.url) {
@@ -575,7 +575,7 @@ if ($editingId) {
                         if (projectImageResponsiveInput && data.responsive) {
                             projectImageResponsiveInput.value = JSON.stringify(data.responsive);
                             // #region agent log
-                            fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:527',message:'Responsive data stored in hidden input',data:{responsiveKeys:Object.keys(data.responsive)},timestamp:Date.now(),sessionId:'debug-session','runId':'run1','hypothesisId':'A5'})}).catch(()=>{});
+                            fetch('http://127.0.0.1:7250/ingest/02ed2acd-ae27-46f6-8e5d-0a67a71118e5',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'projects.php:527',message:'Responsive data stored in hidden input',data:{responsiveKeys:Object.keys(data.responsive)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A5'})}).catch(()=>{});
                             // #endregion
                         }
                         showProjectImageStatus('Image uploaded successfully.', 'success');

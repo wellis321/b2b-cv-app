@@ -25,6 +25,9 @@ $stats = getJobApplicationStats();
         'canonicalUrl' => APP_URL . '/job-applications.php',
         'metaNoindex' => true,
     ]); ?>
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
     <style>
         .status-badge {
             display: inline-flex;
@@ -695,6 +698,8 @@ $stats = getJobApplicationStats();
                 
                 this.currentApplication = app;
                 this.showViewModal();
+                // Load cover letter after modal is shown
+                await this.loadCoverLetter(app.id);
             },
             
             showViewModal() {
@@ -865,6 +870,18 @@ $stats = getJobApplicationStats();
                     `;
                 }
                 
+                // Cover Letter Section
+                html += `
+                    <div class="mb-6 pt-6 border-t border-gray-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-lg font-semibold text-gray-900">Cover Letter</h4>
+                        </div>
+                        <div id="cover-letter-container-${app.id}" class="space-y-3">
+                            <!-- Cover letter content will be loaded here -->
+                        </div>
+                    </div>
+                `;
+                
                 // AI CV Actions
                 if (app.job_description || app.notes) {
                     html += `
@@ -981,6 +998,7 @@ $stats = getJobApplicationStats();
                 try {
                     let response;
                     let applicationId;
+                    let result;
                     
                     if (this.currentApplication) {
                         // Update
@@ -990,6 +1008,7 @@ $stats = getJobApplicationStats();
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
+                        result = await response.json();
                     } else {
                         // Create
                         response = await fetch('/api/job-applications.php', {
@@ -997,16 +1016,14 @@ $stats = getJobApplicationStats();
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(data)
                         });
+                        result = await response.json();
                         
-                        const result = await response.json();
                         if (result.success && result.id) {
                             applicationId = result.id;
                         }
                     }
                     
-                    const result = await response.json();
-                    
-                    if (response.ok) {
+                    if (response.ok && result.success) {
                         // If we have files uploaded but no application ID yet, link them now
                         if (applicationId && this.currentFiles.length > 0) {
                             for (const file of this.currentFiles) {
@@ -1030,7 +1047,7 @@ $stats = getJobApplicationStats();
                     }
                 } catch (error) {
                     console.error('Error saving application:', error);
-                    alert('Error saving application');
+                    alert('Error saving application: ' + (error.message || 'Unknown error'));
                 }
             },
             
@@ -1251,6 +1268,340 @@ $stats = getJobApplicationStats();
                 const div = document.createElement('div');
                 div.textContent = text;
                 return div.innerHTML;
+            },
+            
+            // Cover Letter Functions
+            async loadCoverLetter(applicationId) {
+                try {
+                    const response = await fetch(`/api/get-cover-letter.php?application_id=${applicationId}&csrf_token=${this.csrfToken}`);
+                    const result = await response.json();
+                    
+                    const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                    if (!container) return;
+                    
+                    if (result.success && result.cover_letter) {
+                        this.renderCoverLetter(applicationId, result.cover_letter);
+                    } else {
+                        this.renderCoverLetterEmpty(applicationId);
+                    }
+                } catch (error) {
+                    console.error('Error loading cover letter:', error);
+                    const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                    if (container) {
+                        this.renderCoverLetterEmpty(applicationId);
+                    }
+                }
+            },
+            
+            renderCoverLetter(applicationId, coverLetter) {
+                const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                if (!container) return;
+                
+                const isEditing = container.dataset.editing === 'true';
+                if (isEditing) return; // Don't overwrite if editing
+                
+                container.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <div class="prose max-w-none">
+                            <div class="text-base text-gray-700 whitespace-pre-wrap" id="cover-letter-text-${applicationId}">${this.escapeHtml(coverLetter.cover_letter_text)}</div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="JobApplications.editCoverLetter('${applicationId}', '${coverLetter.id}')" 
+                                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit
+                        </button>
+                        <button onclick="JobApplications.regenerateCoverLetter('${applicationId}')" 
+                                class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Regenerate with AI
+                        </button>
+                        <button onclick="JobApplications.exportCoverLetterPDF('${coverLetter.id}')" 
+                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Export PDF
+                        </button>
+                        <button onclick="JobApplications.deleteCoverLetter('${applicationId}', '${coverLetter.id}')" 
+                                class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                        </button>
+                    </div>
+                `;
+            },
+            
+            renderCoverLetterEmpty(applicationId) {
+                const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                if (!container) return;
+                
+                container.innerHTML = `
+                    <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-gray-600 mb-4">No cover letter generated yet</p>
+                        <button onclick="JobApplications.generateCoverLetter('${applicationId}')" 
+                                class="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Generate Cover Letter with AI
+                        </button>
+                    </div>
+                `;
+            },
+            
+            async generateCoverLetter(applicationId) {
+                const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                if (!container) return;
+                
+                // Show loading state
+                container.innerHTML = `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-blue-800 font-medium">Generating cover letter with AI...</p>
+                        <p class="text-blue-600 text-sm mt-2">This may take 30-60 seconds</p>
+                    </div>
+                `;
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('job_application_id', applicationId);
+                    formData.append('csrf_token', this.csrfToken);
+                    
+                    const response = await fetch('/api/ai-generate-cover-letter.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Reload cover letter to display it
+                        await this.loadCoverLetter(applicationId);
+                        alert('Cover letter generated successfully!');
+                    } else {
+                        throw new Error(result.error || 'Failed to generate cover letter');
+                    }
+                } catch (error) {
+                    console.error('Error generating cover letter:', error);
+                    alert('Error generating cover letter: ' + error.message);
+                    // Reload to show empty state
+                    await this.loadCoverLetter(applicationId);
+                }
+            },
+            
+            editCoverLetter(applicationId, coverLetterId) {
+                const container = document.getElementById(`cover-letter-container-${applicationId}`);
+                if (!container) return;
+                
+                const textElement = document.getElementById(`cover-letter-text-${applicationId}`);
+                if (!textElement) return;
+                
+                const currentText = textElement.textContent;
+                container.dataset.editing = 'true';
+                
+                container.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-6">
+                        <textarea id="cover-letter-edit-${applicationId}" 
+                                  rows="15" 
+                                  class="block w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-base text-gray-900 shadow-sm focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none resize-y">${this.escapeHtml(currentText)}</textarea>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="JobApplications.saveCoverLetter('${applicationId}', '${coverLetterId}')" 
+                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            Save Changes
+                        </button>
+                        <button onclick="JobApplications.cancelEditCoverLetter('${applicationId}')" 
+                                class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                `;
+            },
+            
+            async saveCoverLetter(applicationId, coverLetterId) {
+                const textarea = document.getElementById(`cover-letter-edit-${applicationId}`);
+                if (!textarea) return;
+                
+                const text = textarea.value.trim();
+                
+                if (!text) {
+                    alert('Cover letter text cannot be empty');
+                    return;
+                }
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('cover_letter_id', coverLetterId);
+                    formData.append('cover_letter_text', text);
+                    formData.append('csrf_token', this.csrfToken);
+                    
+                    const response = await fetch('/api/update-cover-letter.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Reload cover letter
+                        await this.loadCoverLetter(applicationId);
+                        alert('Cover letter updated successfully!');
+                    } else {
+                        throw new Error(result.error || 'Failed to update cover letter');
+                    }
+                } catch (error) {
+                    console.error('Error saving cover letter:', error);
+                    alert('Error saving cover letter: ' + error.message);
+                }
+            },
+            
+            cancelEditCoverLetter(applicationId) {
+                // Reload cover letter to show saved version
+                this.loadCoverLetter(applicationId);
+            },
+            
+            async regenerateCoverLetter(applicationId) {
+                if (!confirm('Regenerate cover letter? This will replace the current cover letter.')) {
+                    return;
+                }
+                
+                await this.generateCoverLetter(applicationId);
+            },
+            
+            async exportCoverLetterPDF(coverLetterId) {
+                try {
+                    const response = await fetch(`/api/export-cover-letter-pdf.php?cover_letter_id=${coverLetterId}`);
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to export cover letter');
+                    }
+                    
+                    const data = result.cover_letter;
+                    
+                    // Check if pdfMake is available
+                    if (typeof pdfMake === 'undefined') {
+                        // Fallback: open in new window for print
+                        const printWindow = window.open('', '_blank');
+                        printWindow.document.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Cover Letter - ${this.escapeHtml(data.company_name)}</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+                                    .header { margin-bottom: 30px; }
+                                    .date { text-align: right; margin-bottom: 20px; }
+                                    .content { white-space: pre-wrap; }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="header">
+                                    <div class="date">${this.escapeHtml(data.date)}</div>
+                                    <div><strong>${this.escapeHtml(data.company_name)}</strong></div>
+                                    <div>${this.escapeHtml(data.job_title)}</div>
+                                </div>
+                                <div class="content">${this.escapeHtml(data.text)}</div>
+                            </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.print();
+                        return;
+                    }
+                    
+                    // Use pdfMake to generate PDF
+                    const docDefinition = {
+                        pageSize: 'A4',
+                        pageMargins: [40, 60, 40, 60],
+                        content: [
+                            {
+                                text: data.date,
+                                alignment: 'right',
+                                margin: [0, 0, 0, 20]
+                            },
+                            {
+                                text: data.company_name,
+                                style: 'company',
+                                margin: [0, 0, 0, 5]
+                            },
+                            {
+                                text: data.job_title,
+                                style: 'jobTitle',
+                                margin: [0, 0, 0, 30]
+                            },
+                            {
+                                text: data.text,
+                                style: 'body',
+                                margin: [0, 0, 0, 20]
+                            }
+                        ],
+                        styles: {
+                            company: {
+                                fontSize: 14,
+                                bold: true,
+                                margin: [0, 0, 0, 5]
+                            },
+                            jobTitle: {
+                                fontSize: 12,
+                                margin: [0, 0, 0, 30]
+                            },
+                            body: {
+                                fontSize: 11,
+                                lineHeight: 1.6
+                            }
+                        }
+                    };
+                    
+                    pdfMake.createPdf(docDefinition).download(
+                        `Cover_Letter_${data.company_name.replace(/[^a-z0-9_\-]/gi, '_')}.pdf`
+                    );
+                    
+                } catch (error) {
+                    console.error('Error exporting PDF:', error);
+                    alert('Error exporting PDF: ' + error.message);
+                }
+            },
+            
+            async deleteCoverLetter(applicationId, coverLetterId) {
+                if (!confirm('Are you sure you want to delete this cover letter? This cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    const formData = new FormData();
+                    formData.append('cover_letter_id', coverLetterId);
+                    formData.append('csrf_token', this.csrfToken);
+                    
+                    const response = await fetch('/api/delete-cover-letter.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Reload to show empty state
+                        await this.loadCoverLetter(applicationId);
+                        alert('Cover letter deleted successfully');
+                    } else {
+                        throw new Error(result.error || 'Failed to delete cover letter');
+                    }
+                } catch (error) {
+                    console.error('Error deleting cover letter:', error);
+                    alert('Error deleting cover letter: ' + error.message);
+                }
             }
         };
         

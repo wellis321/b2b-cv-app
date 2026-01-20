@@ -115,6 +115,19 @@ if (isPost()) {
         }
     }
 
+    // Handle CV visibility
+    $cvVisibility = trim(post('cv_visibility', ''));
+    if ($cvVisibility !== '' && in_array($cvVisibility, ['public', 'organisation', 'private'])) {
+        // If user selects 'organisation' but isn't part of an organisation, default to 'private'
+        if ($cvVisibility === 'organisation') {
+            $userOrg = getUserOrganisation($userId);
+            if (!$userOrg || empty($userOrg['organisation_id'])) {
+                $cvVisibility = 'private';
+            }
+        }
+        $data['cv_visibility'] = $cvVisibility;
+    }
+
     // Username is required, so we must have it
     $username = trim(post('username', ''));
     if ($username === '') {
@@ -310,6 +323,9 @@ if (isPost()) {
                         </button>
                         <button type="button" onclick="switchTab('colors')" id="tab-colors" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
                             Header Colors
+                        </button>
+                        <button type="button" onclick="switchTab('visibility')" id="tab-visibility" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                            CV Visibility
                         </button>
                     </nav>
                 </div>
@@ -552,6 +568,87 @@ if (isPost()) {
                         <div id="color-preview" class="w-full h-24 rounded-lg shadow-sm" style="background: linear-gradient(to right, <?php echo e($profile['cv_header_from_color'] ?? '#4338ca'); ?>, <?php echo e($profile['cv_header_to_color'] ?? '#7e22ce'); ?>);"></div>
                     </div>
                     </div>
+
+                    <!-- CV Visibility Tab -->
+                    <div id="tab-content-visibility" class="tab-content hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">CV Visibility Settings</h2>
+
+                        <!-- CV URL Display -->
+                        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Your CV URL</label>
+                            <div class="flex items-center gap-3">
+                                <code class="flex-1 px-3 py-2 bg-white border border-blue-300 rounded-md text-blue-600 font-mono text-sm break-all"><?php echo APP_URL; ?>/cv/@<?php echo e($profile['username'] ?? 'username'); ?></code>
+                                <button type="button" onclick="copyCvUrl()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
+                                    Copy URL
+                                </button>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-600">Share this link to let others view your CV (based on visibility settings below).</p>
+                        </div>
+
+                        <!-- Visibility Options -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-3">CV Visibility</label>
+                                <p class="text-sm text-gray-600 mb-4">Control who can access your CV using the URL above.</p>
+                                
+                                <?php
+                                $currentVisibility = $profile['cv_visibility'] ?? 'public';
+                                $visibilityOptions = [
+                                    'public' => [
+                                        'label' => 'Public',
+                                        'description' => 'Anyone with the link can view your CV. No login required.',
+                                        'icon' => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+                                    ],
+                                    'organisation' => [
+                                        'label' => 'Organisation Only',
+                                        'description' => 'Only members of your organisation can view your CV. Requires login.',
+                                        'icon' => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>'
+                                    ],
+                                    'private' => [
+                                        'label' => 'Private',
+                                        'description' => 'Only you can view your CV. The link will not work for others.',
+                                        'icon' => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>'
+                                    ]
+                                ];
+                                ?>
+                                
+                                <div class="space-y-3">
+                                    <?php foreach ($visibilityOptions as $value => $option): ?>
+                                        <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors <?php echo $currentVisibility === $value ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'; ?>">
+                                            <input type="radio" 
+                                                   name="cv_visibility" 
+                                                   value="<?php echo e($value); ?>" 
+                                                   <?php echo $currentVisibility === $value ? 'checked' : ''; ?>
+                                                   class="mt-1 mr-3 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="inline-flex text-gray-600"><?php echo $option['icon']; ?></span>
+                                                    <span class="font-medium text-gray-900"><?php echo e($option['label']); ?></span>
+                                                    <?php if ($currentVisibility === $value): ?>
+                                                        <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                            Current
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <p class="text-sm text-gray-600"><?php echo e($option['description']); ?></p>
+                                            </div>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <?php
+                            // Check if user is part of an organisation
+                            $userOrg = getUserOrganisation($userId);
+                            if (!$userOrg || empty($userOrg['organisation_id'])): ?>
+                                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p class="text-sm text-yellow-800">
+                                        <strong>Note:</strong> "Organisation Only" visibility is only available if you're part of an organisation. If you select this option without an organisation, your CV will remain private.
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -589,6 +686,43 @@ if (isPost()) {
         document.addEventListener('DOMContentLoaded', function() {
             switchTab('main');
         });
+
+        function copyCvUrl() {
+            const cvUrl = '<?php echo APP_URL; ?>/cv/@<?php echo e($profile['username'] ?? 'username'); ?>';
+            navigator.clipboard.writeText(cvUrl).then(function() {
+                // Show temporary success message
+                const button = event.target.closest('button');
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                button.classList.add('bg-green-600');
+                button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                setTimeout(function() {
+                    button.textContent = originalText;
+                    button.classList.remove('bg-green-600');
+                    button.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }, 2000);
+            }).catch(function(err) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = cvUrl;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    const button = event.target.closest('button');
+                    const originalText = button.textContent;
+                    button.textContent = 'Copied!';
+                    setTimeout(function() {
+                        button.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to copy URL. Please copy manually: ' + cvUrl);
+                }
+                document.body.removeChild(textarea);
+            });
+        }
 
         function selectColorScheme(fromColor, toColor) {
             document.getElementById('cv_header_from_color').value = fromColor;
