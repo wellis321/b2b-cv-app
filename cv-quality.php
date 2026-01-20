@@ -299,17 +299,17 @@ if (isPost() && isset($_POST['action']) && $_POST['action'] === 'assess') {
                             <div class="text-center p-4 bg-gray-50 rounded-lg">
                                 <div class="text-3xl font-bold text-gray-900 mb-1"><?php echo $assessment['ats_score']; ?></div>
                                 <div class="text-sm font-medium text-gray-900 mb-2">ATS Compatibility</div>
-                                <div class="text-xs text-gray-600">How well your CV can be parsed by Applicant Tracking Systems</div>
+                                <div class="text-xs text-gray-600">Keywords, structure, and content parsing</div>
                             </div>
                             <div class="text-center p-4 bg-gray-50 rounded-lg">
                                 <div class="text-3xl font-bold text-gray-900 mb-1"><?php echo $assessment['content_score']; ?></div>
                                 <div class="text-sm font-medium text-gray-900 mb-2">Content Quality</div>
-                                <div class="text-xs text-gray-600">Relevance, impact, and specificity of your content</div>
+                                <div class="text-xs text-gray-600">Relevance, impact, and specificity</div>
                             </div>
                             <div class="text-center p-4 bg-gray-50 rounded-lg">
                                 <div class="text-3xl font-bold text-gray-900 mb-1"><?php echo $assessment['formatting_score']; ?></div>
-                                <div class="text-sm font-medium text-gray-900 mb-2">Formatting</div>
-                                <div class="text-xs text-gray-600">Consistency, readability, and professional structure</div>
+                                <div class="text-sm font-medium text-gray-900 mb-2">Content Consistency</div>
+                                <div class="text-xs text-gray-600">Date formatting and completeness</div>
                             </div>
                             <?php if ($assessment['keyword_match_score'] !== null): ?>
                                 <div class="text-center p-4 bg-gray-50 rounded-lg">
@@ -322,19 +322,25 @@ if (isPost() && isset($_POST['action']) && $_POST['action'] === 'assess') {
                         
                         <!-- Score Explanations (Collapsible) -->
                         <div id="scores-explanation" class="hidden border-t border-gray-200 pt-4 mt-4">
+                            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p class="text-sm text-blue-800">
+                                    <strong>Note:</strong> These scores focus on aspects you can control through your content. Visual formatting (fonts, colors, spacing) is handled by your CV template and doesn't affect your scores. Focus on improving your content quality, consistency, and keyword usage.
+                                </p>
+                            </div>
                             <h3 class="font-semibold text-gray-900 mb-3">What Each Score Means:</h3>
                             <div class="space-y-4">
                                 <div>
                                     <h4 class="font-medium text-gray-900 mb-1">ATS Compatibility (<?php echo $assessment['ats_score']; ?>/100)</h4>
                                     <p class="text-sm text-gray-700 mb-2">
-                                        Measures how well Applicant Tracking Systems (ATS) can read and parse your CV. ATS software is used by most employers to filter CVs before human review.
+                                        Measures how well Applicant Tracking Systems can read and parse your CV content. Focuses on aspects you can control through your content.
                                     </p>
                                     <ul class="text-xs text-gray-600 space-y-1 ml-4 list-disc">
-                                        <li>Proper formatting and structure</li>
-                                        <li>Use of standard sections and headings</li>
-                                        <li>Compatibility with automated parsing</li>
-                                        <li>Avoidance of complex formatting that confuses ATS</li>
+                                        <li>Use of relevant keywords throughout your content</li>
+                                        <li>Clear section structure and headings</li>
+                                        <li>Complete and consistent information</li>
+                                        <li>How well your content can be automatically parsed</li>
                                     </ul>
+                                    <p class="text-xs text-gray-500 mt-2 italic">Note: Visual formatting is handled by your CV template and doesn't affect this score.</p>
                                 </div>
                                 
                                 <div>
@@ -351,16 +357,17 @@ if (isPost() && isset($_POST['action']) && $_POST['action'] === 'assess') {
                                 </div>
                                 
                                 <div>
-                                    <h4 class="font-medium text-gray-900 mb-1">Formatting (<?php echo $assessment['formatting_score']; ?>/100)</h4>
+                                    <h4 class="font-medium text-gray-900 mb-1">Content Consistency (<?php echo $assessment['formatting_score']; ?>/100)</h4>
                                     <p class="text-sm text-gray-700 mb-2">
-                                        Assesses the visual presentation and consistency of your CV layout and structure.
+                                        Assesses consistency and completeness of your CV content that you control.
                                     </p>
                                     <ul class="text-xs text-gray-600 space-y-1 ml-4 list-disc">
-                                        <li>Consistent date formatting</li>
-                                        <li>Uniform heading styles and font usage</li>
-                                        <li>Proper spacing and alignment</li>
-                                        <li>Professional appearance and readability</li>
+                                        <li>Consistent date formatting across all entries</li>
+                                        <li>Complete information in all sections</li>
+                                        <li>Consistent description style and detail level</li>
+                                        <li>No missing dates or unexplained gaps</li>
                                     </ul>
+                                    <p class="text-xs text-gray-500 mt-2 italic">Note: Visual formatting (fonts, colors, spacing) is handled by your CV template.</p>
                                 </div>
                                 
                                 <?php if ($assessment['keyword_match_score'] !== null): ?>
@@ -780,11 +787,14 @@ if (isPost() && isset($_POST['action']) && $_POST['action'] === 'assess') {
                     }
                 });
 
-                // Build assessment prompt (would need to extract from result)
-                // For now, use a simplified prompt - in production this would come from the backend
-                const cvData = result.cv_data || {};
-                const jobDescription = result.job_description || '';
-                const prompt = `Assess this CV for quality and provide scores and recommendations. CV data: ${JSON.stringify(cvData)}. Job description: ${jobDescription}`;
+                // Use prompt from backend if available, otherwise build one
+                let prompt = result.prompt || '';
+                if (!prompt) {
+                    // Fallback: build assessment prompt from CV data
+                    const cvData = result.cv_data || {};
+                    const jobDescription = result.job_description || '';
+                    prompt = `Assess this CV for quality and provide scores and recommendations. CV data: ${JSON.stringify(cvData)}. Job description: ${jobDescription}`;
+                }
 
                 // Update loading overlay
                 if (loadingOverlay) {

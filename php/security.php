@@ -85,6 +85,23 @@ function e($string) {
     if ($string === null) {
         return '';
     }
+    // Handle arrays - convert to comma-separated string
+    if (is_array($string)) {
+        // If it's an array of associative arrays with 'name' key, extract names
+        if (!empty($string) && isset($string[0]) && is_array($string[0]) && isset($string[0]['name'])) {
+            $string = array_map(function($item) {
+                return is_array($item) ? ($item['name'] ?? '') : $item;
+            }, $string);
+        }
+        // Filter out any remaining arrays and convert to comma-separated string
+        $string = implode(', ', array_filter($string, function($item) {
+            return !is_array($item) && $item !== null && $item !== '';
+        }));
+    }
+    // Ensure we have a string before passing to htmlspecialchars
+    if (!is_string($string)) {
+        $string = (string) $string;
+    }
     return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 
@@ -264,7 +281,15 @@ function setSecurityHeaders() {
     // Content Security Policy (basic)
     // Allow connections to localhost for Ollama and other local services
     // Allow cdnjs.cloudflare.com for pdfmake source maps and other CDN resources
-    $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https://cdnjs.cloudflare.com;";
+    // WebLLM needs to download models from mlc.ai and huggingface.co
+    // Also needs to load WASM files and other resources
+    // WebLLM requires 'wasm-unsafe-eval' for WebAssembly execution
+    // WebLLM uses Web Workers which need blob: URLs
+    // WebLLM Web Workers need to fetch from the same domains as the main page
+    // Workers inherit connect-src from the page, but we need to ensure all domains are allowed
+    // Temporarily allowing all HTTPS connections to debug WebLLM fetch issues
+    // TODO: Restrict this after identifying the exact domains needed
+    $csp = "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* https:; worker-src 'self' blob: data: https:; child-src 'self' blob: data:; script-src-elem 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com;";
     header("Content-Security-Policy: {$csp}");
 
     // HSTS (only if HTTPS)

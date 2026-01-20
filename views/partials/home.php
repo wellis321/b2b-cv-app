@@ -141,7 +141,7 @@
                 AI CV Assistant
             </h2>
             <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-                Let artificial intelligence help you create the perfect CV for every job application. Generate tailored CVs, get quality feedback, and improve your chances of landing interviews.
+                Let artificial intelligence help you create the perfect CV for every job application. Generate tailored CVs, get quality feedback, and improve your chances of landing interviews. All AI features run directly in your browser - no setup, API keys, or cloud services required. Cloud-based AI options available for organisations or users with their own accounts.
             </p>
         </div>
         
@@ -246,6 +246,23 @@
                         <span>Full editing capabilities</span>
                     </li>
                 </ul>
+            </div>
+        </div>
+        
+        <!-- Browser-Based AI Info Box -->
+        <div class="mt-12 bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-3xl mx-auto">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h4 class="text-sm font-semibold text-blue-900 mb-1">Browser-Based AI - No Setup Required</h4>
+                    <p class="text-sm text-blue-800">
+                        All AI features run directly in your browser using advanced browser-based AI technology. No cloud services, API keys, or configuration needed - it just works! For organisations or users who prefer cloud-based AI (OpenAI, Anthropic, Gemini, etc.), those options are also available if configured in your account settings.
+                    </p>
+                </div>
             </div>
         </div>
         

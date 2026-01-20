@@ -11,6 +11,16 @@ if (!isLoggedIn()) {
 }
 
 $user = getCurrentUser();
+
+// Temporarily hide template customizer from regular users
+// Only allow super admins for now
+require_once __DIR__ . '/php/authorisation.php';
+if (!isSuperAdmin($user['id'])) {
+    setFlash('error', 'This feature is currently unavailable.');
+    redirect('/dashboard.php');
+    exit;
+}
+
 require_once __DIR__ . '/php/cv-templates.php';
 
 // Get all templates for the user
@@ -481,6 +491,13 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
                 
                 const result = await response.json();
                 
+                // Check if this is browser AI execution
+                if (result.success && result.browser_execution) {
+                    // Browser AI mode - execute client-side
+                    await executeBrowserAITemplate(result, loadingOverlay, formData);
+                    return;
+                }
+                
                 if (result.success) {
                     // Show preview
                     const previewFrame = document.getElementById('template-preview');
@@ -526,7 +543,356 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
                 loadingOverlay.classList.add('hidden');
             }
         });
+
+        // Execute browser AI for template generation
+        async function executeBrowserAITemplate(result, loadingOverlay, originalFormData) {
+            try {
+                // Check browser support
+                const support = BrowserAIService.checkBrowserSupport();
+                if (!support.required) {
+                    throw new Error('Browser does not support WebGPU or WebGL. Browser AI requires a modern browser with GPU support.');
+                }
+
+                // Update loading overlay to show model loading
+                if (loadingOverlay) {
+                    loadingOverlay.querySelector('p').textContent = 'Loading AI model. This may take a few minutes on first use...';
+                }
+
+                // Initialize browser AI
+                const modelType = result.model_type === 'webllm' ? 'webllm' : 'tensorflow';
+                await BrowserAIService.initBrowserAI(modelType, result.model, (progress) => {
+                    if (loadingOverlay && progress.message) {
+                        loadingOverlay.querySelector('p').textContent = progress.message;
+                    }
+                });
+
+                // Use prompt from backend if available
+                let prompt = result.prompt || '';
+                if (!prompt) {
+                    // Fallback: build template generation prompt
+                    const cvData = result.cv_data || {};
+                    const userDescription = result.user_description || '';
+                    prompt = `Generate a custom CV template based on this description: ${userDescription}. CV data structure: ${JSON.stringify(cvData)}. Return a JSON object with 'html', 'css', and 'instructions' fields.`;
+                }
+
+                // Update loading overlay
+                if (loadingOverlay) {
+                    loadingOverlay.querySelector('p').textContent = 'Generating template... This may take 30-60 seconds.';
+                }
+
+                // Generate template using browser AI
+                let templateText;
+                try {
+                    templateText = await BrowserAIService.generateText(prompt, {
+                        temperature: 0.7,
+                        maxTokens: 8000
+                    });
+                    
+                    // Check if response is valid (not HTML/error)
+                    if (!templateText || typeof templateText !== 'string') {
+                        throw new Error('Browser AI returned invalid response type');
+                    }
+                    
+                    if (templateText.trim().startsWith('<') || templateText.includes('<br') || templateText.includes('<b>') || templateText.includes('Fatal error') || templateText.includes('Parse error')) {
+                        throw new Error('Browser AI returned an error response (HTML) instead of JSON. Please try again.');
+                    }
+                } catch (error) {
+                    throw error;
+                }
+
+                // Clean the template text - remove markdown code blocks and fix control characters
+                let cleanedText = templateText.trim();
+                
+                // Remove AI model metadata tokens that might break JSON
+                cleanedText = cleanedText.replace(/<\|[^|]+\|>/g, '');
+                cleanedText = cleanedText.replace(/<\|start_header_id\|>[^<]*<\|end_header_id\|>/g, '');
+                cleanedText = cleanedText.replace(/assistant/g, ''); // Remove stray "assistant" tokens
+                
+                // Remove explanatory text that AI might add (e.g., "Here is the rest of the HTML structure:")
+                cleanedText = cleanedText.replace(/Here is the rest of the HTML structure:[\s\n]*/gi, '');
+                cleanedText = cleanedText.replace(/Here is the completed JSON:[\s\n]*/gi, '');
+                cleanedText = cleanedText.replace(/Here is the template:[\s\n]*/gi, '');
+                cleanedText = cleanedText.replace(/Here is your custom CV template:[\s\n]*/gi, '');
+                
+                // Remove markdown code blocks if present
+                cleanedText = cleanedText.replace(/```json\s*/gi, '');
+                cleanedText = cleanedText.replace(/```\s*/g, '');
+                
+                // Remove any text before the first { and after the last }
+                const firstBrace = cleanedText.indexOf('{');
+                const lastBrace = cleanedText.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                    cleanedText = cleanedText.substring(firstBrace, lastBrace + 1);
+                } else {
+                    // Fallback: try to extract JSON object if wrapped in text
+                    const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        cleanedText = jsonMatch[0];
+                    }
+                }
+                
+                // Remove any nested JSON-like structures that might be inside string values
+                // This handles cases where AI includes explanatory JSON inside the actual JSON
+                // We'll be more aggressive - if we see `{\n  \"html\"` inside a string, remove it
+                // But we need to be careful not to break valid JSON
+                // For now, we'll let the parser handle it, but we'll improve the parser logic
+                
+                // Check if response contains HTML/error messages before parsing
+                if (cleanedText.trim().startsWith('<') || cleanedText.includes('<br') || cleanedText.includes('<b>') || cleanedText.includes('Fatal error') || cleanedText.includes('Parse error')) {
+                    throw new Error('AI service returned an error response instead of JSON. The response may contain HTML error messages. Please try again.');
+                }
+
+                // Parse template JSON
+                let template;
+                try {
+                    template = JSON.parse(cleanedText);
+                } catch (e) {
+                    
+                    // Try to fix common JSON issues - escape control characters in string values
+                    // Use a state machine to properly handle escaped sequences
+                    // Track which key we're currently in to better detect closing quotes
+                    let fixedText = '';
+                    try {
+                        let inString = false;
+                        let controlCharsFixed = 0;
+                        let escapeNext = false;
+                        let currentKey = null; // Track which JSON key we're currently processing
+                        let keyStartPos = -1; // Track where the current key started
+                        
+                        for (let i = 0; i < cleanedText.length; i++) {
+                            const char = cleanedText[i];
+                            const code = char.charCodeAt(0);
+                            
+                            if (escapeNext) {
+                                // We're processing an escaped character
+                                // Check if it's a control character that needs proper escaping
+                                if (inString && ((code >= 0x00 && code <= 0x1F) || code === 0x7F)) {
+                                    // This is a control character after a backslash - replace the backslash+char with proper escape
+                                    // Remove the backslash we added, then add proper escape sequence
+                                    fixedText = fixedText.slice(0, -1); // Remove the backslash we added
+                                    controlCharsFixed++;
+                                    if (code === 0x08) fixedText += '\\b';
+                                    else if (code === 0x09) fixedText += '\\t';
+                                    else if (code === 0x0A) fixedText += '\\n';
+                                    else if (code === 0x0C) fixedText += '\\f';
+                                    else if (code === 0x0D) fixedText += '\\r';
+                                    else fixedText += '\\u' + ('0000' + code.toString(16)).slice(-4);
+                                } else {
+                                    // Normal escaped character - add it as-is
+                                    fixedText += char;
+                                }
+                                escapeNext = false;
+                                continue;
+                            }
+                            
+                            if (char === '\\') {
+                                // Start of escape sequence
+                                escapeNext = true;
+                                fixedText += char;
+                                continue;
+                            }
+                            
+                            if (char === '"') {
+                                // Quote character
+                                if (escapeNext) {
+                                    // Escaped quote - part of string content
+                                    fixedText += char;
+                                    escapeNext = false;
+                                } else if (inString) {
+                                    // We're inside a string and see an unescaped quote
+                                    // Look ahead to determine if this is a closing quote
+                                    let lookAhead = cleanedText.substring(i + 1, Math.min(i + 50, cleanedText.length));
+                                    let lookAheadTrimmed = lookAhead.trim();
+                                    
+                                    // Be very conservative - only close string if we're CERTAIN it's a closing quote
+                                    // Check for patterns that indicate this is a closing quote:
+                                    // 1. Followed by comma and whitespace (very likely closing)
+                                    // 2. Followed by closing brace/bracket (very likely closing)
+                                    // 3. Followed by colon BUT only if we see a quote after it (like `": "value"`)
+                                    //    AND we're NOT in html/css value (those can have colons in CSS)
+                                    
+                                    // More sophisticated: if we see a pattern like `\"html\":` or `\"css\":` 
+                                    // and we're already processing html/css, it's content, not a closing quote
+                                    const jsonKeyPattern = /^\s*\\?"(html|css|instructions)"\s*:/;
+                                    if (jsonKeyPattern.test(lookAhead) && (currentKey === 'html' || currentKey === 'css' || currentKey === 'instructions')) {
+                                        // This is AI-generated explanatory text inside the value - escape the quote
+                                        fixedText += '\\"';
+                                    } else if (lookAheadTrimmed.match(/^\s*[,}\]]/)) {
+                                        // Very likely a closing quote - followed by comma or closing brace/bracket
+                                        inString = false;
+                                        currentKey = null;
+                                        fixedText += char;
+                                    } else if (lookAheadTrimmed.match(/^\s*:\s*["']/) && currentKey !== 'html' && currentKey !== 'css') {
+                                        // Followed by colon and quote (like `": "value"`) - likely closing
+                                        // But NOT if we're in html/css (those can have colons in content)
+                                        inString = false;
+                                        currentKey = null;
+                                        fixedText += char;
+                                    } else {
+                                        // Uncertain - be conservative and escape it (treat as content)
+                                        fixedText += '\\"';
+                                    }
+                                } else {
+                                    // Unescaped quote outside string - start a new string
+                                    inString = true;
+                                    
+                                    // Check if this might be a JSON key by looking backwards
+                                    let lookBack = fixedText.substring(Math.max(0, fixedText.length - 20));
+                                    if (lookBack.match(/{\s*$/) || lookBack.match(/,\s*$/)) {
+                                        // We're likely starting a JSON key
+                                        keyStartPos = i;
+                                    }
+                                    
+                                    fixedText += char;
+                                }
+                                continue;
+                            }
+                            
+                            // Track when we enter a known JSON key value
+                            if (!inString && char === ':' && keyStartPos !== -1) {
+                                // Extract the key name (between the quotes)
+                                let keyText = cleanedText.substring(keyStartPos + 1, i - 1);
+                                if (keyText === 'html' || keyText === 'css' || keyText === 'instructions') {
+                                    currentKey = keyText;
+                                }
+                                keyStartPos = -1;
+                            }
+                            
+                            // Reset key tracking if we hit a comma or closing brace outside strings
+                            if (!inString && (char === ',' || char === '}')) {
+                                currentKey = null;
+                                keyStartPos = -1;
+                            }
+                            
+                            if (inString && !escapeNext) {
+                                // Inside a string and not part of an escape sequence - escape control characters
+                                if ((code >= 0x00 && code <= 0x1F) || code === 0x7F) {
+                                    // Control character - escape it
+                                    controlCharsFixed++;
+                                    if (code === 0x08) fixedText += '\\b';
+                                    else if (code === 0x09) fixedText += '\\t';
+                                    else if (code === 0x0A) fixedText += '\\n';
+                                    else if (code === 0x0C) fixedText += '\\f';
+                                    else if (code === 0x0D) fixedText += '\\r';
+                                    else fixedText += '\\u' + ('0000' + code.toString(16)).slice(-4);
+                                } else {
+                                    fixedText += char;
+                                }
+                            } else {
+                                fixedText += char;
+                                escapeNext = false;
+                            }
+                        }
+                        
+                        // If we're still inside a string at the end, close it
+                        // This handles cases where the AI-generated JSON is incomplete
+                        if (inString) {
+                            fixedText += '"';
+                            inString = false;
+                        }
+                        
+                        // Ensure the JSON object is properly closed
+                        let openBraces = (fixedText.match(/{/g) || []).length;
+                        let closeBraces = (fixedText.match(/}/g) || []).length;
+                        while (openBraces > closeBraces) {
+                            fixedText += '}';
+                            closeBraces++;
+                        }
+                        
+                        
+                        // Check if fixed text still contains HTML/error messages
+                        if (fixedText.trim().startsWith('<') || fixedText.includes('<br') || fixedText.includes('<b>') || fixedText.includes('Fatal error') || fixedText.includes('Parse error')) {
+                            throw new Error('Response contains HTML/error messages. The AI service may have encountered an error.');
+                        }
+                        
+                        template = JSON.parse(fixedText);
+                    } catch (e2) {
+                        const errorPos = parseInt(e2.message.match(/position (\d+)/)?.[1] || 0);
+                        const contextStart = Math.max(0, errorPos - 50);
+                        const contextEnd = Math.min(fixedText.length, errorPos + 50);
+                        const context = fixedText.substring(contextStart, contextEnd);
+                        
+                        throw new Error('Failed to parse AI response as JSON: ' + e.message + '. Second attempt: ' + e2.message);
+                    }
+                }
+
+                // Send template to server to save
+                
+                const saveFormData = new FormData();
+                saveFormData.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo generateCsrfToken(); ?>');
+                saveFormData.append('browser_ai_result', JSON.stringify(template));
+                // Copy original form data (description, options, etc.)
+                for (const [key, value] of originalFormData.entries()) {
+                    if (key !== '<?php echo CSRF_TOKEN_NAME; ?>') {
+                        saveFormData.append(key, value);
+                    }
+                }
+
+                const saveResponse = await fetch('/api/ai-generate-cv-template.php', {
+                    method: 'POST',
+                    body: saveFormData
+                });
+
+                const saveResult = await saveResponse.json();
+                
+                // Cleanup
+                await BrowserAIService.cleanup();
+                if (loadingOverlay) loadingOverlay.classList.add('hidden');
+
+                if (saveResult.success) {
+                    // Show preview
+                    const previewFrame = document.getElementById('template-preview');
+                    const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                    
+                    // Clean HTML/CSS content - remove PHP tags
+                    let cssContent = (saveResult.css || '').replace(/<\?php[\s\S]*?\?>/g, '');
+                    let htmlContent = (saveResult.html || '').replace(/<\?php[\s\S]*?\?>/g, '<!-- PHP code removed for preview -->');
+                    
+                    // Use DOM methods to safely insert content
+                    previewDoc.open();
+                    previewDoc.write('<!DOCTYPE html><html><head></head><body></body></html>');
+                    previewDoc.close();
+                    
+                    // Add Tailwind script
+                    const script = previewDoc.createElement('script');
+                    script.src = 'https://cdn.tailwindcss.com';
+                    previewDoc.head.appendChild(script);
+                    
+                    // Add CSS
+                    const style = previewDoc.createElement('style');
+                    style.textContent = cssContent;
+                    previewDoc.head.appendChild(style);
+                    
+                    // Add HTML content to body
+                    previewDoc.body.innerHTML = htmlContent;
+                    
+                    document.getElementById('results').classList.remove('hidden');
+                    
+                    // Reload after a short delay to show updated status
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    throw new Error(saveResult.error || 'Failed to save template');
+                }
+            } catch (error) {
+                console.error('Browser AI execution error:', error);
+                if (loadingOverlay) loadingOverlay.classList.add('hidden');
+                
+                const generateBtn = document.getElementById('generate-btn');
+                const generateBtnText = document.getElementById('generate-btn-text');
+                const generateBtnLoading = document.getElementById('generate-btn-loading');
+                
+                if (generateBtn) generateBtn.disabled = false;
+                if (generateBtnText) generateBtnText.classList.remove('hidden');
+                if (generateBtnLoading) generateBtnLoading.classList.add('hidden');
+                
+                alert('Error: ' + error.message);
+            }
+        }
     </script>
+    <script src="/js/model-cache-manager.js"></script>
+    <script src="/js/browser-ai-service.js"></script>
 </body>
 </html>
 

@@ -188,11 +188,14 @@ if ($activeTemplate) {
     $customHtml = $activeTemplate['template_html'];
     $customCss = $activeTemplate['template_css'] ?? '';
     
-    // Extract and execute PHP code from template
+    // Securely execute PHP code from template
     // Variables $profile, $cvData, and formatCvDate() are available in the template scope
-    ob_start();
-    eval('?>' . $customHtml);
-    $renderedContent = ob_get_clean();
+    require_once __DIR__ . '/php/template-security.php';
+    $renderedContent = executeTemplateSecurely($customHtml, [
+        'profile' => $profile,
+        'cvData' => $cvData
+        // formatCvDate() function is available globally, no need to pass it
+    ]);
     
     // Output custom template
     ?>

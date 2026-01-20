@@ -15,6 +15,7 @@ set_time_limit(180); // 3 minutes
 ini_set('max_execution_time', 180);
 
 require_once __DIR__ . '/../php/helpers.php';
+require_once __DIR__ . '/../php/ai-service.php';
 
 header('Content-Type: application/json');
 
@@ -193,9 +194,19 @@ try {
     ob_end_clean();
     http_response_code(500);
     error_log("AI Assess CV Error: " . $e->getMessage());
+    error_log("AI Assess CV Error Stack: " . $e->getTraceAsString());
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
+    ]);
+} catch (Error $e) {
+    ob_end_clean();
+    http_response_code(500);
+    error_log("AI Assess CV Fatal Error: " . $e->getMessage());
+    error_log("AI Assess CV Fatal Error Stack: " . $e->getTraceAsString());
+    echo json_encode([
+        'success' => false,
+        'error' => 'A fatal error occurred: ' . $e->getMessage()
     ]);
 }
 

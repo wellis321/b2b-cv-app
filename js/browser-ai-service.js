@@ -5,6 +5,7 @@
 
 const BrowserAIService = {
     webllmEngine: null,
+    webllmModule: null, // Store the imported WebLLM module
     tensorflowModel: null,
     currentModel: null,
     currentModelType: null,
@@ -35,57 +36,113 @@ const BrowserAIService = {
     },
     
     /**
+     * Map user-friendly model names to WebLLM model IDs
+     * @param {string} modelName User-friendly model name (e.g., 'llama3.2', 'llama3')
+     * @returns {string} WebLLM model ID
+     */
+    mapModelNameToWebLLMID(modelName) {
+        const modelMap = {
+            'llama3.2': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'llama3': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'llama3.1': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'llama-3.2': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'llama-3.1': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'llama-3': 'Llama-3.1-8B-Instruct-q4f32_1-MLC',
+            'mistral': 'Mistral-7B-Instruct-v0.3-q4f32_1-MLC',
+            'phi3': 'Phi-3-mini-4k-instruct-q4f32_1-MLC',
+            'gemma': 'Gemma-2-2b-it-q4f32_1-MLC',
+        };
+        
+        // If it's already a WebLLM model ID (contains dashes and MLC), use as-is
+        if (modelName.includes('-') && modelName.includes('MLC')) {
+            return modelName;
+        }
+        
+        // Map to WebLLM model ID, default to Llama 3.1 if not found
+        return modelMap[modelName.toLowerCase()] || 'Llama-3.1-8B-Instruct-q4f32_1-MLC';
+    },
+    
+    /**
      * Initialize WebLLM model
-     * @param {string} modelName Model name
+     * @param {string} modelName Model name (user-friendly or WebLLM ID)
      * @param {Function} progressCallback Progress callback
      * @returns {Promise<void>}
      */
     async initWebLLM(modelName, progressCallback = null) {
         try {
-            // Check if WebLLM is available
-            if (typeof webllm === 'undefined') {
-                // Load WebLLM dynamically
+            // Check if WebLLM module is loaded
+            if (!this.webllmModule) {
+                // Load WebLLM dynamically using import()
                 await this.loadWebLLMLibrary();
             }
             
-            // Check for cached model
+            // Get webllm from the imported module
+            let webllm = this.webllmModule;
+            if (!webllm) {
+                throw new Error('WebLLM module loaded but exports not available');
+            }
+            
+            // Handle default export if present
+            if (webllm.default && !webllm.CreateMLCEngine) {
+                webllm = webllm.default;
+                this.webllmModule = webllm;
+            }
+            
+            // Check if the module has the expected exports
+            if (!webllm.CreateMLCEngine) {
+                console.warn('WebLLM module structure:', Object.keys(webllm));
+                throw new Error('WebLLM module loaded but CreateMLCEngine not found. Available exports: ' + Object.keys(webllm).join(', '));
+            }
+            
+            // Map user-friendly model name to WebLLM model ID
+            const webllmModelId = this.mapModelNameToWebLLMID(modelName);
+            
+            // Check for cached model (use original name for cache lookup)
             const cachedModel = await ModelCacheManager.getModel(modelName, 'webllm');
             
             if (progressCallback) {
                 progressCallback({ stage: 'checking_cache', message: 'Checking for cached model...' });
             }
             
+            // WebLLM uses CreateMLCEngine with model name and config
             const engineConfig = {
-                modelName: modelName,
-                gpuDeviceId: 0, // Use first GPU
-                onProgress: (progress) => {
+                initProgressCallback: (progress) => {
                     if (progressCallback) {
                         progressCallback({
                             stage: 'downloading',
-                            progress: progress.progress,
-                            message: `Downloading model: ${Math.round(progress.progress * 100)}%`
+                            progress: progress.progress || 0,
+                            message: progress.text || `Downloading model: ${Math.round((progress.progress || 0) * 100)}%`
                         });
                     }
                 }
             };
             
-            if (cachedModel && cachedModel.data) {
-                engineConfig.modelCache = cachedModel.data;
+            // Use CreateMLCEngine (CreateWebWorkerMLCEngine has different API signature)
+            const CreateMLCEngine = webllm.CreateMLCEngine || webllm.default?.CreateMLCEngine || (webllm.default && webllm.default.CreateMLCEngine) || webllm.CreateWebLLMEngine;
+            
+            if (!CreateMLCEngine) {
+                throw new Error('CreateMLCEngine not found in WebLLM module. Available exports: ' + Object.keys(webllm).join(', '));
             }
             
-            this.webllmEngine = await webllm.CreateWebLLMEngine(engineConfig);
+            // Create engine with WebLLM model ID and config
+            this.webllmEngine = await CreateMLCEngine(webllmModelId, engineConfig);
             
-            // Cache the model for future use
-            if (!cachedModel) {
+            // Cache the model for future use (if getModelCache method exists)
+            if (!cachedModel && this.webllmEngine && typeof this.webllmEngine.getModelCache === 'function') {
                 if (progressCallback) {
                     progressCallback({ stage: 'caching', message: 'Caching model for future use...' });
                 }
-                await ModelCacheManager.saveModel({
-                    modelName: modelName,
-                    modelType: 'webllm',
-                    data: this.webllmEngine.getModelCache(),
-                    size: this.estimateModelSize(modelName),
-                });
+                try {
+                    await ModelCacheManager.saveModel({
+                        modelName: modelName,
+                        modelType: 'webllm',
+                        data: this.webllmEngine.getModelCache(),
+                        size: this.estimateModelSize(modelName),
+                    });
+                } catch (cacheError) {
+                    // Cache saving is optional, log but don't fail
+                    console.warn('Failed to cache model:', cacheError);
+                }
             }
             
             return Promise.resolve();
@@ -148,13 +205,70 @@ const BrowserAIService = {
      * @returns {Promise<void>}
      */
     async loadWebLLMLibrary() {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/dist/index.js';
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load WebLLM library'));
-            document.head.appendChild(script);
-        });
+        // WebLLM uses ES modules, so we need to use dynamic import() instead of script tag
+        // Try different import paths as WebLLM package structure may vary
+        const importPaths = [
+            'https://unpkg.com/@mlc-ai/web-llm@0.2.80/lib/index.js',
+            'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.80/lib/index.js',
+            'https://unpkg.com/@mlc-ai/web-llm@latest/lib/index.js',
+            'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@latest/lib/index.js'
+        ];
+        
+        let lastError = null;
+        for (const importPath of importPaths) {
+            try {
+                console.log(`Attempting to load WebLLM from ${importPath}...`);
+                const webllmModule = await import(importPath);
+                // Store the module for later use - handle both default and named exports
+                // WebLLM exports CreateMLCEngine directly, not as default
+                if (webllmModule.CreateMLCEngine) {
+                    this.webllmModule = webllmModule;
+                } else if (webllmModule.default?.CreateMLCEngine) {
+                    this.webllmModule = webllmModule.default;
+                } else {
+                    this.webllmModule = webllmModule.default || webllmModule;
+                }
+                console.log('WebLLM loaded successfully from', importPath);
+                console.log('WebLLM module keys:', Object.keys(this.webllmModule));
+                if (this.webllmModule.CreateMLCEngine) {
+                    console.log('CreateMLCEngine found in module');
+                } else {
+                    console.warn('CreateMLCEngine not found in module');
+                }
+                return;
+            } catch (error) {
+                console.error(`Failed to load WebLLM from ${importPath}:`, error);
+                lastError = error;
+                continue;
+            }
+        }
+        
+        // If all paths failed, throw error with details
+        throw new Error(`Failed to load WebLLM library from all CDN sources. Last error: ${lastError?.message || 'Unknown error'}. Browser AI requires an internet connection. Please check your network connection and try again.`);
+    },
+    
+    /**
+     * Try loading WebLLM from jsdelivr CDN as fallback
+     * @param {Function} resolve
+     * @param {Function} reject
+     */
+    tryJsdelivrCDN(resolve, reject) {
+        const altScript = document.createElement('script');
+        altScript.type = 'module'; // WebLLM uses ES modules
+        // Try jsdelivr with correct path
+        altScript.src = 'https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.80/lib/index.js';
+        altScript.onload = () => {
+            // Check for both webllm and WebLLM (different naming conventions)
+            if (typeof webllm !== 'undefined' || typeof WebLLM !== 'undefined' || window.webllm || window.WebLLM) {
+                resolve();
+            } else {
+                reject(new Error('WebLLM library loaded but webllm object not available. Browser AI is not supported in this environment. Please check browser console for details.'));
+            }
+        };
+        altScript.onerror = () => {
+            reject(new Error('Failed to load WebLLM library from both CDN sources. Browser AI requires an internet connection. Please check your network connection and try again.'));
+        };
+        document.head.appendChild(altScript);
     },
     
     /**
@@ -207,14 +321,36 @@ const BrowserAIService = {
             throw new Error('WebLLM engine not initialized');
         }
         
+        // WebLLM uses OpenAI-compatible chat.completions API
+        // Convert prompt to messages format
+        const messages = [
+            { role: 'user', content: prompt }
+        ];
+        
         const generationConfig = {
+            messages: messages,
             temperature: options.temperature || 0.7,
-            maxTokens: options.maxTokens || 2000,
+            max_tokens: options.maxTokens || 2000,
             stop: options.stop || [],
         };
         
-        const response = await this.webllmEngine.complete(prompt, generationConfig);
-        return response;
+        // Try OpenAI-compatible API first, fallback to complete() if needed
+        let response;
+        if (this.webllmEngine.chat && this.webllmEngine.chat.completions && this.webllmEngine.chat.completions.create) {
+            response = await this.webllmEngine.chat.completions.create(generationConfig);
+            // Extract text from OpenAI-compatible response
+            return response.choices[0]?.message?.content || response.choices[0]?.text || '';
+        } else if (this.webllmEngine.complete) {
+            // Fallback to older API
+            response = await this.webllmEngine.complete(prompt, {
+                temperature: generationConfig.temperature,
+                maxTokens: generationConfig.max_tokens,
+                stop: generationConfig.stop
+            });
+            return typeof response === 'string' ? response : (response.text || response.content || '');
+        } else {
+            throw new Error('WebLLM engine does not support chat.completions or complete methods');
+        }
     },
     
     /**

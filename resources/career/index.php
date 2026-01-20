@@ -20,6 +20,12 @@ $sections = [
                 'href' => '/resources/career/how-to-update-your-cv.php#checklist',
                 'cta' => 'View checklist',
             ],
+            [
+                'title' => 'CV Keywords and ATS: A Complete Guide',
+                'excerpt' => 'Learn how Applicant Tracking Systems work, why keywords matter, and how to optimise your CV to pass ATS screening.',
+                'href' => '/resources/career/keywords-and-ats-guide.php',
+                'cta' => 'Read guide',
+            ],
         ],
     ],
 ];

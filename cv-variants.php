@@ -162,12 +162,14 @@ if (isPost() && isset($_POST['action']) && $_POST['action'] === 'rename') {
                                 </svg>
                                 Assess Quality
                             </a>
+<?php /* Template customizer temporarily hidden
                             <a href="/cv-template-customizer.php" class="inline-flex items-center px-3 py-2 border border-purple-600 text-purple-600 text-sm font-medium rounded-lg hover:bg-purple-50 transition-colors">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                                 </svg>
                                 Customise Template
                             </a>
+*/ ?>
                             <a href="/resources/ai/setup-ollama.php" class="inline-flex items-center px-3 py-2 text-purple-600 text-sm font-medium hover:text-purple-700 transition-colors">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />

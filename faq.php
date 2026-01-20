@@ -109,15 +109,15 @@ $faqs = [
     ],
     [
         'question' => 'How does CV quality assessment work?',
-        'answer' => 'CV quality assessment uses AI to analyse your CV and provide scores for overall quality, ATS compatibility, content quality, formatting, and keyword matching (when a job description is provided). You\'ll receive specific strengths, weaknesses, and actionable recommendations to improve your CV. You can assess any CV variant or your master CV at any time.'
+        'answer' => 'CV quality assessment uses browser-based AI to analyse your CV and provide scores for overall quality, ATS compatibility, content quality, formatting, and keyword matching (when a job description is provided). The AI runs directly in your browser - no cloud services needed. You\'ll receive specific strengths, weaknesses, and actionable recommendations to improve your CV. You can assess any CV variant or your master CV at any time. Organisations or users with cloud AI accounts can also use cloud-based AI if configured.'
     ],
     [
         'question' => 'Is AI CV rewriting accurate?',
-        'answer' => 'The AI maintains factual accuracy - it doesn\'t invent experiences, dates, or qualifications. However, it may need refinement to match your personal writing style. Always review AI-generated content before using it. The AI focuses on rewording and emphasizing relevant information rather than creating new content.'
+        'answer' => 'The AI maintains factual accuracy - it doesn\'t invent experiences, dates, or qualifications. However, it may need refinement to match your personal writing style. Always review AI-generated content before using it. The AI focuses on rewording and emphasizing relevant information rather than creating new content. All AI features run in your browser - no cloud services required. Cloud-based AI options are available for organisations or users who have configured them.'
     ],
     [
         'question' => 'Are AI CV features free?',
-        'answer' => 'Yes! AI CV features are available to all users, including those on the free plan. You can generate unlimited CV variants and run quality assessments as often as you like. This helps everyone create better CVs regardless of their subscription level.'
+        'answer' => 'Yes! AI CV features are available to all users, including those on the free plan. All AI features run directly in your browser using browser-based AI - no cloud services, API keys, or setup required. You can generate unlimited CV variants and run quality assessments as often as you like. For organisations or users who prefer cloud-based AI (OpenAI, Anthropic, Gemini, etc.), those options are also available if configured.'
     ],
     [
         'question' => 'How do I generate an AI CV for a job application?',

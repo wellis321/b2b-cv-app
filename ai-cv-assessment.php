@@ -30,7 +30,7 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                         AI-Powered CV Quality Assessment
                     </h1>
                     <p class="mt-4 text-xl text-green-100 max-w-3xl mx-auto">
-                        Get comprehensive, actionable feedback on your CV. Detect issues, receive AI-generated improvements, and create CVs that stand out to employers and ATS systems.
+                        Get comprehensive, actionable feedback on your CV. Detect issues, receive AI-generated improvements, and create CVs that stand out to employers and ATS systems. Powered by browser-based AI - no setup required, works instantly in your browser.
                     </p>
                     <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                         <?php if (isLoggedIn()): ?>
@@ -67,7 +67,7 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                         What Our AI Assessment Does
                     </h2>
                     <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-                        Our AI-powered assessment analyzes your CV across multiple dimensions, providing detailed feedback and actionable improvements to help you create a standout CV.
+                        Our AI-powered assessment analyses your CV across multiple dimensions, providing detailed feedback and actionable improvements to help you create a standout CV. All AI features run directly in your browser - no cloud services or API keys needed. For organisations or users with cloud AI accounts, advanced cloud-based options are also available.
                     </p>
                 </div>
 
@@ -246,7 +246,7 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-3">Keyword Matching</h3>
                         <p class="text-gray-700 mb-4">
-                            When you provide a job description, the AI analyzes how well your CV matches the requirements and suggests improvements.
+                            When you provide a job description, the AI analyses how well your CV matches the requirements and suggests improvements.
                         </p>
                         <ul class="space-y-2 text-sm text-gray-600">
                             <li class="flex items-start">
@@ -302,7 +302,7 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-3">AI Analysis</h3>
                         <p class="text-gray-600">
-                            Our AI analyzes your CV across multiple dimensions: ATS compatibility, content quality, formatting, date consistency, and keyword matching (if job description provided).
+                            Our AI analyses your CV across multiple dimensions: ATS compatibility, content quality, formatting, date consistency, and keyword matching (if job description provided).
                         </p>
                     </div>
 
@@ -350,7 +350,7 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">ATS Optimized</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">ATS Optimised</h3>
                         <p class="text-gray-600 text-sm">
                             Ensure your CV passes through Applicant Tracking Systems with specific recommendations for ATS compatibility improvements.
                         </p>
@@ -434,11 +434,11 @@ $canonicalUrl = APP_URL . '/ai-cv-assessment.php';
                         <button type="button" data-open-register class="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-base font-semibold text-green-600 shadow-lg hover:bg-green-50 transition-colors">
                             Create Free Account
                         </button>
-                        <a href="/resources/ai/setup-ollama.php" class="inline-flex items-center justify-center rounded-lg border-2 border-white px-6 py-3 text-base font-semibold text-white hover:bg-white hover:text-green-600 transition-colors">
+                        <a href="/ai-settings.php" class="inline-flex items-center justify-center rounded-lg border-2 border-white px-6 py-3 text-base font-semibold text-white hover:bg-white hover:text-green-600 transition-colors">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            Setup Local AI
+                            AI Settings
                         </a>
                     <?php endif; ?>
                 </div>

@@ -114,20 +114,68 @@ try {
     // Get AI service with user ID for user-specific settings
     $aiService = getAIService($user['id']);
     
-    // Generate template
-    $result = $aiService->generateCvTemplate($cvData, $userDescription, $options);
+    // Check if this is a browser AI result being saved (from client-side execution)
+    $browserAiResult = $_POST['browser_ai_result'] ?? null;
     
-    // Clean up temporary image file after processing
-    if ($imagePath && file_exists($imagePath)) {
-        @unlink($imagePath);
-    }
-    
-    if (!$result['success']) {
-        // Log the raw response for debugging
-        if (!empty($result['raw_response'])) {
-            error_log("AI Template Generation Raw Response: " . substr($result['raw_response'], 0, 1000));
+    if ($browserAiResult) {
+        // Browser AI already executed client-side - parse and use the result
+        $template = json_decode($browserAiResult, true);
+        if (!$template || !is_array($template)) {
+            throw new Exception('Invalid browser AI result format');
         }
-        throw new Exception($result['error'] ?? 'Template generation failed');
+        
+        // Validate template structure
+        $validation = $aiService->validateTemplate($template);
+        if (!$validation['valid']) {
+            throw new Exception('Generated template failed validation: ' . ($validation['error'] ?? 'Invalid template structure'));
+        }
+        
+        $result = [
+            'success' => true,
+            'html' => $template['html'] ?? '',
+            'css' => $template['css'] ?? '',
+            'instructions' => $template['instructions'] ?? ''
+        ];
+    } else {
+        // Server-side AI execution
+        // Generate template
+        $result = $aiService->generateCvTemplate($cvData, $userDescription, $options);
+        
+        // Check if this is browser execution mode
+        if (isset($result['browser_execution']) && $result['browser_execution']) {
+            // Browser AI - return prompt and instructions for frontend execution
+            // Clean up temporary image file before returning
+            if ($imagePath && file_exists($imagePath)) {
+                @unlink($imagePath);
+            }
+            
+            ob_end_clean();
+            echo json_encode([
+                'success' => true,
+                'browser_execution' => true,
+                'prompt' => $result['prompt'] ?? '',
+                'model' => $result['model'] ?? 'llama3.2',
+                'model_type' => $result['model_type'] ?? 'webllm',
+                'cv_data' => $cvData,
+                'user_description' => $userDescription,
+                'options' => $options,
+                'message' => 'Browser AI execution required. Frontend will handle this request.'
+            ]);
+            exit;
+        }
+        
+        // Clean up temporary image file after processing
+        if ($imagePath && file_exists($imagePath)) {
+            @unlink($imagePath);
+        }
+        
+        if (!$result['success']) {
+            // Log the raw response for debugging
+            if (!empty($result['raw_response'])) {
+                error_log("AI Template Generation Raw Response: " . substr($result['raw_response'], 0, 1000));
+            }
+            throw new Exception($result['error'] ?? 'Template generation failed');
+        }
     }
     
     // Save template to database (but don't activate yet - user can preview first)

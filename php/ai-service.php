@@ -247,24 +247,65 @@ class AIService {
             }
         }
         
-        $prompt = $this->buildCvRewritePrompt($cvData, $combinedDescription, $options);
+        // Check if browser AI will be used - build condensed prompt if so
+        $isBrowserAI = ($this->service === 'browser');
+        if ($isBrowserAI) {
+            // Build condensed prompt for browser AI (limited context window)
+            $prompt = $this->buildCvRewritePromptCondensed($cvData, $combinedDescription, $options);
+        } else {
+            // Build full prompt for server-side AI
+            $prompt = $this->buildCvRewritePrompt($cvData, $combinedDescription, $options);
+        }
+        
         $response = $this->callAI($prompt, [
             'temperature' => 0.7,
             'max_tokens' => 8000,
         ]);
         
+        // #region agent log
+        file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode(['location'=>'php/ai-service.php:256','message'=>'After callAI','data'=>['responseKeys'=>array_keys($response),'responseSuccess'=>($response['success']??false),'hasContent'=>isset($response['content']),'contentLength'=>strlen($response['content']??''),'hasError'=>isset($response['error']),'error'=>($response['error']??null),'hasBrowserExecution'=>isset($response['browser_execution']),'promptLength'=>strlen($prompt)],'timestamp'=>time()*1000,'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'I'])."\n", FILE_APPEND);
+        // #endregion
+        
         if (!$response['success']) {
             return $response;
         }
         
+        // Check if this is browser AI execution mode
+        if (isset($response['browser_execution']) && $response['browser_execution']) {
+            // Browser AI - return special response for frontend execution
+            return [
+                'success' => true,
+                'browser_execution' => true,
+                'prompt' => $response['prompt'] ?? $prompt,
+                'model' => $response['model'] ?? 'llama3.2',
+                'model_type' => $response['model_type'] ?? 'webllm',
+                'cv_data' => $cvData,
+                'job_description' => $combinedDescription,
+                'message' => 'Browser AI execution required. Frontend will handle this request.'
+            ];
+        }
+        
         // Parse JSON response
+        
+        // #region agent log
+        file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode(['location'=>'php/ai-service.php:275','message'=>'Before parseJsonResponse','data'=>['responseSuccess'=>$response['success'],'contentLength'=>strlen($response['content']??''),'contentPreview'=>substr($response['content']??'',0,500)],'timestamp'=>time()*1000,'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'F'])."\n", FILE_APPEND);
+        // #endregion
+        
         $rewritten = $this->parseJsonResponse($response['content']);
         
+        // #region agent log
+        file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode(['location'=>'php/ai-service.php:282','message'=>'After parseJsonResponse','data'=>['rewrittenIsNull'=>($rewritten===null),'rewrittenIsFalse'=>($rewritten===false),'rewrittenIsArray'=>is_array($rewritten),'jsonError'=>json_last_error_msg()],'timestamp'=>time()*1000,'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'G'])."\n", FILE_APPEND);
+        // #endregion
+        
         if (!$rewritten) {
+            // #region agent log
+            file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode(['location'=>'php/ai-service.php:289','message'=>'JSON parsing failed','data'=>['rawResponseLength'=>strlen($response['content']??''),'rawResponseFirst1000'=>substr($response['content']??'',0,1000),'jsonError'=>json_last_error_msg(),'jsonErrorCode'=>json_last_error()],'timestamp'=>time()*1000,'sessionId'=>'debug-session','runId'=>'run1','hypothesisId'=>'H'])."\n", FILE_APPEND);
+            // #endregion
+            
             return [
                 'success' => false,
                 'error' => 'Failed to parse AI response. The AI may not have returned valid JSON.',
-                'raw_response' => $response['content']
+                'raw_response' => $response['content'] ?? ''
             ];
         }
         
@@ -291,6 +332,20 @@ class AIService {
         
         if (!$response['success']) {
             return $response;
+        }
+        
+        // Check if this is browser execution mode
+        if (isset($response['browser_execution']) && $response['browser_execution']) {
+            // Browser AI - return prompt for client-side execution
+            return $response;
+        }
+        
+        // Server-side AI - clean the response
+        if (!isset($response['content'])) {
+            return [
+                'success' => false,
+                'error' => 'No content received from AI service'
+            ];
         }
         
         // Clean the response - remove markdown formatting, extra whitespace
@@ -587,6 +642,23 @@ class AIService {
             return $response;
         }
         
+        // Check if this is browser AI execution mode
+        // Note: Browser AI doesn't support image data, so if image_data is provided, we skip browser execution
+        if (isset($response['browser_execution']) && $response['browser_execution'] && !$imageData) {
+            // Browser AI - return special response for frontend execution
+            return [
+                'success' => true,
+                'browser_execution' => true,
+                'prompt' => $prompt,
+                'model' => $response['model'] ?? 'llama3.2',
+                'model_type' => $response['model_type'] ?? 'webllm',
+                'cv_data' => $cvData,
+                'user_description' => $userDescription,
+                'options' => $options,
+                'message' => 'Browser AI execution required. Frontend will handle this request.'
+            ];
+        }
+        
         // Parse JSON response
         $template = $this->parseJsonResponse($response['content']);
         
@@ -637,6 +709,21 @@ class AIService {
         
         if (!$response['success']) {
             return $response;
+        }
+        
+        // Check if this is browser AI execution mode
+        if (isset($response['browser_execution']) && $response['browser_execution']) {
+            // Browser AI - return special response for frontend execution
+            return [
+                'success' => true,
+                'browser_execution' => true,
+                'prompt' => $prompt,
+                'model' => $response['model'] ?? 'llama3.2',
+                'model_type' => $response['model_type'] ?? 'webllm',
+                'cv_data' => $cvData,
+                'job_description' => $jobDescription,
+                'message' => 'Browser AI execution required. Frontend will handle this request.'
+            ];
         }
         
         // Parse JSON response
@@ -819,7 +906,7 @@ class AIService {
         }
         
         if (in_array('work_experience', $sectionsToRewrite)) {
-            $prompt .= "  \"work_experience\": [{\"id\": \"...\", \"description\": \"...\", \"responsibility_categories\": [{\"name\": \"...\", \"items\": [{\"content\": \"...\"}]}]}],\n";
+            $prompt .= "  \"work_experience\": [{\"id\": \"...\", \"position\": \"exact position from original CV\", \"company_name\": \"exact company from original CV\", \"description\": \"...\", \"responsibility_categories\": [{\"name\": \"...\", \"items\": [{\"content\": \"...\"}]}]}],\n";
         }
         
         if (in_array('skills', $sectionsToRewrite)) {
@@ -847,7 +934,140 @@ class AIService {
         }
         
         $prompt .= "}\n";
-        $prompt .= "\nIMPORTANT: You MUST include ALL requested sections in your response. Keep original IDs for all items. Enhance content with more detail, achievements, and metrics - do not reduce or simplify.";
+        $prompt .= "\nIMPORTANT: You MUST include ALL requested sections in your response. Keep original IDs for all items. Enhance content with more detail, achievements, and metrics - do not reduce or simplify.\n";
+        $prompt .= "\nCRITICAL FOR WORK EXPERIENCE: The \"position\" and \"company_name\" fields MUST match EXACTLY (case-insensitive) the position and company name from the original CV data. Do NOT modify these fields - they are used to match your rewritten content to the original entries.";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Build condensed prompt for CV rewriting (for browser AI with limited context)
+     */
+    private function buildCvRewritePromptCondensed($cvData, $jobDescription, $options = []) {
+        // Get sections to rewrite from options
+        $sectionsToRewrite = $options['sections_to_rewrite'] ?? ['professional_summary', 'work_experience', 'skills'];
+        $customInstructions = $options['custom_instructions'] ?? null;
+        
+        // Truncate job description to ~2000 chars (roughly 500 tokens)
+        $truncatedJobDesc = mb_strlen($jobDescription) > 2000 
+            ? mb_substr($jobDescription, 0, 2000) . "\n\n[Job description truncated for browser AI context limits]"
+            : $jobDescription;
+        
+        $prompt = "You are a professional CV writer. Rewrite the following CV sections to better match this job description while maintaining factual accuracy.\n\n";
+        $prompt .= "Job Description:\n" . $truncatedJobDesc . "\n\n";
+        $prompt .= "Current CV Data:\n";
+        
+        // Professional Summary (limit to 500 chars)
+        if (!empty($cvData['professional_summary'])) {
+            $summary = $cvData['professional_summary']['description'] ?? '';
+            if (mb_strlen($summary) > 500) {
+                $summary = mb_substr($summary, 0, 500) . '...';
+            }
+            $prompt .= "- Professional Summary: " . $summary . "\n";
+        }
+        
+        // Work Experience (limit to 3 most recent, 3 items per category max)
+        if (!empty($cvData['work_experience'])) {
+            $prompt .= "- Work Experience:\n";
+            $workEntries = array_slice($cvData['work_experience'], 0, 3); // Only 3 most recent
+            foreach ($workEntries as $work) {
+                $prompt .= "  * " . ($work['position'] ?? '') . " at " . ($work['company_name'] ?? '') . "\n";
+                if (!empty($work['description'])) {
+                    $desc = mb_strlen($work['description']) > 300 
+                        ? mb_substr($work['description'], 0, 300) . '...'
+                        : $work['description'];
+                    $prompt .= "    Description: " . $desc . "\n";
+                }
+                if (!empty($work['responsibility_categories'])) {
+                    foreach ($work['responsibility_categories'] as $cat) {
+                        $prompt .= "    " . ($cat['name'] ?? '') . ":\n";
+                        if (!empty($cat['items'])) {
+                            $items = array_slice($cat['items'], 0, 3); // Max 3 items per category
+                            foreach ($items as $item) {
+                                $itemContent = mb_strlen($item['content'] ?? '') > 150
+                                    ? mb_substr($item['content'], 0, 150) . '...'
+                                    : ($item['content'] ?? '');
+                                $prompt .= "      - " . $itemContent . "\n";
+                            }
+                            if (count($cat['items']) > 3) {
+                                $prompt .= "      ... (" . (count($cat['items']) - 3) . " more items)\n";
+                            }
+                        }
+                    }
+                }
+            }
+            if (count($cvData['work_experience']) > 3) {
+                $prompt .= "  ... (" . (count($cvData['work_experience']) - 3) . " more positions)\n";
+            }
+        }
+        
+        // Skills (limit to 20)
+        if (!empty($cvData['skills'])) {
+            $skills = array_map(function($s) { return $s['name']; }, array_slice($cvData['skills'], 0, 20));
+            $prompt .= "- Skills: " . implode(', ', $skills);
+            if (count($cvData['skills']) > 20) {
+                $prompt .= " (and " . (count($cvData['skills']) - 20) . " more)";
+            }
+            $prompt .= "\n";
+        }
+        
+        // Build default instructions
+        $defaultInstructions = "1. Maintain factual accuracy - do not invent experiences, dates, or qualifications\n";
+        $defaultInstructions .= "2. ENHANCE and EXPAND content with relevant details, achievements, and metrics. Do NOT simplify or reduce content.\n";
+        $defaultInstructions .= "3. Emphasize relevant skills and experiences that match the job description\n";
+        $defaultInstructions .= "4. Use keywords from the job description naturally throughout\n";
+        $defaultInstructions .= "5. Keep the same structure and format\n";
+        $defaultInstructions .= "6. Maintain professional tone\n";
+        
+        $instructions = $defaultInstructions;
+        if (!empty($customInstructions)) {
+            // Truncate custom instructions too
+            $custom = mb_strlen($customInstructions) > 500 
+                ? mb_substr($customInstructions, 0, 500) . '...'
+                : $customInstructions;
+            $instructions = $defaultInstructions . "\n\nAdditional User Instructions:\n" . $custom;
+        }
+        
+        $prompt .= "\nInstructions:\n" . $instructions . "\n\n";
+        
+        // Build JSON structure based on sections to rewrite
+        $prompt .= "CRITICAL: You MUST return ALL requested sections in the JSON response.\n\n";
+        $prompt .= "Return a JSON object with the rewritten sections. Structure:\n";
+        $prompt .= "{\n";
+        
+        if (in_array('professional_summary', $sectionsToRewrite)) {
+            $prompt .= '  "professional_summary": {' . "\n";
+            $prompt .= '    "description": "rewritten professional summary text",' . "\n";
+            if (!empty($cvData['professional_summary']['strengths'])) {
+                $prompt .= '    "strengths": ["strength1", "strength2", ...]' . "\n";
+            }
+            $prompt .= '  },' . "\n";
+        }
+        
+        if (in_array('work_experience', $sectionsToRewrite)) {
+            $prompt .= '  "work_experience": [' . "\n";
+            $prompt .= '    {' . "\n";
+            $prompt .= '      "id": "position at company_name (use EXACT position and company_name from original CV)",' . "\n";
+            $prompt .= '      "position": "exact position title from original CV",' . "\n";
+            $prompt .= '      "company_name": "exact company name from original CV",' . "\n";
+            $prompt .= '      "description": "rewritten description",' . "\n";
+            $prompt .= '      "responsibility_categories": [' . "\n";
+            $prompt .= '        {' . "\n";
+            $prompt .= '          "name": "category_name",' . "\n";
+            $prompt .= '          "items": [{"content": "rewritten item"}]' . "\n";
+            $prompt .= '        }' . "\n";
+            $prompt .= '      ]' . "\n";
+            $prompt .= '    }' . "\n";
+            $prompt .= '  ],' . "\n";
+        }
+        
+        if (in_array('skills', $sectionsToRewrite)) {
+            $prompt .= '  "skills": [{"name": "skill_name", "category": "category_name"}],' . "\n";
+        }
+        
+        $prompt .= "}\n";
+        $prompt .= "\nIMPORTANT: You MUST include ALL requested sections in your response. Keep original IDs for all items. Enhance content with more detail, achievements, and metrics - do not reduce or simplify.\n";
+        $prompt .= "\nCRITICAL FOR WORK EXPERIENCE: The \"position\" and \"company_name\" fields MUST match EXACTLY (case-insensitive) the position and company name from the original CV data. Do NOT modify these fields - they are used to match your rewritten content to the original entries.";
         
         return $prompt;
     }
@@ -868,11 +1088,11 @@ class AIService {
         
         $prompt .= "Assess the following (provide scores 0-100):\n";
         $prompt .= "1. Overall quality - completeness, professionalism, clarity\n";
-        $prompt .= "2. ATS compatibility - formatting, keywords, structure\n";
-        $prompt .= "3. Content quality - relevance, impact, specificity\n";
-        $prompt .= "4. Formatting - consistency, readability, structure\n";
+        $prompt .= "2. ATS compatibility - Focus on USER-CONTROLLABLE aspects: keyword usage, content structure (headings, sections), and how well content can be parsed. DO NOT penalize for template formatting which is app-controlled.\n";
+        $prompt .= "3. Content quality - relevance, impact, specificity, use of quantifiable achievements\n";
+        $prompt .= "4. Content consistency - Focus on USER-CONTROLLABLE aspects: date formatting consistency, description completeness, missing information. DO NOT penalize for visual formatting which is template-controlled.\n";
         if ($jobDescription) {
-            $prompt .= "5. Keyword matching - alignment with job requirements\n";
+            $prompt .= "5. Keyword matching - alignment with job requirements (user-controllable through content)\n";
         }
         
         $prompt .= "\nCRITICAL: Analyze employment history for:\n";
@@ -1621,14 +1841,25 @@ class AIService {
         
         $prompt .= "CV Data Structure Available:\n";
         $prompt .= "- Profile: full_name, email, phone, location, linkedin_url, bio, photo_url\n";
-        $prompt .= "- Professional Summary: description\n";
-        $prompt .= "- Work Experience: company_name, position, start_date, end_date, description, responsibility_categories\n";
+        $prompt .= "- Professional Summary: description, strengths (ARRAY - use foreach loop, check if exists first)\n";
+        $prompt .= "- Work Experience: company_name, position, start_date, end_date, description, responsibility_categories (ARRAY - use foreach loop, check if exists first)\n";
         $prompt .= "- Education: degree, institution, field_of_study, start_date, end_date\n";
-        $prompt .= "- Skills: name, category, level (grouped by category)\n";
-        $prompt .= "- Projects: title, description, technologies, url\n";
+        $prompt .= "- Skills: name, category, level (ARRAY - use foreach loop, can be grouped by category, check if exists first)\n";
+        $prompt .= "- Projects: title, description, start_date, end_date, url, image_url (NO technologies field - do not use it)\n";
         $prompt .= "- Certifications: name, issuer, date_obtained, expiry_date\n";
-        $prompt .= "- Professional Memberships: name, organisation, start_date\n";
+        $prompt .= "- Professional Memberships: Use \$cvData['memberships'] (NOT professional_memberships), fields: name, organisation, start_date\n";
         $prompt .= "- Interests: name, description\n\n";
+        
+        $prompt .= "CRITICAL - Always Check if Fields Exist Before Accessing:\n";
+        $prompt .= "- ALWAYS use isset() or !empty() checks before accessing array keys: <?php if (isset(\$project['url']) && !empty(\$project['url'])): ?>...<?php endif; ?>\n";
+        $prompt .= "- ALWAYS check if arrays exist before looping: <?php if (!empty(\$cvData['memberships'])): ?><?php foreach (\$cvData['memberships'] as \$mem): ?>...<?php endforeach; ?><?php endif; ?>\n";
+        $prompt .= "- NEVER access array keys without checking: <?php echo e(\$project['technologies']); ?> is WRONG (technologies field doesn't exist)\n\n";
+        
+        $prompt .= "IMPORTANT - Array Fields (MUST use loops, NEVER use e() directly on arrays):\n";
+        $prompt .= "- responsibility_categories: Array of objects with 'name' field. Use: <?php if (!empty(\$work['responsibility_categories'])): ?><?php foreach (\$work['responsibility_categories'] as \$cat): ?><?php echo e(\$cat['name']); ?><?php endforeach; ?><?php endif; ?>\n";
+        $prompt .= "- skills: Array of objects. Use: <?php if (!empty(\$cvData['skills'])): ?><?php foreach (\$cvData['skills'] as \$skill): ?>...<?php endforeach; ?><?php endif; ?>\n";
+        $prompt .= "- strengths: Array of objects. Use: <?php if (!empty(\$cvData['professional_summary']['strengths'])): ?><?php foreach (\$cvData['professional_summary']['strengths'] as \$strength): ?>...<?php endforeach; ?><?php endif; ?>\n";
+        $prompt .= "- memberships: Array of objects. Use: <?php if (!empty(\$cvData['memberships'])): ?><?php foreach (\$cvData['memberships'] as \$mem): ?>...<?php endforeach; ?><?php endif; ?>\n\n";
         
         $prompt .= "Requirements:\n";
         $prompt .= "1. Must use Tailwind CSS classes (no inline styles except where necessary)\n";
@@ -1636,10 +1867,14 @@ class AIService {
         $prompt .= "3. Must be print-friendly (use print media queries)\n";
         $prompt .= "4. Must maintain accessibility (proper headings, alt text, semantic HTML)\n";
         $prompt .= "5. Include all CV sections mentioned above\n";
-        $prompt .= "6. Use PHP variables for dynamic content: <?php echo e(\$variable); ?>\n";
-        $prompt .= "7. For arrays/loops, use PHP foreach: <?php foreach (\$array as \$item): ?>...<?php endforeach; ?>\n";
+        $prompt .= "6. Use PHP variables for dynamic content: <?php echo e(\$variable); ?> (ONLY for strings, NEVER for arrays)\n";
+        $prompt .= "7. For arrays/loops, ALWAYS use PHP foreach with existence checks: <?php if (!empty(\$array)): ?><?php foreach (\$array as \$item): ?>...<?php endforeach; ?><?php endif; ?>\n";
         $prompt .= "8. For conditional display: <?php if (!empty(\$data)): ?>...<?php endif; ?>\n";
-        $prompt .= "9. Use the formatCvDate() function for dates: <?php echo formatCvDate(\$date); ?>\n\n";
+        $prompt .= "9. Use the formatCvDate() function for dates: <?php echo formatCvDate(\$date); ?>\n";
+        $prompt .= "10. NEVER use e() function directly on arrays - always loop through arrays first\n";
+        $prompt .= "11. ALWAYS check if array keys exist before accessing them to avoid 'Undefined array key' warnings\n";
+        $prompt .= "12. Projects do NOT have a 'technologies' field - do not reference it\n";
+        $prompt .= "13. Use \$cvData['memberships'] for professional memberships, NOT \$cvData['professional_memberships']\n\n";
         
         if (!empty($options['layout_preference'])) {
             $prompt .= "Layout Preference: " . $options['layout_preference'] . "\n\n";
@@ -1844,7 +2079,7 @@ class AIService {
     /**
      * Validate generated template for security and structure
      */
-    private function validateTemplate($template) {
+    public function validateTemplate($template) {
         if (!isset($template['html']) || empty($template['html'])) {
             return ['valid' => false, 'error' => 'HTML content is missing'];
         }
@@ -1882,7 +2117,23 @@ class AIService {
             return ['valid' => false, 'error' => 'Template must include proper HTML structure'];
         }
         
-        return ['valid' => true];
+        // Warn about common issues (non-blocking warnings)
+        $warnings = [];
+        if (preg_match('/\$project\[[\'"]technologies[\'"]\]/', $html)) {
+            $warnings[] = 'Template references non-existent "technologies" field in projects';
+        }
+        if (preg_match('/\$cvData\[[\'"]professional_memberships[\'"]\]/', $html)) {
+            $warnings[] = 'Template uses incorrect key "professional_memberships" - should be "memberships"';
+        }
+        if (preg_match('/\$[a-zA-Z_]+\[[\'"][a-zA-Z_]+[\'"]\]/', $html) && !preg_match('/isset\(|\!empty\(/', $html)) {
+            // Check if there are array accesses without isset/empty checks (basic check)
+            $warnings[] = 'Template may access array keys without existence checks - ensure all array accesses use isset() or !empty()';
+        }
+        
+        return [
+            'valid' => true,
+            'warnings' => $warnings
+        ];
     }
     
     /**
@@ -1995,7 +2246,7 @@ class AIService {
     /**
      * Validate and normalize assessment structure
      */
-    private function validateAssessment($assessment) {
+    public function validateAssessment($assessment) {
         $validated = [
             'overall_score' => isset($assessment['overall_score']) ? (int)$assessment['overall_score'] : 0,
             'ats_score' => isset($assessment['ats_score']) ? (int)$assessment['ats_score'] : 0,

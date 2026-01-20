@@ -4,6 +4,8 @@
 
 Simple CV Builder now includes powerful AI-powered features to help users create better CVs and improve their job application success rate. These features use artificial intelligence to rewrite CVs for specific job applications and provide quality assessments.
 
+**AI Technology:** All AI features run directly in your browser using browser-based AI technology. No cloud services, API keys, or configuration required - it works immediately for all users. For organisations or users who prefer cloud-based AI (OpenAI, Anthropic, Gemini, etc.), those options are also available if configured in account settings.
+
 ## Features
 
 ### 1. AI CV Rewriting

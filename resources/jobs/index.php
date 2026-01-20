@@ -57,6 +57,13 @@ $sections = [
                 'cta' => 'Read full guide',
                 'badge' => 'Toolkit',
             ],
+            [
+                'title' => 'CV Keywords and ATS: A Complete Guide',
+                'excerpt' => 'Learn how Applicant Tracking Systems (ATS) work, why keywords matter in your CV, and how to optimise your CV to pass ATS screening and reach human recruiters.',
+                'href' => '/resources/career/keywords-and-ats-guide.php',
+                'cta' => 'Read full guide',
+                'badge' => 'Guide',
+            ],
         ],
     ],
 ];

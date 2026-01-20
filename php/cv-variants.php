@@ -404,6 +404,55 @@ function loadCvVariantData($variantId) {
     }
     unset($qual);
     
+    // Check if variant is empty - if so, fall back to master CV (especially for master variants)
+    $hasData = false;
+    if ($cvData['professional_summary']) $hasData = true;
+    if (!empty($cvData['work_experience'])) $hasData = true;
+    if (!empty($cvData['education'])) $hasData = true;
+    if (!empty($cvData['skills'])) $hasData = true;
+    if (!empty($cvData['projects'])) $hasData = true;
+    if (!empty($cvData['certifications'])) $hasData = true;
+    if (!empty($cvData['memberships'])) $hasData = true;
+    if (!empty($cvData['interests'])) $hasData = true;
+    if (!empty($cvData['qualification_equivalence'])) $hasData = true;
+    
+    // If variant is empty and it's a master variant, fall back to master CV data
+    if (!$hasData && $cvData['variant'] && !empty($cvData['variant']['is_master'])) {
+        require_once __DIR__ . '/cv-data.php';
+        $masterData = loadCvData($cvData['variant']['user_id']);
+        
+        if ($masterData) {
+            // Merge master CV data into variant structure
+            if (!$cvData['professional_summary'] && $masterData['professional_summary']) {
+                $cvData['professional_summary'] = $masterData['professional_summary'];
+            }
+            if (empty($cvData['work_experience']) && !empty($masterData['work_experience'])) {
+                $cvData['work_experience'] = $masterData['work_experience'];
+            }
+            if (empty($cvData['education']) && !empty($masterData['education'])) {
+                $cvData['education'] = $masterData['education'];
+            }
+            if (empty($cvData['skills']) && !empty($masterData['skills'])) {
+                $cvData['skills'] = $masterData['skills'];
+            }
+            if (empty($cvData['projects']) && !empty($masterData['projects'])) {
+                $cvData['projects'] = $masterData['projects'];
+            }
+            if (empty($cvData['certifications']) && !empty($masterData['certifications'])) {
+                $cvData['certifications'] = $masterData['certifications'];
+            }
+            if (empty($cvData['memberships']) && !empty($masterData['memberships'])) {
+                $cvData['memberships'] = $masterData['memberships'];
+            }
+            if (empty($cvData['interests']) && !empty($masterData['interests'])) {
+                $cvData['interests'] = $masterData['interests'];
+            }
+            if (empty($cvData['qualification_equivalence']) && !empty($masterData['qualification_equivalence'])) {
+                $cvData['qualification_equivalence'] = $masterData['qualification_equivalence'];
+            }
+        }
+    }
+    
     return $cvData;
 }
 
@@ -615,14 +664,31 @@ function saveCvVariantData($variantId, $cvData) {
         // Save projects
         if (isset($cvData['projects']) && is_array($cvData['projects'])) {
             foreach ($cvData['projects'] as $proj) {
-                // Check if project already exists for this variant by matching on original_project_id or provided ID
-                $originalProjId = $proj['original_project_id'] ?? $proj['id'] ?? null;
+                // Check if project already exists for this variant
+                // First try matching by variant project ID (if this is an update to existing variant project)
                 $existing = null;
                 
-                if ($originalProjId) {
+                if (!empty($proj['id'])) {
+                    // Check if this ID exists for this variant
                     $existing = db()->fetchOne(
-                        "SELECT id FROM cv_variant_projects WHERE cv_variant_id = ? AND (original_project_id = ? OR id = ?)",
-                        [$variantId, $originalProjId, $originalProjId]
+                        "SELECT id FROM cv_variant_projects WHERE cv_variant_id = ? AND id = ?",
+                        [$variantId, $proj['id']]
+                    );
+                }
+                
+                // If not found by ID, try matching by original_project_id
+                if (!$existing && !empty($proj['original_project_id'])) {
+                    $existing = db()->fetchOne(
+                        "SELECT id FROM cv_variant_projects WHERE cv_variant_id = ? AND original_project_id = ?",
+                        [$variantId, $proj['original_project_id']]
+                    );
+                }
+                
+                // If still not found and we have a title, try matching by title (to avoid duplicates)
+                if (!$existing && !empty($proj['title'])) {
+                    $existing = db()->fetchOne(
+                        "SELECT id FROM cv_variant_projects WHERE cv_variant_id = ? AND title = ?",
+                        [$variantId, sanitizeInput($proj['title'])]
                     );
                 }
                 

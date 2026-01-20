@@ -28,6 +28,9 @@ $stats = getJobApplicationStats();
     <!-- PDF Generation Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
+    <!-- Browser AI Service Dependencies -->
+    <script src="/js/model-cache-manager.js"></script>
+    <script src="/js/browser-ai-service.js"></script>
     <style>
         .status-badge {
             display: inline-flex;
@@ -1361,17 +1364,21 @@ $stats = getJobApplicationStats();
             },
             
             async generateCoverLetter(applicationId) {
+                
                 const container = document.getElementById(`cover-letter-container-${applicationId}`);
                 if (!container) return;
                 
                 // Show loading state
-                container.innerHTML = `
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p class="text-blue-800 font-medium">Generating cover letter with AI...</p>
-                        <p class="text-blue-600 text-sm mt-2">This may take 30-60 seconds</p>
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                loadingOverlay.innerHTML = `
+                    <div class="bg-white rounded-lg p-8 max-w-md text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-800 font-medium">Generating cover letter with AI...</p>
+                        <p class="text-gray-600 text-sm mt-2">This may take 30-60 seconds</p>
                     </div>
                 `;
+                document.body.appendChild(loadingOverlay);
                 
                 try {
                     const formData = new FormData();
@@ -1386,17 +1393,233 @@ $stats = getJobApplicationStats();
                     const result = await response.json();
                     
                     if (result.success) {
-                        // Reload cover letter to display it
-                        await this.loadCoverLetter(applicationId);
-                        alert('Cover letter generated successfully!');
+                        // Check if browser AI execution is required
+                        if (result.browser_execution) {
+                            await this.executeBrowserAICoverLetter(result, applicationId, loadingOverlay);
+                        } else {
+                            // Server-side generation completed
+                            document.body.removeChild(loadingOverlay);
+                            await this.loadCoverLetter(applicationId);
+                            alert('Cover letter generated successfully!');
+                        }
                     } else {
                         throw new Error(result.error || 'Failed to generate cover letter');
                     }
                 } catch (error) {
                     console.error('Error generating cover letter:', error);
+                    if (document.body.contains(loadingOverlay)) {
+                        document.body.removeChild(loadingOverlay);
+                    }
                     alert('Error generating cover letter: ' + error.message);
                     // Reload to show empty state
                     await this.loadCoverLetter(applicationId);
+                }
+            },
+            
+            async executeBrowserAICoverLetter(result, applicationId, loadingOverlay) {
+                try {
+                    // Check if BrowserAIService is available
+                    const browserAIServiceAvailable = typeof BrowserAIService !== 'undefined';
+                    
+                    if (!browserAIServiceAvailable) {
+                        throw new Error('Browser AI service not loaded. Please refresh the page.');
+                    }
+                    
+                    // Check browser support
+                    const support = BrowserAIService.checkBrowserSupport();
+                    
+                    if (!support.required) {
+                        throw new Error('Browser does not support WebGPU or WebGL. Browser AI requires a modern browser with GPU support.');
+                    }
+                    
+                    // Update loading overlay to show model loading
+                    if (loadingOverlay) {
+                        loadingOverlay.querySelector('p').textContent = 'Loading AI model. This may take a few minutes on first use...';
+                    }
+                    
+                    // Initialize browser AI
+                    const modelType = result.model_type === 'webllm' ? 'webllm' : 'tensorflow';
+                    await BrowserAIService.initBrowserAI(modelType, result.model, (progress) => {
+                        if (loadingOverlay && progress.message) {
+                            loadingOverlay.querySelector('p').textContent = progress.message;
+                        }
+                    });
+                    
+                    // Update loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.querySelector('p').textContent = 'Generating cover letter... This may take 30-60 seconds.';
+                    }
+                    
+                    // Generate cover letter using browser AI
+                    let coverLetterText = await BrowserAIService.generateText(result.prompt, {
+                        temperature: 0.8,
+                        maxTokens: 2000
+                    });
+                    
+                    console.log('Browser AI raw response:', coverLetterText);
+                    
+                    if (!coverLetterText || coverLetterText.trim().length === 0) {
+                        throw new Error('Browser AI returned empty response. Please try again.');
+                    }
+                    
+                    // Clean the response (remove markdown, JSON formatting, etc.)
+                    let cleanedText = coverLetterText.trim();
+                    
+                    // Remove JSON wrapping if present
+                    if (cleanedText.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(cleanedText);
+                            if (parsed.letter) {
+                                cleanedText = parsed.letter;
+                            } else if (parsed.cover_letter) {
+                                cleanedText = parsed.cover_letter;
+                            } else if (parsed.text) {
+                                cleanedText = parsed.text;
+                            } else if (parsed.content) {
+                                cleanedText = parsed.content;
+                            }
+                        } catch (e) {
+                            // Not valid JSON, try to extract text between quotes
+                            const letterMatch = cleanedText.match(/"letter"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/s);
+                            if (letterMatch) {
+                                cleanedText = letterMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+                            }
+                        }
+                    }
+                    
+                    // Remove escaped newlines (but keep actual newlines)
+                    cleanedText = cleanedText.replace(/\\n/g, '\n');
+                    // Remove escaped quotes
+                    cleanedText = cleanedText.replace(/\\"/g, '"');
+                    // Remove quotation marks around paragraphs (standalone quotes)
+                    cleanedText = cleanedText.replace(/^"([^"]+)"$/gm, '$1');
+                    // Remove any remaining JSON key patterns at the start
+                    cleanedText = cleanedText.replace(/^["']?\w+["']?\s*:\s*/, '');
+                    
+                    // Final trim
+                    cleanedText = cleanedText.trim();
+                    
+                    console.log('Cleaned cover letter text:', cleanedText.substring(0, 200));
+                    
+                    if (!cleanedText || cleanedText.length === 0) {
+                        throw new Error('Cover letter text is empty after cleaning. Raw response: ' + coverLetterText.substring(0, 100));
+                    }
+                    
+                    // Send the generated cover letter to the server to save
+                    console.log('Sending cover letter to server. Length:', cleanedText.length);
+                    console.log('First 500 chars:', cleanedText.substring(0, 500));
+                    
+                    const saveFormData = new FormData();
+                    saveFormData.append('job_application_id', applicationId);
+                    saveFormData.append('cover_letter_text', cleanedText);
+                    saveFormData.append('csrf_token', this.csrfToken);
+                    
+                    const saveResponse = await fetch('/api/ai-generate-cover-letter.php', {
+                        method: 'POST',
+                        body: saveFormData
+                    });
+                    
+                    const saveResult = await saveResponse.json();
+                    
+                    console.log('Server save response:', saveResult);
+                    
+                    if (!saveResult.success) {
+                        throw new Error(saveResult.error || 'Failed to save cover letter');
+                    }
+                    
+                    // Remove loading overlay
+                    if (document.body.contains(loadingOverlay)) {
+                        document.body.removeChild(loadingOverlay);
+                    }
+                    
+                    // Reload cover letter to display it
+                    await this.loadCoverLetter(applicationId);
+                    alert('Cover letter generated successfully!');
+                    
+                } catch (error) {
+                    console.error('Error executing browser AI:', error);
+                    
+                    // Check if error is about WebLLM failing to load
+                    const isWebLLMLoadError = error.message && (
+                        error.message.includes('Failed to load WebLLM') || 
+                        error.message.includes('WebLLM library') ||
+                        error.message.includes('Failed to initialize WebLLM')
+                    );
+                    
+                    if (isWebLLMLoadError) {
+                        // Browser AI failed - offer to retry with server-side AI
+                        if (document.body.contains(loadingOverlay)) {
+                            document.body.removeChild(loadingOverlay);
+                        }
+                        
+                        const retryWithServerAI = confirm(
+                            'Browser AI is not available (WebLLM library failed to load).\n\n' +
+                            'Would you like to generate the cover letter using server-side AI instead?\n\n' +
+                            'Note: Server-side AI requires a configured cloud AI service (OpenAI, Anthropic, Gemini, or Grok).\n' +
+                            'If you don\'t have one configured, please set it up in Settings → AI Settings.'
+                        );
+                        
+                        if (retryWithServerAI) {
+                            // Retry with server-side AI by sending a flag to use default service
+                            const formData = new FormData();
+                            formData.append('job_application_id', applicationId);
+                            formData.append('csrf_token', this.csrfToken);
+                            formData.append('force_server_ai', '1'); // Flag to force server-side
+                            
+                            // Show loading again
+                            const retryOverlay = document.createElement('div');
+                            retryOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                            retryOverlay.innerHTML = `
+                                <div class="bg-white rounded-lg p-8 max-w-md text-center">
+                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                    <p class="text-gray-800 font-medium">Generating cover letter with server AI...</p>
+                                    <p class="text-gray-600 text-sm mt-2">This may take 30-60 seconds</p>
+                                </div>
+                            `;
+                            document.body.appendChild(retryOverlay);
+                            
+                            try {
+                                const response = await fetch('/api/ai-generate-cover-letter.php', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                                
+                                const result = await response.json();
+                                
+                                if (document.body.contains(retryOverlay)) {
+                                    document.body.removeChild(retryOverlay);
+                                }
+                                
+                                if (result.success && !result.browser_execution) {
+                                    // Server-side generation completed
+                                    await this.loadCoverLetter(applicationId);
+                                    alert('Cover letter generated successfully using server AI!');
+                                } else if (result.browser_execution) {
+                                    // Still trying browser AI - show error
+                                    alert('Server AI is not configured. Please configure a cloud AI service (OpenAI, Anthropic, Gemini, or Grok) in Settings → AI Settings.');
+                                    await this.loadCoverLetter(applicationId);
+                                } else {
+                                    throw new Error(result.error || 'Failed to generate cover letter');
+                                }
+                            } catch (retryError) {
+                                if (document.body.contains(retryOverlay)) {
+                                    document.body.removeChild(retryOverlay);
+                                }
+                                alert('Error generating cover letter: ' + retryError.message);
+                                await this.loadCoverLetter(applicationId);
+                            }
+                        } else {
+                            // User cancelled retry
+                            await this.loadCoverLetter(applicationId);
+                        }
+                    } else {
+                        // Other error - show standard error message
+                        if (document.body.contains(loadingOverlay)) {
+                            document.body.removeChild(loadingOverlay);
+                        }
+                        alert('Error generating cover letter: ' + error.message);
+                        await this.loadCoverLetter(applicationId);
+                    }
                 }
             },
             

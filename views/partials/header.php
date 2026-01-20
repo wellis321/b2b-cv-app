@@ -96,9 +96,11 @@
                                     <a href="/cv-quality.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv-quality.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
                                         CV Quality Assessment
                                     </a>
+<?php /* Template customizer temporarily hidden
                                     <a href="/cv-template-customizer.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv-template-customizer.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
                                         Customise Template
                                     </a>
+*/ ?>
                                     <a href="/cv-prompt-settings.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv-prompt-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
                                         Prompt Settings
                                     </a>
@@ -318,10 +320,12 @@
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv-quality.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                             CV Quality Assessment
                         </a>
+<?php /* Template customizer temporarily hidden
                         <a href="/cv-template-customizer.php" 
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv-template-customizer.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Customise Template
                         </a>
+*/ ?>
                         <a href="/cv-prompt-settings.php" 
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv-prompt-settings.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Prompt Settings

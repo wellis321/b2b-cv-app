@@ -361,17 +361,18 @@ require_once __DIR__ . '/php/helpers.php';
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                         <h3 class="text-xl font-semibold text-gray-900 mb-3">Organisation AI Settings</h3>
                         <p class="text-gray-700 mb-4">
-                            Configure AI services at the organisation level so all your candidates benefit:
+                            All candidates get browser-based AI by default - no configuration needed! For organisations who want to use cloud-based AI services, you can configure them at the organisation level:
                         </p>
                         <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
-                            <li><strong>Centralised Configuration:</strong> Set up AI services (OpenAI, Anthropic, local AI) once for your entire organisation</li>
-                            <li><strong>Automatic Access:</strong> All candidates automatically get access to AI features using your organisation's configuration</li>
-                            <li><strong>Cost Management:</strong> Centralise AI API keys and settings to manage costs efficiently</li>
-                            <li><strong>Flexible Options:</strong> Support for cloud APIs (OpenAI, Anthropic, Gemini, Grok) and local/browser-based AI</li>
-                            <li><strong>Priority System:</strong> Organisation settings serve as defaults; individual candidates can override if needed</li>
+                            <li><strong>Browser-Based AI (Default):</strong> All candidates automatically get AI features running in their browser - no setup, API keys, or configuration required</li>
+                            <li><strong>Cloud-Based AI (Optional):</strong> Configure cloud AI services (OpenAI, Anthropic, Gemini, Grok) at the organisation level for all candidates</li>
+                            <li><strong>Centralised Configuration:</strong> Set up cloud AI services once for your entire organisation</li>
+                            <li><strong>Cost Management:</strong> Centralise AI API keys and settings to manage costs efficiently when using cloud services</li>
+                            <li><strong>Automatic Access:</strong> All candidates automatically get access to AI features using your organisation's configuration (browser-based by default, cloud-based if configured)</li>
+                            <li><strong>Priority System:</strong> Organisation cloud AI settings serve as defaults; individual candidates can override if needed</li>
                         </ul>
                         <p class="text-gray-600 text-sm mt-4">
-                            Access this feature in Settings → Organisation AI Settings. Configure once, benefit organisation-wide.
+                            Access this feature in Settings → Organisation AI Settings. Browser-based AI works immediately - cloud AI configuration is optional.
                         </p>
                     </div>
 
