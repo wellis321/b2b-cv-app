@@ -6,12 +6,11 @@
  */
 
 require_once __DIR__ . '/php/helpers.php';
-require_once __DIR__ . '/php/authorisation.php';
 
 requireAuth();
 
 $user = getCurrentUser();
-$isSuperAdmin = isSuperAdmin($user['id']);
+$isSuperAdmin = isSuperAdmin($user['id'] ?? null);
 $error = getFlash('error');
 $success = getFlash('success');
 
@@ -539,6 +538,10 @@ if (isPost()) {
                             <p class="mt-2 text-sm text-gray-600" id="test-result"></p>
                         </div>
                     </div>
+                    <?php else: ?>
+                    <!-- Non-super-admin users cannot see Ollama configuration -->
+                    <div id="ollama-config" style="display: none;"></div>
+                    <?php endif; ?>
 
                     <!-- OpenAI Configuration (shown when OpenAI is selected) -->
                     <div id="openai-config" style="display: <?php echo $currentSettings['ai_service_preference'] === 'openai' ? 'block' : 'none'; ?>;">
