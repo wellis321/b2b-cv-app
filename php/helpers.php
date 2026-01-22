@@ -22,6 +22,7 @@ require_once __DIR__ . '/cv-variants.php';
 /**
  * Enforce canonical domain (prevents www/non-www duplicates)
  */
+if (!function_exists('enforceCanonicalDomain')) {
 function enforceCanonicalDomain() {
     if (PHP_SAPI === 'cli') {
         return;
@@ -51,6 +52,7 @@ function enforceCanonicalDomain() {
     header('Location: ' . $redirectUrl, true, 301);
     exit;
 }
+} // End function_exists check
 
 if (APP_ENV === 'production' && !defined('SKIP_CANONICAL_REDIRECT')) {
     enforceCanonicalDomain();
@@ -64,6 +66,7 @@ if (!headers_sent()) {
 /**
  * Safely write debug log (only in development and if directory exists)
  */
+if (!function_exists('debugLog')) {
 function debugLog($data) {
     if (!defined('DEBUG') || !DEBUG) {
         return; // Skip in production
@@ -77,10 +80,12 @@ function debugLog($data) {
         @file_put_contents($debugLogPath, json_encode($data) . "\n", FILE_APPEND);
     }
 }
+} // End function_exists check
 
 /**
  * Render a view/template
  */
+if (!function_exists('render')) {
 function render($template, $data = []) {
     extract($data);
     $templatePath = __DIR__ . '/../views/' . $template . '.php';
@@ -93,10 +98,12 @@ function render($template, $data = []) {
     include $templatePath;
     return ob_get_clean();
 }
+} // End function_exists check
 
 /**
  * Include partial/template
  */
+if (!function_exists('partial')) {
 function partial($template, $data = []) {
     extract($data);
     $templatePath = __DIR__ . '/../views/partials/' . $template . '.php';
@@ -107,41 +114,51 @@ function partial($template, $data = []) {
 
     include $templatePath;
 }
+} // End function_exists check
 
 /**
  * Get flash message
  */
+if (!function_exists('getFlash')) {
 function getFlash($key) {
     $message = $_SESSION['flash_' . $key] ?? null;
     unset($_SESSION['flash_' . $key]);
     return $message;
 }
+} // End function_exists check
 
 /**
  * Set flash message
  */
+if (!function_exists('setFlash')) {
 function setFlash($key, $message) {
     $_SESSION['flash_' . $key] = $message;
 }
+} // End function_exists check
 
 /**
  * Output view
  */
+if (!function_exists('view')) {
 function view($template, $data = []) {
     echo render($template, $data);
 }
+} // End function_exists check
 
 /**
  * Include layout with content
  */
+if (!function_exists('layout')) {
 function layout($layout, $content, $data = []) {
     $data['content'] = $content;
     echo render('layouts/' . $layout, $data);
 }
+} // End function_exists check
 
 /**
  * Get CV sections in order
  */
+if (!function_exists('getCvSections')) {
 function getCvSections() {
     return [
         ['id' => 'professional-summary', 'name' => 'Professional Summary', 'path' => '/professional-summary.php'],
@@ -155,10 +172,12 @@ function getCvSections() {
         ['id' => 'interests', 'name' => 'Interests & Activities', 'path' => '/interests.php'],
     ];
 }
+} // End function_exists check
 
 /**
  * Get section navigation (previous and next sections)
  */
+if (!function_exists('getSectionNavigation')) {
 function getSectionNavigation($currentSectionId) {
     $sections = getCvSections();
     $currentIndex = -1;
@@ -180,10 +199,12 @@ function getSectionNavigation($currentSectionId) {
 
     return ['previous' => $previous, 'current' => $current, 'next' => $next];
 }
+} // End function_exists check
 
 /**
  * Generate JSON-LD structured data
  */
+if (!function_exists('generateStructuredData')) {
 function generateStructuredData($type = 'default', $data = []) {
     $schemas = [];
 
@@ -306,10 +327,12 @@ function generateStructuredData($type = 'default', $data = []) {
 
     return $schemas;
 }
+} // End function_exists check
 
 /**
  * Output JSON-LD structured data script tags
  */
+if (!function_exists('outputStructuredData')) {
 function outputStructuredData($schemas) {
     foreach ($schemas as $schema) {
         echo '<script type="application/ld+json">' . "\n";
@@ -317,6 +340,7 @@ function outputStructuredData($schemas) {
         echo "\n" . '</script>' . "\n";
     }
 }
+} // End function_exists check
 
 /**
  * Generate responsive image srcset and sizes attributes
@@ -325,6 +349,7 @@ function outputStructuredData($schemas) {
  * @param string $context - Context for sizing: 'list' (projects list), 'cv' (CV page), 'full' (full width)
  * @return array - ['srcset' => string, 'sizes' => string, 'src' => string]
  */
+if (!function_exists('getResponsiveImageAttributes')) {
 function getResponsiveImageAttributes($imageData, $fallbackUrl = '', $context = 'full') {
     $responsive = [];
     
@@ -615,3 +640,4 @@ function getResponsiveImageAttributes($imageData, $fallbackUrl = '', $context = 
         'src' => $fallback
     ];
 }
+} // End function_exists check

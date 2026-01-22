@@ -1,0 +1,15 @@
+{
+    "name": "b2b-cv-app/cv-builder",
+    "description": "B2B CV Builder Application",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "twig/twig": "^3.0"
+    },
+    "autoload": {
+        "files": [
+            "php/helpers.php"
+        ]
+    }
+}
+

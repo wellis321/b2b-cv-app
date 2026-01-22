@@ -1857,19 +1857,27 @@ class AIService {
         $prompt .= "- Skills: name, category, level (ARRAY - use foreach loop, can be grouped by category, check if exists first)\n";
         $prompt .= "- Projects: title, description, start_date, end_date, url, image_url (NO technologies field - do not use it)\n";
         $prompt .= "- Certifications: name, issuer, date_obtained, expiry_date\n";
-        $prompt .= "- Professional Memberships: Use \$cvData['memberships'] (NOT professional_memberships), fields: name, organisation, start_date\n";
+        $prompt .= "- Professional Memberships: Use cvData.memberships (NOT professional_memberships), fields: name, organisation, start_date\n";
         $prompt .= "- Interests: name, description\n\n";
         
-        $prompt .= "CRITICAL - Always Check if Fields Exist Before Accessing:\n";
-        $prompt .= "- ALWAYS use isset() or !empty() checks before accessing array keys: <?php if (isset(\$project['url']) && !empty(\$project['url'])): ?>...<?php endif; ?>\n";
-        $prompt .= "- ALWAYS check if arrays exist before looping: <?php if (!empty(\$cvData['memberships'])): ?><?php foreach (\$cvData['memberships'] as \$mem): ?>...<?php endforeach; ?><?php endif; ?>\n";
-        $prompt .= "- NEVER access array keys without checking: <?php echo e(\$project['technologies']); ?> is WRONG (technologies field doesn't exist)\n\n";
+        $prompt .= "CRITICAL - Template Syntax: Use TWIG syntax (NOT PHP):\n";
+        $prompt .= "- Use Twig syntax: {{ variable|escape }} instead of <?php echo e(\$variable); ?>\n";
+        $prompt .= "- Use Twig conditionals: {% if condition %} instead of <?php if (condition): ?>\n";
+        $prompt .= "- Use Twig loops: {% for item in array %} instead of <?php foreach (\$array as \$item): ?>\n";
+        $prompt .= "- Array access uses dot notation: profile.full_name instead of \$profile['full_name']\n";
+        $prompt .= "- Check if variables exist: {% if variable is defined %} instead of isset()\n";
+        $prompt .= "- Check if arrays have items: {% if array|length > 0 %} instead of !empty()\n\n";
         
-        $prompt .= "IMPORTANT - Array Fields (MUST use loops, NEVER use e() directly on arrays):\n";
-        $prompt .= "- responsibility_categories: Array of objects with 'name' field. Use: <?php if (!empty(\$work['responsibility_categories'])): ?><?php foreach (\$work['responsibility_categories'] as \$cat): ?><?php echo e(\$cat['name']); ?><?php endforeach; ?><?php endif; ?>\n";
-        $prompt .= "- skills: Array of objects. Use: <?php if (!empty(\$cvData['skills'])): ?><?php foreach (\$cvData['skills'] as \$skill): ?>...<?php endforeach; ?><?php endif; ?>\n";
-        $prompt .= "- strengths: Array of objects. Use: <?php if (!empty(\$cvData['professional_summary']['strengths'])): ?><?php foreach (\$cvData['professional_summary']['strengths'] as \$strength): ?>...<?php endforeach; ?><?php endif; ?>\n";
-        $prompt .= "- memberships: Array of objects. Use: <?php if (!empty(\$cvData['memberships'])): ?><?php foreach (\$cvData['memberships'] as \$mem): ?>...<?php endforeach; ?><?php endif; ?>\n\n";
+        $prompt .= "CRITICAL - Always Check if Fields Exist Before Accessing:\n";
+        $prompt .= "- ALWAYS check if variables exist: {% if project.url is defined and project.url|length > 0 %}...{% endif %}\n";
+        $prompt .= "- ALWAYS check if arrays exist before looping: {% if cvData.memberships|length > 0 %}{% for mem in cvData.memberships %}...{% endfor %}{% endif %}\n";
+        $prompt .= "- NEVER access variables without checking: {{ project.technologies|escape }} is WRONG (technologies field doesn't exist)\n\n";
+        
+        $prompt .= "IMPORTANT - Array Fields (MUST use loops, NEVER use escape directly on arrays):\n";
+        $prompt .= "- responsibility_categories: Array of objects with 'name' field. Use: {% if work.responsibility_categories|length > 0 %}{% for cat in work.responsibility_categories %}{{ cat.name|escape }}{% endfor %}{% endif %}\n";
+        $prompt .= "- skills: Array of objects. Use: {% if cvData.skills|length > 0 %}{% for skill in cvData.skills %}...{% endfor %}{% endif %}\n";
+        $prompt .= "- strengths: Array of objects. Use: {% if cvData.professional_summary.strengths|length > 0 %}{% for strength in cvData.professional_summary.strengths %}...{% endfor %}{% endif %}\n";
+        $prompt .= "- memberships: Array of objects. Use: {% if cvData.memberships|length > 0 %}{% for mem in cvData.memberships %}...{% endfor %}{% endif %}\n\n";
         
         $prompt .= "Requirements:\n";
         $prompt .= "1. Must use Tailwind CSS classes (no inline styles except where necessary)\n";
@@ -1877,14 +1885,15 @@ class AIService {
         $prompt .= "3. Must be print-friendly (use print media queries)\n";
         $prompt .= "4. Must maintain accessibility (proper headings, alt text, semantic HTML)\n";
         $prompt .= "5. Include all CV sections mentioned above\n";
-        $prompt .= "6. Use PHP variables for dynamic content: <?php echo e(\$variable); ?> (ONLY for strings, NEVER for arrays)\n";
-        $prompt .= "7. For arrays/loops, ALWAYS use PHP foreach with existence checks: <?php if (!empty(\$array)): ?><?php foreach (\$array as \$item): ?>...<?php endforeach; ?><?php endif; ?>\n";
-        $prompt .= "8. For conditional display: <?php if (!empty(\$data)): ?>...<?php endif; ?>\n";
-        $prompt .= "9. Use the formatCvDate() function for dates: <?php echo formatCvDate(\$date); ?>\n";
-        $prompt .= "10. NEVER use e() function directly on arrays - always loop through arrays first\n";
-        $prompt .= "11. ALWAYS check if array keys exist before accessing them to avoid 'Undefined array key' warnings\n";
+        $prompt .= "6. Use Twig variables for dynamic content: {{ variable|escape }} (ONLY for strings, NEVER for arrays)\n";
+        $prompt .= "7. For arrays/loops, ALWAYS use Twig for with existence checks: {% if array|length > 0 %}{% for item in array %}...{% endfor %}{% endif %}\n";
+        $prompt .= "8. For conditional display: {% if data|length > 0 %}...{% endif %}\n";
+        $prompt .= "9. Use the formatCvDate() function for dates: {{ formatCvDate(date) }}\n";
+        $prompt .= "10. NEVER use escape filter directly on arrays - always loop through arrays first\n";
+        $prompt .= "11. ALWAYS check if variables exist before accessing them: {% if variable is defined %}\n";
         $prompt .= "12. Projects do NOT have a 'technologies' field - do not reference it\n";
-        $prompt .= "13. Use \$cvData['memberships'] for professional memberships, NOT \$cvData['professional_memberships']\n\n";
+        $prompt .= "13. Use cvData.memberships for professional memberships, NOT cvData.professional_memberships\n";
+        $prompt .= "14. Use Twig dot notation for nested access: cvData.professional_summary.description (NOT cvData['professional_summary']['description'])\n\n";
         
         if (!empty($options['layout_preference'])) {
             $prompt .= "Layout Preference: " . $options['layout_preference'] . "\n\n";
@@ -1918,9 +1927,9 @@ class AIService {
         $prompt .= "- Make it visually appealing and professional\n";
         $prompt .= "- Include proper spacing and typography\n";
         $prompt .= "- The template will be inserted into a page that already has header/footer\n";
-        $prompt .= "- Use \$profile for profile data, \$cvData for CV sections\n";
-        $prompt .= "- Example: <?php echo e(\$profile['full_name']); ?>\n";
-        $prompt .= "- Example: <?php foreach (\$cvData['work_experience'] as \$work): ?>...<?php endforeach; ?>\n";
+        $prompt .= "- Use profile for profile data, cvData for CV sections (Twig syntax, NOT PHP)\n";
+        $prompt .= "- Example: {{ profile.full_name|escape }}\n";
+        $prompt .= "- Example: {% for work in cvData.work_experience %}...{% endfor %}\n";
         
         return $prompt;
     }
@@ -2117,9 +2126,9 @@ class AIService {
             }
         }
         
-        // Check for required PHP variables (at least some should be present)
-        if (!preg_match('/<\?php/', $html)) {
-            return ['valid' => false, 'error' => 'Template must include PHP code for dynamic content'];
+        // Check for required Twig syntax (at least some should be present)
+        if (!preg_match('/\{\{|\{%/', $html)) {
+            return ['valid' => false, 'error' => 'Template must include Twig syntax for dynamic content (use {{ }} or {% %})'];
         }
         
         // Basic HTML structure check

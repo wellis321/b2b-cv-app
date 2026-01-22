@@ -96,15 +96,59 @@ function getUserSubscriptionContext(string $userId): array {
         return $cache[$userId];
     }
 
+    // Try both column names in case production DB uses different column name
     $profile = db()->fetchOne(
-        "SELECT plan, subscription_status, subscription_current_period_end, stripe_customer_id, stripe_subscription_id, subscription_cancel_at
+        "SELECT plan, subscription_plan, subscription_status, subscription_current_period_end, stripe_customer_id, stripe_subscription_id, subscription_cancel_at
          FROM profiles WHERE id = ?",
         [$userId]
     );
+    
+    // Use subscription_plan if plan is not set (for backward compatibility)
+    if (empty($profile['plan']) && !empty($profile['subscription_plan'])) {
+        $profile['plan'] = $profile['subscription_plan'];
+    }
+
+    // #region agent log
+    $logData = [
+        'location' => 'php/subscriptions.php:99',
+        'message' => 'getUserSubscriptionContext - profile data from DB',
+        'data' => [
+            'userId' => $userId,
+            'profile_plan' => $profile['plan'] ?? 'NOT_SET',
+            'profile_subscription_status' => $profile['subscription_status'] ?? 'NOT_SET',
+            'profile_raw' => $profile
+        ],
+        'timestamp' => time() * 1000,
+        'sessionId' => 'debug-session',
+        'runId' => 'run1',
+        'hypothesisId' => 'A'
+    ];
+    file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode($logData) . "\n", FILE_APPEND);
+    // #endregion
 
     $planId = $profile['plan'] ?? DEFAULT_PLAN;
     $config = getSubscriptionPlanConfig($planId);
     $status = $profile['subscription_status'] ?? 'inactive';
+
+    // #region agent log
+    $logData2 = [
+        'location' => 'php/subscriptions.php:115',
+        'message' => 'getUserSubscriptionContext - after processing',
+        'data' => [
+            'userId' => $userId,
+            'planId' => $planId,
+            'status' => $status,
+            'config_keys' => array_keys($config),
+            'is_paid' => $planId !== 'free',
+            'DEFAULT_PLAN' => DEFAULT_PLAN
+        ],
+        'timestamp' => time() * 1000,
+        'sessionId' => 'debug-session',
+        'runId' => 'run1',
+        'hypothesisId' => 'B'
+    ];
+    file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode($logData2) . "\n", FILE_APPEND);
+    // #endregion
 
     $context = [
         'user_id' => $userId,
@@ -117,6 +161,26 @@ function getUserSubscriptionContext(string $userId): array {
         'config' => $config,
         'is_paid' => $planId !== 'free',
     ];
+
+    // #region agent log
+    $logData3 = [
+        'location' => 'php/subscriptions.php:130',
+        'message' => 'getUserSubscriptionContext - final context',
+        'data' => [
+            'userId' => $userId,
+            'context_plan' => $context['plan'],
+            'context_status' => $context['status'],
+            'context_is_paid' => $context['is_paid'],
+            'context_pdf_enabled' => $config['pdf_enabled'] ?? false,
+            'context_allowed_templates' => $config['allowed_templates'] ?? []
+        ],
+        'timestamp' => time() * 1000,
+        'sessionId' => 'debug-session',
+        'runId' => 'run1',
+        'hypothesisId' => 'C'
+    ];
+    file_put_contents('/Users/wellis/Desktop/Cursor/b2b-cv-app/.cursor/debug.log', json_encode($logData3) . "\n", FILE_APPEND);
+    // #endregion
 
     $cache[$userId] = $context;
     return $context;

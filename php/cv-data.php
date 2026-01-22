@@ -146,3 +146,47 @@ function loadCvData($userId) {
 
     return $cvData;
 }
+
+/**
+ * Load CV data for PDF export with filtered skills based on user's template selection
+ * 
+ * @param string $userId User ID
+ * @param string $templateId Template ID (optional, if not provided, returns all skills)
+ * @return array CV data with filtered skills
+ */
+function loadCvDataForPdf($userId, $templateId = null) {
+    // Load all CV data first
+    $cvData = loadCvData($userId);
+    
+    // If template ID is provided, filter skills based on user's selection
+    if (!empty($templateId)) {
+        try {
+            $selection = db()->fetchOne(
+                "SELECT selected_skill_ids FROM user_template_skill_selections 
+                 WHERE user_id = ? AND template_id = ?",
+                [$userId, $templateId]
+            );
+            
+            if ($selection && !empty($selection['selected_skill_ids'])) {
+                $selectedSkillIds = json_decode($selection['selected_skill_ids'], true);
+                if (is_array($selectedSkillIds) && !empty($selectedSkillIds)) {
+                    // Filter skills to only include selected ones
+                    $cvData['skills'] = array_filter($cvData['skills'], function($skill) use ($selectedSkillIds) {
+                        return in_array($skill['id'], $selectedSkillIds);
+                    });
+                    // Re-index array to remove gaps
+                    $cvData['skills'] = array_values($cvData['skills']);
+                } else {
+                    // Empty selection means no skills in PDF
+                    $cvData['skills'] = [];
+                }
+            }
+            // If no selection exists, show all skills (default behavior)
+        } catch (Exception $e) {
+            error_log("Error loading PDF skill selection: " . $e->getMessage());
+            // On error, fall back to showing all skills
+        }
+    }
+    
+    return $cvData;
+}

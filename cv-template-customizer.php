@@ -12,11 +12,10 @@ if (!isLoggedIn()) {
 
 $user = getCurrentUser();
 
-// Temporarily hide template customizer from regular users
-// Only allow super admins for now
+// Only allow super admins
 require_once __DIR__ . '/php/authorisation.php';
 if (!isSuperAdmin($user['id'])) {
-    setFlash('error', 'This feature is currently unavailable.');
+    setFlash('error', 'This feature is only available to super administrators. Please contact a super admin to create CV templates for your organisation.');
     redirect('/dashboard.php');
     exit;
 }
@@ -31,7 +30,7 @@ $activeTemplate = getActiveCvTemplate($user['id']);
 $success = getFlash('success');
 $error = getFlash('error');
 
-$pageTitle = 'Customise CV Template';
+$pageTitle = 'CV Template Builder';
 $canonicalUrl = APP_URL . '/cv-template-customizer.php';
 ?>
 <!DOCTYPE html>
@@ -39,7 +38,7 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
 <head>
     <?php partial('head', [
         'pageTitle' => $pageTitle . ' | Simple CV Builder',
-        'metaDescription' => 'Create a custom CV template with AI. Describe your ideal design and let AI generate it for you.',
+        'metaDescription' => 'Create and customize CV templates visually with drag-and-drop. No code required.',
         'canonicalUrl' => $canonicalUrl,
     ]); ?>
 </head>
@@ -49,8 +48,8 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
     <main id="main-content" role="main">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Customise Your CV Template</h1>
-                <p class="mt-2 text-gray-600">Describe your ideal CV design and let AI generate a custom template for you.</p>
+                <h1 class="text-3xl font-bold text-gray-900">CV Template Builder</h1>
+                <p class="mt-2 text-gray-600">Create and customize your CV templates using the visual builder. No code required.</p>
             </div>
 
             <!-- Success/Error Messages -->
@@ -77,7 +76,7 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
                         </p>
                         <?php if ($stats['count'] === 0): ?>
                             <p class="mt-2 text-sm text-blue-600">
-                                Create your first template using the form below. Once created, you'll be able to edit its HTML and CSS directly.
+                                Create your first template using the Visual Builder below. Drag and drop sections, adjust colors and fonts, and see your changes in real-time.
                             </p>
                         <?php endif; ?>
                     </div>
@@ -123,8 +122,23 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
                                         </p>
                                     </div>
                                     <div class="ml-4 flex gap-2">
-                                        <button type="button" onclick="toggleEditTemplate('<?php echo e($template['id']); ?>')" class="inline-flex items-center px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors">
-                                            <span id="edit-btn-text-<?php echo e($template['id']); ?>">Edit HTML/CSS</span>
+                                        <?php if (!empty($template['builder_type']) && $template['builder_type'] === 'visual'): ?>
+                                            <a href="/cv-template-builder.php?template_id=<?php echo e($template['id']); ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                                </svg>
+                                                Edit in Visual Builder
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="/cv-template-builder.php?template_id=<?php echo e($template['id']); ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                                                </svg>
+                                                Open in Visual Builder
+                                            </a>
+                                        <?php endif; ?>
+                                        <button type="button" onclick="toggleEditTemplate('<?php echo e($template['id']); ?>')" class="inline-flex items-center px-3 py-1.5 bg-gray-500 text-white text-sm font-medium rounded-lg hover:bg-gray-600 transition-colors" title="Advanced: Edit HTML/CSS code directly">
+                                            <span id="edit-btn-text-<?php echo e($template['id']); ?>">Code Editor</span>
                                             <span id="edit-btn-hide-<?php echo e($template['id']); ?>" class="hidden">Hide Editor</span>
                                         </button>
                                         <a href="/cv.php?template=<?php echo e($template['id']); ?>" target="_blank" class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
@@ -207,9 +221,51 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
                 </div>
             <?php endif; ?>
 
+            <!-- Create Template Options -->
+            <div class="mb-6 bg-white rounded-lg shadow-lg border-2 border-indigo-200 p-8">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Create New Template</h2>
+                    <p class="text-gray-600">Use the Visual Builder to create templates easily - no coding required!</p>
+                </div>
+                <div class="max-w-2xl mx-auto">
+                    <a href="/cv-template-builder.php" class="block w-full flex flex-col items-center justify-center p-8 border-2 border-indigo-500 rounded-xl hover:border-indigo-600 hover:bg-indigo-50 transition-all shadow-md hover:shadow-lg">
+                        <svg class="w-16 h-16 text-indigo-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                        </svg>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-3">Visual Builder</h3>
+                        <p class="text-base text-gray-700 text-center mb-4">Create templates visually with drag-and-drop. Adjust colors, fonts, and layout with live preview.</p>
+                        <span class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg">
+                            Start Building →
+                        </span>
+                    </a>
+                </div>
+                
+                <!-- Alternative Options (Collapsed by default) -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <button type="button" onclick="toggleAdvancedOptions()" class="w-full text-center text-sm text-gray-600 hover:text-gray-900 font-medium">
+                        <span id="advanced-options-text">Show Advanced Options</span>
+                        <span id="advanced-options-hide" class="hidden">Hide Advanced Options</span>
+                        <svg id="advanced-options-arrow" class="inline-block w-4 h-4 ml-1 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div id="advanced-options" class="hidden mt-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <a href="#ai-generator" onclick="document.getElementById('ai-generator-section').scrollIntoView({behavior: 'smooth'}); return false;" class="flex flex-col items-center justify-center p-6 border-2 border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors">
+                                <svg class="w-12 h-12 text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">AI Generator</h3>
+                                <p class="text-sm text-gray-600 text-center">Describe your ideal design and let AI generate it for you.</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Template Generator Form -->
-            <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-6 md:p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Generate New Template</h2>
+            <div id="ai-generator-section" class="bg-white rounded-lg shadow border border-gray-200 p-6 md:p-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Generate New Template with AI (Advanced)</h2>
                 <p class="text-gray-600 mb-6">
                     Describe how you want your CV to look. Be as specific as possible about colors, layout, fonts, and style.
                 </p>
@@ -363,6 +419,25 @@ $canonicalUrl = APP_URL . '/cv-template-customizer.php';
 
     <script>
         // Toggle edit form for templates
+        function toggleAdvancedOptions() {
+            const options = document.getElementById('advanced-options');
+            const text = document.getElementById('advanced-options-text');
+            const hide = document.getElementById('advanced-options-hide');
+            const arrow = document.getElementById('advanced-options-arrow');
+            
+            if (options.classList.contains('hidden')) {
+                options.classList.remove('hidden');
+                text.classList.add('hidden');
+                hide.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                options.classList.add('hidden');
+                text.classList.remove('hidden');
+                hide.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+
         function toggleEditTemplate(templateId) {
             const editForm = document.getElementById('edit-form-' + templateId);
             const editBtnText = document.getElementById('edit-btn-text-' + templateId);

@@ -52,6 +52,31 @@ if (isPost()) {
         $updateData['max_team_members'] = (int)post('max_team_members');
     }
     
+    // Handle custom homepage updates
+    if (post('action') === 'update_custom_homepage') {
+        $updateData['custom_homepage_enabled'] = post('custom_homepage_enabled') === '1' ? 1 : 0;
+        $updateData['custom_homepage_html'] = post('custom_homepage_html', '');
+        $updateData['custom_homepage_css'] = post('custom_homepage_css', '');
+        $updateData['custom_homepage_js'] = post('custom_homepage_js', '');
+        
+        // Validate sizes
+        if (!empty($updateData['custom_homepage_html']) && strlen($updateData['custom_homepage_html']) > 500000) {
+            setFlash('error', 'Custom HTML is too large. Maximum 500KB allowed.');
+            redirect('/admin/organisations/edit.php?id=' . $orgId);
+            exit;
+        }
+        if (!empty($updateData['custom_homepage_css']) && strlen($updateData['custom_homepage_css']) > 100000) {
+            setFlash('error', 'Custom CSS is too large. Maximum 100KB allowed.');
+            redirect('/admin/organisations/edit.php?id=' . $orgId);
+            exit;
+        }
+        if (!empty($updateData['custom_homepage_js']) && strlen($updateData['custom_homepage_js']) > 100000) {
+            setFlash('error', 'Custom JavaScript is too large. Maximum 100KB allowed.');
+            redirect('/admin/organisations/edit.php?id=' . $orgId);
+            exit;
+        }
+    }
+    
     $updateData['updated_at'] = date('Y-m-d H:i:s');
     
     try {
@@ -177,6 +202,109 @@ $orgMembers = getOrganisationTeamMembers($orgId);
             'backText' => 'Back to organisation',
             'content' => $formContent
         ]); ?>
+
+        <!-- Custom Homepage Section -->
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-medium text-gray-900">Custom Homepage</h2>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Upload HTML, CSS, and JavaScript for the organisation's public homepage at <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">/agency/<?php echo e($org['slug']); ?></code>
+                    </p>
+                </div>
+                <div class="p-6">
+                    <form method="POST">
+                        <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
+                        <input type="hidden" name="action" value="update_custom_homepage">
+
+                        <!-- Enable/Disable Toggle -->
+                        <div class="mb-6">
+                            <label class="flex items-center">
+                                <input type="checkbox"
+                                       name="custom_homepage_enabled"
+                                       value="1"
+                                       <?php echo (!empty($org['custom_homepage_enabled'])) ? 'checked' : ''; ?>
+                                       class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-3 text-base font-medium text-gray-900">
+                                    Enable Custom Homepage
+                                </span>
+                            </label>
+                            <p class="mt-2 text-sm text-gray-500">
+                                When enabled, the custom HTML/CSS/JS will be used instead of the default template.
+                            </p>
+                        </div>
+
+                        <!-- HTML Editor -->
+                        <div class="mb-6">
+                            <label for="custom_homepage_html" class="block text-base font-semibold text-gray-900 mb-3">
+                                Custom HTML
+                            </label>
+                            <textarea name="custom_homepage_html"
+                                      id="custom_homepage_html"
+                                      rows="15"
+                                      class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-sm font-mono text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"
+                                      placeholder="<!-- Enter your custom HTML here -->
+<div class='hero-section'>
+  <h1>{{organisation_name}}</h1>
+  <p>Welcome to our organisation...</p>
+  <p>We manage {{candidate_count}} candidates.</p>
+</div>"><?php echo e($org['custom_homepage_html'] ?? ''); ?></textarea>
+                            <p class="mt-2 text-sm text-gray-500">
+                                Enter your custom HTML. You can use placeholders like <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">{{organisation_name}}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">{{primary_colour}}</code>, etc. 
+                                <strong>CSS frameworks (Tailwind, Bootstrap, Materialize) are automatically available</strong>. Maximum 500KB.
+                            </p>
+                        </div>
+
+                        <!-- CSS Editor -->
+                        <div class="mb-6">
+                            <label for="custom_homepage_css" class="block text-base font-semibold text-gray-900 mb-3">
+                                Custom CSS
+                            </label>
+                            <textarea name="custom_homepage_css"
+                                      id="custom_homepage_css"
+                                      rows="10"
+                                      class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-sm font-mono text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"
+                                      placeholder="/* Enter your custom CSS here */
+.hero-section {
+  background: linear-gradient(135deg, #4338ca 0%, #7e22ce 100%);
+  padding: 4rem 2rem;
+  color: white;
+}"><?php echo e($org['custom_homepage_css'] ?? ''); ?></textarea>
+                            <p class="mt-2 text-sm text-gray-500">
+                                Enter your custom CSS styles. Maximum 100KB.
+                            </p>
+                        </div>
+
+                        <!-- JavaScript Editor -->
+                        <div class="mb-6">
+                            <label for="custom_homepage_js" class="block text-base font-semibold text-gray-900 mb-3">
+                                Custom JavaScript
+                            </label>
+                            <textarea name="custom_homepage_js"
+                                      id="custom_homepage_js"
+                                      rows="10"
+                                      class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-sm font-mono text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"
+                                      placeholder="// Enter your custom JavaScript here
+document.addEventListener('DOMContentLoaded', function() {
+  // Your custom JavaScript code
+});"><?php echo e($org['custom_homepage_js'] ?? ''); ?></textarea>
+                            <p class="mt-2 text-sm text-gray-500">
+                                Enter your custom JavaScript code. This will be executed on the homepage. Maximum 100KB.
+                            </p>
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <a href="/admin/organisations.php?id=<?php echo e($orgId); ?>" class="px-6 py-3 border-2 border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                                Cancel
+                            </a>
+                            <button type="submit" class="px-6 py-3 border border-transparent rounded-lg text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                                Save Homepage
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <!-- Team Members Section -->
         <?php if (!empty($orgMembers)): ?>

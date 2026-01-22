@@ -1,0 +1,37 @@
+Vuln 1: Remote Code Execution via Template eval() - template-security.php:134
+Severity: HIGH
+Confidence: 9/10
+Category: code_injection
+Description
+The application uses PHP's eval() function to execute user-provided CV template code. While a blocklist-based sanitization is applied via sanitizeTemplateCode(), this approach is fundamentally flawed and can be bypassed through multiple techniques.
+
+The vulnerable code at line 134:
+
+
+eval('?>' . $sanitizedHtml);
+Exploit Scenario
+An attacker creates a free account on the platform
+Creates a custom CV template via the template editor
+Injects malicious PHP code using bypass techniques:
+Bypass via variable functions:
+
+
+<?php $a='sys'; $b='tem'; $c=$a.$b; $c('whoami'); ?>
+Bypass via base64:
+
+
+<?php $x = base64_decode('c3lzdGVt'); $x('id'); ?>
+Bypass via array callbacks:
+
+
+<?php array_map('phpinfo', [1]); ?>
+Attacker views their CV page at /cv/@username
+The malicious code executes, achieving Remote Code Execution
+Recommendation
+Remove eval() entirely. Replace with a safe templating approach:
+
+Use a sandboxed templating engine like Twig with SandboxExtension
+Use logic-less templates like Mustache or Handlebars
+Implement a JSON-based configuration system instead of arbitrary PHP templates
+Blocklist sanitization of eval() input is fundamentally insecure - there are too many ways to construct dangerous code in PHP.
+

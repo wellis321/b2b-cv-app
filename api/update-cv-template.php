@@ -43,10 +43,10 @@ if ($templateCss !== null && strlen($templateCss) > 100000) {
     exit;
 }
 
-// Security validation: Check for dangerous code before saving
-require_once __DIR__ . '/../php/template-security.php';
+// Security validation: Validate Twig template syntax before saving
+require_once __DIR__ . '/../php/twig-template-service.php';
 if ($templateHtml !== null) {
-    $validation = validateTemplateCode($templateHtml);
+    $validation = validateTwigTemplate($templateHtml);
     if (!$validation['valid']) {
         setFlash('error', $validation['error']);
         redirect('/cv-template-customizer.php');

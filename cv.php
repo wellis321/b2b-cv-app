@@ -184,17 +184,17 @@ if (!$activeTemplate && !empty($profile['custom_cv_template_active']) && !empty(
 }
 
 if ($activeTemplate) {
-    // Render custom template
+    // Render custom template using Twig (secure)
     $customHtml = $activeTemplate['template_html'];
     $customCss = $activeTemplate['template_css'] ?? '';
     
-    // Securely execute PHP code from template
-    // Variables $profile, $cvData, and formatCvDate() are available in the template scope
-    require_once __DIR__ . '/php/template-security.php';
-    $renderedContent = executeTemplateSecurely($customHtml, [
+    // Use Twig template service for secure rendering
+    // Variables profile, cvData, and formatCvDate() function are available in the template
+    require_once __DIR__ . '/php/twig-template-service.php';
+    $renderedContent = renderTemplate($customHtml, [
         'profile' => $profile,
         'cvData' => $cvData
-        // formatCvDate() function is available globally, no need to pass it
+        // formatCvDate() function is registered in Twig, no need to pass it
     ]);
     
     // Output custom template

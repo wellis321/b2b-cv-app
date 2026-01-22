@@ -423,13 +423,21 @@ if (isPost()) {
         redirect('/agency/settings.php');
     }
 
-    // Update custom homepage
+    // Update custom homepage - RESTRICTED TO SUPER ADMINS ONLY
     if ($action === 'update_custom_homepage') {
+        require_once __DIR__ . '/../php/authorisation.php';
+        if (!isSuperAdmin($user['id'])) {
+            setFlash('error', 'Custom homepage updates are only available to super administrators. Please contact a super admin.');
+            redirect('/agency/settings.php');
+            exit;
+        }
+        
         $customHomepageEnabled = post('custom_homepage_enabled') === '1';
         $customHomepageHtml = post('custom_homepage_html', '');
         $customHomepageCss = post('custom_homepage_css', '');
+        $customHomepageJs = post('custom_homepage_js', '');
 
-        // Validate HTML/CSS length (reasonable limits)
+        // Validate HTML/CSS/JS length (reasonable limits)
         if (!empty($customHomepageHtml) && strlen($customHomepageHtml) > 500000) {
             setFlash('error', 'Custom HTML is too large. Maximum 500KB allowed.');
             redirect('/agency/settings.php');
@@ -440,17 +448,25 @@ if (isPost()) {
             redirect('/agency/settings.php');
         }
 
+        if (!empty($customHomepageJs) && strlen($customHomepageJs) > 100000) {
+            setFlash('error', 'Custom JavaScript is too large. Maximum 100KB allowed.');
+            redirect('/agency/settings.php');
+        }
+
         try {
-            db()->update('organisations',
-                [
-                    'custom_homepage_enabled' => $customHomepageEnabled ? 1 : 0,
-                    'custom_homepage_html' => !empty($customHomepageHtml) ? $customHomepageHtml : null,
-                    'custom_homepage_css' => !empty($customHomepageCss) ? $customHomepageCss : null,
-                    'updated_at' => date('Y-m-d H:i:s')
-                ],
-                'id = ?',
-                [$org['organisation_id']]
-            );
+            $updateData = [
+                'custom_homepage_enabled' => $customHomepageEnabled ? 1 : 0,
+                'custom_homepage_html' => !empty($customHomepageHtml) ? $customHomepageHtml : null,
+                'custom_homepage_css' => !empty($customHomepageCss) ? $customHomepageCss : null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            // Only update JS if column exists
+            if (post('custom_homepage_js') !== null) {
+                $updateData['custom_homepage_js'] = !empty($customHomepageJs) ? $customHomepageJs : null;
+            }
+            
+            db()->update('organisations', $updateData, 'id = ?', [$org['organisation_id']]);
 
             logActivity('organisation.custom_homepage_updated');
 
@@ -542,6 +558,9 @@ $orgAiSettings = [
                             </li>
                             <li>
                                 <a href="#custom-homepage" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Custom Homepage</a>
+                            </li>
+                            <li>
+                                <a href="#cv-templates" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">CV Templates</a>
                             </li>
                             <li>
                                 <a href="#limit-increase" class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-md transition-colors">Limit Increase</a>
@@ -744,122 +763,59 @@ $orgAiSettings = [
                             View Guide
                         </a>
                     </div>
-                    <p class="text-sm text-gray-500 mb-6">
-                        Create a fully customised homepage for your organisation's public page at <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">/agency/<?php echo e($organisation['slug']); ?></code>. 
-                        You can use HTML and CSS to design your own unique landing page. 
-                        <a href="/agency/custom-homepage-guide.php" class="text-blue-600 hover:text-blue-800 underline">Read the full guide</a> for detailed instructions and examples.
-                    </p>
-
-                    <form method="POST">
-                        <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
-                        <input type="hidden" name="action" value="update_custom_homepage">
-
-                        <!-- Enable/Disable Toggle -->
-                        <div class="mb-6">
-                            <label class="flex items-center">
-                                <input type="checkbox"
-                                       name="custom_homepage_enabled"
-                                       value="1"
-                                       <?php echo (!empty($organisation['custom_homepage_enabled'])) ? 'checked' : ''; ?>
-                                       class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                <span class="ml-3 text-base font-medium text-gray-900">
-                                    Enable Custom Homepage
-                                </span>
-                            </label>
-                            <p class="mt-2 text-sm text-gray-500">
-                                When enabled, your custom HTML/CSS will be used instead of the default template.
-                            </p>
-                        </div>
-
-                        <!-- AI Template Generation -->
-                        <div class="mb-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-3">✨ Generate with AI</h3>
-                            <p class="text-sm text-gray-700 mb-4">
-                                Find a website template you like? Enter the URL below and our AI will adapt it for your homepage. 
-                                Or describe your ideal design and we'll create it for you.
-                            </p>
-                            
-                            <div id="ai-template-generator" class="space-y-4">
-                                <!-- Template URL Input -->
-                                <div>
-                                    <label for="template_reference_url" class="block text-sm font-medium text-gray-900 mb-2">
-                                        Template URL (Optional)
-                                    </label>
-                                    <input type="url"
-                                           id="template_reference_url"
-                                           placeholder="https://example.com/beautiful-template"
-                                           class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
-                                    <p class="mt-1 text-xs text-gray-500">Paste a URL to a website or template you'd like to use as inspiration</p>
-                                </div>
-                                
-                                <!-- Description Input -->
-                                <div>
-                                    <label for="template_description" class="block text-sm font-medium text-gray-900 mb-2">
-                                        Description (Optional)
-                                    </label>
-                                    <textarea id="template_description"
-                                              rows="3"
-                                              placeholder="Describe your ideal homepage design, or leave blank to use the template URL as reference"
-                                              class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"></textarea>
-                                </div>
-                                
-                                <!-- Generate Button -->
-                                <div>
-                                    <button type="button"
-                                            id="generate-template-btn"
-                                            class="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-purple-200">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                        </svg>
-                                        Generate Homepage with AI
-                                    </button>
-                                    <span id="generate-template-status" class="ml-3 text-sm text-gray-600 hidden"></span>
-                                </div>
-                                
-                                <div id="generate-template-error" class="hidden p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700"></div>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Custom homepage customization</strong> is only available to super administrators. 
+                                    To create a custom homepage for your organisation's public page at <code class="bg-blue-100 px-1 py-0.5 rounded text-xs">/agency/<?php echo e($organisation['slug']); ?></code>, 
+                                    please contact a super admin who can work with you to develop and upload the HTML, CSS, and JavaScript for your homepage.
+                                </p>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- HTML Editor -->
-                        <div class="mb-6">
-                            <label for="custom_homepage_html" class="block text-base font-semibold text-gray-900 mb-3">
-                                Custom HTML
-                            </label>
-                            <textarea name="custom_homepage_html"
-                                      id="custom_homepage_html"
-                                      rows="15"
-                                      class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-sm font-mono text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"
-                                      placeholder="<!-- Enter your custom HTML here -->
-<div class='hero-section'>
-  <h1>{{organisation_name}}</h1>
-  <p>Welcome to our organisation...</p>
-  <p>We manage {{candidate_count}} candidates.</p>
-</div>"><?php echo e($organisation['custom_homepage_html'] ?? ''); ?></textarea>
-                            <p class="mt-2 text-sm text-gray-500">
-                                Enter your custom HTML. You can use placeholders like <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">{{organisation_name}}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-xs">{{primary_colour}}</code>, etc. 
-                                <strong>CSS frameworks (Tailwind, Bootstrap, Materialize) are automatically available</strong> - no need to include them in your HTML. Maximum 500KB.
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900 mb-2">What is a Custom Homepage?</h3>
+                            <p class="text-sm text-gray-700 mb-3">
+                                A custom homepage allows you to create a unique landing page for your organisation's public-facing page. 
+                                You can use HTML, CSS, and JavaScript to design a fully customized experience that matches your branding.
                             </p>
                         </div>
 
-                        <!-- CSS Editor -->
-                        <div class="mb-6">
-                            <label for="custom_homepage_css" class="block text-base font-semibold text-gray-900 mb-3">
-                                Custom CSS
-                            </label>
-                            <textarea name="custom_homepage_css"
-                                      id="custom_homepage_css"
-                                      rows="10"
-                                      class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-sm font-mono text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none"
-                                      placeholder="/* Enter your custom CSS here */
-.hero-section {
-  background: linear-gradient(135deg, #4338ca 0%, #7e22ce 100%);
-  padding: 4rem 2rem;
-  color: white;
-}"><?php echo e($organisation['custom_homepage_css'] ?? ''); ?></textarea>
-                            <p class="mt-2 text-sm text-gray-500">
-                                Enter your custom CSS styles. Maximum 100KB.
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900 mb-2">How to Request a Custom Homepage</h3>
+                            <p class="text-sm text-gray-700 mb-3">
+                                To get a custom homepage for your organisation:
                             </p>
+                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
+                                <li>Contact a super administrator</li>
+                                <li>Provide your design requirements, branding guidelines, and any reference websites or mockups</li>
+                                <li>Work with the super admin to review and approve the design</li>
+                                <li>The super admin will upload the HTML, CSS, and JavaScript code for your homepage</li>
+                            </ol>
                         </div>
+
+                        <?php if (!empty($organisation['custom_homepage_enabled'])): ?>
+                        <div class="pt-4 border-t border-gray-200">
+                            <p class="text-sm text-gray-600 mb-2">
+                                <strong>Status:</strong> Custom homepage is currently enabled for your organisation.
+                            </p>
+                            <a href="/agency/<?php echo e($organisation['slug']); ?>" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                </svg>
+                                View Public Homepage
+                            </a>
+                        </div>
+                        <?php endif; ?>
+                    </div>
 
                         <!-- Preview Link -->
                         <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -897,6 +853,69 @@ $orgAiSettings = [
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- CV Templates -->
+            <div id="cv-templates" class="bg-white shadow rounded-lg scroll-mt-24">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 class="text-lg font-medium text-gray-900">CV Templates</h2>
+                        <a href="/agency/cv-template-guide.php" class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            View Guide
+                        </a>
+                    </div>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>CV template customization</strong> is only available to super administrators. 
+                                    To create custom CV templates for your organisation, please contact a super admin who can work with you to develop 
+                                    templates that match your branding and requirements.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900 mb-2">What are CV Templates?</h3>
+                            <p class="text-sm text-gray-700 mb-3">
+                                CV templates define how candidate CVs are displayed. Super administrators can create custom templates 
+                                using the Visual Builder or by writing custom HTML/CSS code.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900 mb-2">How to Request Custom Templates</h3>
+                            <p class="text-sm text-gray-700 mb-3">
+                                If you need custom CV templates for your organisation:
+                            </p>
+                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
+                                <li>Contact a super administrator</li>
+                                <li>Provide your branding requirements (colors, fonts, layout preferences)</li>
+                                <li>Work with the super admin to review and approve the template design</li>
+                                <li>The super admin will create and activate the template for your organisation</li>
+                            </ol>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-200">
+                            <a href="/agency/cv-template-guide.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                View Template Guide
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1474,7 +1493,7 @@ $orgAiSettings = [
 
         // Highlight active sidebar link on scroll
         document.addEventListener('DOMContentLoaded', function() {
-            const sections = document.querySelectorAll('[id^="general-settings"], [id^="logo"], [id^="branding-colours"], [id^="custom-homepage"], [id^="limit-increase"], [id^="candidate-settings"], [id^="organisation-ai"], [id^="danger-zone"]');
+            const sections = document.querySelectorAll('[id^="general-settings"], [id^="logo"], [id^="branding-colours"], [id^="custom-homepage"], [id^="cv-templates"], [id^="limit-increase"], [id^="candidate-settings"], [id^="organisation-ai"], [id^="danger-zone"]');
             const navLinks = document.querySelectorAll('aside nav a');
             
             function updateActiveLink() {

@@ -44,6 +44,7 @@ $candidateCount = db()->fetchOne(
 $customHomepageEnabled = !empty($organisation['custom_homepage_enabled']);
 $customHomepageHtml = $organisation['custom_homepage_html'] ?? null;
 $customHomepageCss = $organisation['custom_homepage_css'] ?? null;
+$customHomepageJs = $organisation['custom_homepage_js'] ?? null;
 
 ?>
 <!DOCTYPE html>
@@ -214,6 +215,13 @@ $customHomepageCss = $organisation['custom_homepage_css'] ?? null;
 
     <?php partial('footer'); ?>
     <?php partial('auth-modals'); ?>
+    
+    <?php if ($customHomepageEnabled && !empty($customHomepageJs)): ?>
+    <!-- Custom Organisation JavaScript -->
+    <script>
+        <?php echo $customHomepageJs; ?>
+    </script>
+    <?php endif; ?>
 </body>
 </html>
 

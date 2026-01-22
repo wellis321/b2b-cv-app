@@ -1,18 +1,24 @@
 <?php
 /**
- * Secure Template Execution
+ * Secure Template Execution (DEPRECATED)
  * 
- * This file provides secure execution of user-provided PHP templates
+ * @deprecated This file is deprecated. Use php/twig-template-service.php instead.
+ * Templates should now use Twig syntax instead of PHP.
+ * This file is kept temporarily for backward compatibility but will be removed in a future version.
+ * 
+ * This file provided secure execution of user-provided PHP templates
  * by restricting dangerous functions and operations.
  */
 
 /**
  * Sanitize template HTML/CSS to remove dangerous PHP code
  * 
+ * @deprecated Use Twig templates instead. This function is no longer used.
  * @param string $templateHtml The template HTML containing PHP code
  * @return string Sanitized template HTML
  */
 function sanitizeTemplateCode($templateHtml) {
+    trigger_error('sanitizeTemplateCode() is deprecated. Use Twig templates instead.', E_USER_DEPRECATED);
     // List of dangerous PHP functions and constructs to block
     $dangerousPatterns = [
         // File system operations
@@ -113,11 +119,14 @@ function sanitizeTemplateCode($templateHtml) {
 /**
  * Securely execute template code with restricted function access
  * 
+ * @deprecated Use renderTemplate() from php/twig-template-service.php instead.
+ * This function uses eval() which is insecure. Twig templates are the secure alternative.
  * @param string $templateHtml The template HTML containing PHP code
  * @param array $allowedVars Variables allowed in template scope (e.g., ['profile' => $profile, 'cvData' => $cvData])
  * @return string Rendered HTML output
  */
 function executeTemplateSecurely($templateHtml, $allowedVars = []) {
+    trigger_error('executeTemplateSecurely() is deprecated. Use renderTemplate() from php/twig-template-service.php instead.', E_USER_DEPRECATED);
     // Sanitize the template code first
     $sanitizedHtml = sanitizeTemplateCode($templateHtml);
     
@@ -147,10 +156,13 @@ function executeTemplateSecurely($templateHtml, $allowedVars = []) {
 /**
  * Validate template code before saving
  * 
+ * @deprecated Use validateTwigTemplate() from php/twig-template-service.php instead.
+ * Templates should now use Twig syntax, not PHP.
  * @param string $templateHtml The template HTML to validate
  * @return array ['valid' => bool, 'error' => string|null]
  */
 function validateTemplateCode($templateHtml) {
+    trigger_error('validateTemplateCode() is deprecated. Use validateTwigTemplate() from php/twig-template-service.php instead.', E_USER_DEPRECATED);
     // Check for dangerous patterns
     $dangerousPatterns = [
         '/\b(eval|exec|system|shell_exec|passthru|proc_open|popen|file_get_contents|file_put_contents|fopen|fwrite|unlink|rmdir|mkdir|chmod|chown|include|require|include_once|require_once|create_function|assert|call_user_func|extract|parse_str|getenv|putenv|ini_set|unserialize|serialize)\s*\(/i',

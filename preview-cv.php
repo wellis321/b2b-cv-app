@@ -163,6 +163,30 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                         <?php endif; ?>
                     </div>
 
+                    <!-- Skill Selection UI (shown when skills section is enabled) -->
+                    <div id="skill-selection-container" class="mt-6 pt-6 border-t hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <span id="skill-section-title">Select Skills</span>
+                            <span id="skill-limit-badge" class="ml-2 text-xs text-gray-500 hidden"></span>
+                        </label>
+                        <p class="text-xs text-gray-500 mb-3" id="skill-selection-help">
+                            Select which skills to include in your PDF. Only selected skills will appear in the exported PDF.
+                        </p>
+                        
+                        <!-- Skills Checkbox List -->
+                        <div id="skills-checkbox-list" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3 space-y-2">
+                            <!-- Skills will be populated here -->
+                        </div>
+                        
+                        <!-- Grid Preview (for grid/column layouts) -->
+                        <div id="skills-grid-preview" class="mt-4 hidden">
+                            <p class="text-xs font-medium text-gray-700 mb-2">Preview Layout:</p>
+                            <div id="skills-grid-container" class="border border-gray-200 rounded-md p-3 bg-gray-50">
+                                <!-- Grid will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
                     <button id="generate-pdf-button" onclick="generatePDF()" class="mt-6 w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         Generate PDF
                     </button>
@@ -604,6 +628,244 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
 
             renderPreview();
         });
+
+        // Skill Selection Functions
+        let currentSkillSelection = [];
+        let templateSkillConfig = null;
+
+        async function loadSkillSelectionForTemplate(templateId) {
+            if (!templateId || !cvData?.skills || cvData.skills.length === 0) {
+                document.getElementById('skill-selection-container')?.classList.add('hidden');
+                return;
+            }
+
+            // Check if skills section is enabled
+            const skillsCheckbox = document.getElementById('section-skills');
+            if (!skillsCheckbox?.checked) {
+                document.getElementById('skill-selection-container')?.classList.add('hidden');
+                return;
+            }
+
+            try {
+                // Get template config to check for skill settings
+                // For now, we'll check if template has skill limits by trying to get template metadata
+                // In a real implementation, you'd fetch template config from the database
+                templateSkillConfig = null; // Will be populated from template metadata/config
+
+                // Load saved skill selection
+                const response = await fetch(`/api/get-template-skill-selection.php?template_id=${encodeURIComponent(templateId)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentSkillSelection = data.selected_skill_ids || [];
+                } else {
+                    currentSkillSelection = [];
+                }
+
+                // If no selection exists and template has max skills, select first N skills
+                if (currentSkillSelection.length === 0 && templateSkillConfig?.maxSkills) {
+                    currentSkillSelection = cvData.skills.slice(0, templateSkillConfig.maxSkills).map(s => s.id);
+                }
+
+                renderSkillSelection();
+            } catch (error) {
+                console.error('Error loading skill selection:', error);
+                currentSkillSelection = [];
+                renderSkillSelection();
+            }
+        }
+
+        function renderSkillSelection() {
+            const container = document.getElementById('skill-selection-container');
+            const checkboxList = document.getElementById('skills-checkbox-list');
+            const gridPreview = document.getElementById('skills-grid-preview');
+            const gridContainer = document.getElementById('skills-grid-container');
+            const sectionTitle = document.getElementById('skill-section-title');
+            const limitBadge = document.getElementById('skill-limit-badge');
+
+            if (!container || !checkboxList || !cvData?.skills) {
+                return;
+            }
+
+            // Show container if skills section is enabled
+            const skillsCheckbox = document.getElementById('section-skills');
+            if (skillsCheckbox?.checked && cvData.skills.length > 0) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+                return;
+            }
+
+            // Update section title
+            if (sectionTitle && templateSkillConfig?.skillSectionTitle) {
+                sectionTitle.textContent = templateSkillConfig.skillSectionTitle;
+            } else {
+                sectionTitle.textContent = 'Select Skills';
+            }
+
+            // Update limit badge
+            if (limitBadge && templateSkillConfig?.maxSkills) {
+                limitBadge.textContent = `(Max ${templateSkillConfig.maxSkills})`;
+                limitBadge.classList.remove('hidden');
+            } else {
+                limitBadge.classList.add('hidden');
+            }
+
+            // Render checkboxes
+            checkboxList.innerHTML = '';
+            cvData.skills.forEach(skill => {
+                const isSelected = currentSkillSelection.includes(skill.id);
+                const checkbox = document.createElement('label');
+                checkbox.className = 'flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded';
+                checkbox.innerHTML = `
+                    <input type="checkbox" 
+                           class="mr-2 skill-checkbox" 
+                           data-skill-id="${skill.id}"
+                           ${isSelected ? 'checked' : ''}
+                           ${templateSkillConfig?.maxSkills && currentSkillSelection.length >= templateSkillConfig.maxSkills && !isSelected ? 'disabled' : ''}>
+                    <span class="text-sm text-gray-700">${escapeHtml(skill.name)}${skill.category ? ` <span class="text-gray-500">(${escapeHtml(skill.category)})</span>` : ''}</span>
+                `;
+                checkboxList.appendChild(checkbox);
+            });
+
+            // Add event listeners
+            checkboxList.querySelectorAll('.skill-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', handleSkillSelectionChange);
+            });
+
+            // Render grid preview if layout is grid/columns
+            if (templateSkillConfig?.skillLayout === 'grid' || templateSkillConfig?.skillLayout === 'columns') {
+                renderGridPreview();
+                gridPreview.classList.remove('hidden');
+            } else {
+                gridPreview.classList.add('hidden');
+            }
+        }
+
+        function handleSkillSelectionChange(event) {
+            const skillId = event.target.dataset.skillId;
+            const isChecked = event.target.checked;
+
+            if (isChecked) {
+                // Check max skills limit
+                if (templateSkillConfig?.maxSkills && currentSkillSelection.length >= templateSkillConfig.maxSkills) {
+                    event.target.checked = false;
+                    alert(`Maximum ${templateSkillConfig.maxSkills} skills allowed for this template.`);
+                    return;
+                }
+                if (!currentSkillSelection.includes(skillId)) {
+                    currentSkillSelection.push(skillId);
+                }
+            } else {
+                currentSkillSelection = currentSkillSelection.filter(id => id !== skillId);
+            }
+
+            // Update disabled state of other checkboxes
+            updateCheckboxStates();
+            
+            // Update grid preview
+            if (templateSkillConfig?.skillLayout === 'grid' || templateSkillConfig?.skillLayout === 'columns') {
+                renderGridPreview();
+            }
+
+            // Save selection
+            saveSkillSelection();
+        }
+
+        function updateCheckboxStates() {
+            const checkboxes = document.querySelectorAll('.skill-checkbox');
+            const maxSkills = templateSkillConfig?.maxSkills;
+            
+            checkboxes.forEach(checkbox => {
+                const isChecked = checkbox.checked;
+                if (maxSkills && !isChecked && currentSkillSelection.length >= maxSkills) {
+                    checkbox.disabled = true;
+                } else {
+                    checkbox.disabled = false;
+                }
+            });
+        }
+
+        function renderGridPreview() {
+            const gridContainer = document.getElementById('skills-grid-container');
+            if (!gridContainer || !templateSkillConfig) return;
+
+            const selectedSkills = cvData.skills.filter(s => currentSkillSelection.includes(s.id));
+            const columns = templateSkillConfig.skillColumns || 4;
+            const rows = templateSkillConfig.skillRows || 3;
+            const maxItems = columns * rows;
+
+            gridContainer.innerHTML = '';
+            gridContainer.style.display = 'grid';
+            gridContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            gridContainer.style.gap = '8px';
+
+            const skillsToShow = selectedSkills.slice(0, maxItems);
+            skillsToShow.forEach(skill => {
+                const skillBox = document.createElement('div');
+                skillBox.className = 'bg-white border border-gray-300 rounded p-2 text-xs text-center';
+                skillBox.textContent = skill.name;
+                gridContainer.appendChild(skillBox);
+            });
+
+            // Show placeholder boxes for remaining slots
+            const remainingSlots = maxItems - skillsToShow.length;
+            for (let i = 0; i < remainingSlots; i++) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'bg-gray-100 border border-gray-200 rounded p-2 text-xs text-center text-gray-400';
+                placeholder.textContent = '—';
+                gridContainer.appendChild(placeholder);
+            }
+        }
+
+        async function saveSkillSelection() {
+            const templateId = getSelectedTemplate();
+            if (!templateId) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('template_id', templateId);
+                formData.append('selected_skill_ids', JSON.stringify(currentSkillSelection));
+                formData.append('<?php echo CSRF_TOKEN_NAME; ?>', '<?php echo csrfToken(); ?>');
+
+                const response = await fetch('/api/save-template-skill-selection.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!data.success) {
+                    console.error('Failed to save skill selection:', data.error);
+                }
+            } catch (error) {
+                console.error('Error saving skill selection:', error);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Watch for skills checkbox changes
+        document.getElementById('section-skills')?.addEventListener('change', function() {
+            if (this.checked) {
+                loadSkillSelectionForTemplate(getSelectedTemplate());
+            } else {
+                document.getElementById('skill-selection-container')?.classList.add('hidden');
+            }
+        });
+
+        // Watch for template changes
+        document.getElementById('template-select')?.addEventListener('change', function() {
+            loadSkillSelectionForTemplate(getSelectedTemplate());
+        });
+
+        // Initial load
+        if (document.getElementById('section-skills')?.checked) {
+            setTimeout(() => loadSkillSelectionForTemplate(selectedTemplate), 100);
+        }
 
         window.addEventListener('load', renderPreview);
         window.generatePDF = generatePDF;
