@@ -92,8 +92,16 @@ function getSubscriptionPlanConfig(string $planId): array {
 function getUserSubscriptionContext(string $userId): array {
     static $cache = [];
 
+    // Clear cache if plan might have changed (for lifetime plans especially)
     if (isset($cache[$userId])) {
-        return $cache[$userId];
+        $cachedPlan = $cache[$userId]['plan'] ?? null;
+        // Quick check if plan changed in DB
+        $currentPlan = db()->fetchOne("SELECT plan FROM profiles WHERE id = ?", [$userId])['plan'] ?? null;
+        if ($cachedPlan !== $currentPlan) {
+            unset($cache[$userId]);
+        } else {
+            return $cache[$userId];
+        }
     }
 
     $profile = db()->fetchOne(
@@ -130,6 +138,11 @@ function getUserSubscriptionContext(string $userId): array {
     $config = getSubscriptionPlanConfig($planId);
     $status = $profile['subscription_status'] ?? 'inactive';
 
+    // For lifetime plans, always treat as active regardless of subscription_status
+    if ($planId === 'lifetime') {
+        $status = 'active';
+    }
+
     // #region agent log
     if (defined('DEBUG') && DEBUG) {
         $logPath = __DIR__ . '/../.cursor/debug.log';
@@ -155,6 +168,11 @@ function getUserSubscriptionContext(string $userId): array {
         }
     }
     // #endregion
+    
+    // Production debugging - log to error_log for diagnosis
+    if ($planId === 'lifetime' && $status !== 'active') {
+        error_log("Lifetime subscription issue for user {$userId}: plan={$planId}, status={$status}, profile_plan=" . ($profile['plan'] ?? 'NULL'));
+    }
 
     $context = [
         'user_id' => $userId,
@@ -167,6 +185,12 @@ function getUserSubscriptionContext(string $userId): array {
         'config' => $config,
         'is_paid' => $planId !== 'free',
     ];
+    
+    // Force lifetime plans to be treated as active and paid
+    if ($planId === 'lifetime') {
+        $context['status'] = 'active';
+        $context['is_paid'] = true;
+    }
 
     // #region agent log
     if (defined('DEBUG') && DEBUG) {
