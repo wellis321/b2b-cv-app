@@ -39,7 +39,7 @@ if (isPost()) {
             redirect('/subscription.php');
         }
 
-        $dateObtained = post('date_obtained', '') ?: null;
+        $dateObtained = trim(post('date_obtained', ''));
         $expiryDate = post('expiry_date', '') ?: null;
 
         $data = [
@@ -47,7 +47,7 @@ if (isPost()) {
             'profile_id' => $userId,
             'name' => sanitizeInput(post('name', '')),
             'issuer' => sanitizeInput(post('issuer', '')),
-            'date_obtained' => $dateObtained,
+            'date_obtained' => $dateObtained ?: null,
             'expiry_date' => $expiryDate,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
@@ -65,13 +65,13 @@ if (isPost()) {
         redirect('/certifications.php');
     } elseif ($action === 'update') {
         $id = post('id');
-        $dateObtained = post('date_obtained', '') ?: null;
+        $dateObtained = trim(post('date_obtained', ''));
         $expiryDate = post('expiry_date', '') ?: null;
 
         $data = [
             'name' => sanitizeInput(post('name', '')),
             'issuer' => sanitizeInput(post('issuer', '')),
-            'date_obtained' => $dateObtained,
+            'date_obtained' => $dateObtained ?: null,
             'expiry_date' => $expiryDate,
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -167,15 +167,15 @@ if (isPost()) {
                             <?php endif; ?>
                             <?php if ($cert['expiry_date']): ?><p class="text-sm text-gray-500">Expires: <?php echo date('M Y', strtotime($cert['expiry_date'])); ?></p><?php endif; ?>
                         </div>
-                        <form method="POST" class="inline">
-                            <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="id" value="<?php echo e($cert['id']); ?>">
-                            <div class="flex gap-3">
-                                <a href="/certifications.php?edit=<?php echo e($cert['id']); ?>" class="text-blue-600 hover:text-blue-800">Edit</a>
-                                <button type="submit" onclick="return confirm('Delete this certification?');" class="text-red-600 hover:text-red-800">Delete</button>
-                            </div>
-                        </form>
+                        <div class="inline-flex items-center gap-2">
+                            <a href="/certifications.php?edit=<?php echo e($cert['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
+                            <form method="POST" class="inline">
+                                <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo e($cert['id']); ?>">
+                                <button type="submit" onclick="return confirm('Delete this certification?');" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>

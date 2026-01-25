@@ -345,22 +345,24 @@ function buildEducationSection($settings, $colors, $spacing) {
     $html .= '<div class="space-y-' . ($spacing / 3) . '">';
     $html .= '{% for edu in cvData.education %}';
     $html .= '<div>';
-    $html .= '<h3 class="text-xl font-semibold mb-1" style="color: ' . htmlspecialchars($textColor) . ';">{{ edu.degree|escape }}</h3>';
-    $html .= '<p class="font-medium mb-1" style="color: ' . htmlspecialchars($mutedColor) . ';">{{ edu.institution|escape }}</p>';
+    $html .= '<p class="text-xl font-semibold mb-1" style="color: ' . htmlspecialchars($textColor) . ';"><span style="color: ' . htmlspecialchars($mutedColor) . ';">Qual:</span> {{ edu.degree|escape }}</p>';
+    $html .= '<p class="font-medium mb-1" style="color: ' . htmlspecialchars($textColor) . ';"><span style="color: ' . htmlspecialchars($mutedColor) . ';">Institution:</span> {{ edu.institution|escape }}</p>';
     
     if ($showFieldOfStudy) {
         $html .= '{% if edu.field_of_study is defined and edu.field_of_study|length > 0 %}';
-        $html .= '<p class="text-sm mb-1" style="color: ' . htmlspecialchars($mutedColor) . ';">{{ edu.field_of_study|escape }}</p>';
+        $html .= '<p class="text-sm mb-1" style="color: ' . htmlspecialchars($textColor) . ';"><span style="color: ' . htmlspecialchars($mutedColor) . ';">Subject:</span> {{ edu.field_of_study|escape }}</p>';
         $html .= '{% endif %}';
     }
     
     if ($showDates) {
+        $html .= '{% if not (edu.hide_date|default(0)) %}';
         $html .= '<p class="text-sm mb-2" style="color: ' . htmlspecialchars($mutedColor) . ';">';
         $html .= '{{ formatCvDate(edu.start_date) }}';
         $html .= '{% if edu.end_date is defined and edu.end_date|length > 0 %}';
         $html .= ' - {{ formatCvDate(edu.end_date) }}';
         $html .= '{% endif %}';
         $html .= '</p>';
+        $html .= '{% endif %}';
     }
     
     if ($showDescription) {

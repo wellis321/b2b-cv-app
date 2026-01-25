@@ -406,12 +406,13 @@ if (isPost()) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="flex gap-2">
+                            <div class="inline-flex items-center gap-2">
+                                <a href="/work-experience.php?edit=<?php echo e($work['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
                                 <form method="POST" action="/work-experience.php" class="inline">
                                     <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo e($work['id']); ?>">
-                                    <button type="submit" onclick="return confirm('Are you sure you want to delete this work experience?');" class="text-red-600 hover:text-red-800">Delete</button>
+                                    <button type="submit" onclick="return confirm('Are you sure you want to delete this work experience?');" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
                                 </form>
                             </div>
                         </div>
@@ -461,9 +462,6 @@ if (isPost()) {
                             </div>
                         <?php endif; ?>
 
-                        <div class="border-t pt-4">
-                            <a href="/work-experience.php?edit=<?php echo e($work['id']); ?>" class="text-blue-600 hover:text-blue-800">Edit Work Experience</a>
-                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>

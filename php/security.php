@@ -31,7 +31,7 @@ function csrfToken() {
 }
 
 /**
- * Sanitize input
+ * Sanitize input (for display only - do not use before DB storage; it HTML-encodes &, <, etc.)
  */
 function sanitizeInput($input) {
     if (is_array($input)) {
@@ -41,6 +41,29 @@ function sanitizeInput($input) {
         return null;
     }
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Prepare user input for database storage: trim and strip tags, but do NOT HTML-encode.
+ * Use e() when outputting to HTML. Use this when saving to DB so & and similar stay as-is.
+ */
+function prepareForStorage($input) {
+    if ($input === null) {
+        return null;
+    }
+    return strip_tags(trim((string) $input));
+}
+
+/**
+ * Escape for HTML after fixing text that may have been over-encoded on save (e.g. &amp; in DB).
+ * Use when displaying skill names, categories, and similar user text that may have been
+ * stored with htmlspecialchars by mistake.
+ */
+function e_text($string) {
+    if ($string === null || $string === '') {
+        return '';
+    }
+    return e(html_entity_decode((string) $string, ENT_QUOTES, 'UTF-8'));
 }
 
 /**

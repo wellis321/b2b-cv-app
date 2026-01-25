@@ -437,13 +437,13 @@ if ($editingId) {
                                         decoding="async">
                                 </div>
                             <?php endif; ?>
-                            <div class="flex gap-4 text-sm">
-                                <a href="/projects.php?edit=<?php echo urlencode($project['id']); ?>" class="text-blue-600 hover:text-blue-800">Edit</a>
+                            <div class="inline-flex items-center gap-2">
+                                <a href="/projects.php?edit=<?php echo urlencode($project['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
                                 <form method="POST" class="inline">
                                     <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo e($project['id']); ?>">
-                                    <button type="submit" onclick="return confirm('Delete this project?');" class="text-red-600 hover:text-red-800">Delete</button>
+                                    <button type="submit" onclick="return confirm('Delete this project?');" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
                                 </form>
                             </div>
                         </div>

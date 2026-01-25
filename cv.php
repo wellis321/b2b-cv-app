@@ -376,7 +376,7 @@ if ($activeTemplate) {
             <!-- CV Content -->
             <div class="p-6 sm:p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
-                    <!-- Left Column (Narrower) - Certifications, Education, Interests, Skills -->
+                    <!-- Left Column (Narrower) - Certifications, Education, Skills, Interests -->
                     <div class="lg:col-span-1 space-y-6 order-2 lg:order-1">
                         <!-- Certifications -->
                         <?php if (!empty($cvData['certifications'])): ?>
@@ -407,11 +407,12 @@ if ($activeTemplate) {
                                 </h2>
                                 <?php foreach ($cvData['education'] as $edu): ?>
                                     <div class="mb-4">
-                                        <h3 class="font-semibold text-gray-900 text-sm"><?php echo e($edu['degree']); ?></h3>
-                                        <p class="text-gray-700 text-sm"><?php echo e($edu['institution']); ?></p>
+                                        <p class="font-semibold text-gray-900 text-sm"><span class="text-gray-500 font-normal">Qual:</span> <?php echo e($edu['degree']); ?></p>
+                                        <p class="text-gray-700 text-sm"><span class="text-gray-500 font-normal">Institution:</span> <?php echo e($edu['institution']); ?></p>
                                         <?php if (!empty($edu['field_of_study'])): ?>
-                                            <p class="text-gray-600 text-sm"><?php echo e($edu['field_of_study']); ?></p>
+                                            <p class="text-gray-600 text-sm"><span class="text-gray-500 font-normal">Subject:</span> <?php echo e($edu['field_of_study']); ?></p>
                                         <?php endif; ?>
+                                        <?php if (empty($edu['hide_date'])): ?>
                                         <p class="text-gray-600 text-xs mt-1">
                                             <?php echo formatCvDate($edu['start_date']); ?>
                                             <?php if (!empty($edu['end_date'])): ?>
@@ -420,31 +421,9 @@ if ($activeTemplate) {
                                                 - Present
                                             <?php endif; ?>
                                         </p>
+                                        <?php endif; ?>
                                     </div>
                                 <?php endforeach; ?>
-                            </section>
-                        <?php endif; ?>
-
-                        <!-- Interests & Activities -->
-                        <?php if (!empty($cvData['interests'])): ?>
-                            <section>
-                                <h2 class="text-xl font-bold text-gray-900 mb-3 border-b-2 border-gray-300 pb-2">
-                                    Interests & Activities
-                                </h2>
-                                <div class="space-y-3">
-                                    <?php foreach ($cvData['interests'] as $interest): ?>
-                                        <div class="rounded-lg border border-gray-200 bg-white/70 p-4 shadow-sm">
-                                            <h3 class="text-sm font-semibold text-gray-800">
-                                                <?php echo e($interest['name']); ?>
-                                            </h3>
-                                            <?php if (!empty($interest['description'])): ?>
-                                                <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-                                                    <?php echo nl2br(e($interest['description'])); ?>
-                                                </p>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
                             </section>
                         <?php endif; ?>
 
@@ -479,6 +458,29 @@ if ($activeTemplate) {
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
+                            </section>
+                        <?php endif; ?>
+
+                        <!-- Interests & Activities -->
+                        <?php if (!empty($cvData['interests'])): ?>
+                            <section>
+                                <h2 class="text-xl font-bold text-gray-900 mb-3 border-b-2 border-gray-300 pb-2">
+                                    Interests & Activities
+                                </h2>
+                                <div class="space-y-3">
+                                    <?php foreach ($cvData['interests'] as $interest): ?>
+                                        <div class="rounded-lg border border-gray-200 bg-white/70 p-4 shadow-sm">
+                                            <h3 class="text-sm font-semibold text-gray-800">
+                                                <?php echo e($interest['name']); ?>
+                                            </h3>
+                                            <?php if (!empty($interest['description'])): ?>
+                                                <p class="mt-2 text-sm text-gray-600 leading-relaxed">
+                                                    <?php echo nl2br(e($interest['description'])); ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
                             </section>
                         <?php endif; ?>
                     </div>

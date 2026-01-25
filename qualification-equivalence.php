@@ -327,12 +327,12 @@ if ($editingId) {
                             <?php foreach ($editingQualification['supporting_evidence_items'] as $item): ?>
                                 <li class="flex items-start justify-between rounded-md border border-gray-200 bg-gray-50 p-3">
                                     <span class="text-sm text-gray-800 pr-4"><?php echo e($item['content']); ?></span>
-                                    <form method="POST" action="/qualification-equivalence.php" onsubmit="return confirm('Remove this evidence item?');">
+                                    <form method="POST" action="/qualification-equivalence.php" onsubmit="return confirm('Remove this evidence item?');" class="inline">
                                         <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                                         <input type="hidden" name="action" value="delete_evidence">
                                         <input type="hidden" name="evidence_id" value="<?php echo e($item['id']); ?>">
                                         <input type="hidden" name="qualification_id" value="<?php echo e($editingQualification['id']); ?>">
-                                        <button type="submit" class="text-sm text-red-600 hover:text-red-800">Delete</button>
+                                        <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
                                     </form>
                                 </li>
                             <?php endforeach; ?>
@@ -370,13 +370,13 @@ if ($editingId) {
                                     <?php echo $evidenceCount; ?> supporting evidence item<?php echo $evidenceCount === 1 ? '' : 's'; ?>
                                 </p>
                             </div>
-                            <div class="flex gap-3">
-                                <a href="/qualification-equivalence.php?edit=<?php echo e($qualification['id']); ?>" class="text-blue-600 hover:text-blue-800 text-sm">Edit</a>
-                                <form method="POST" action="/qualification-equivalence.php" onsubmit="return confirm('Delete this qualification?');">
+                            <div class="inline-flex items-center gap-2">
+                                <a href="/qualification-equivalence.php?edit=<?php echo e($qualification['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
+                                <form method="POST" action="/qualification-equivalence.php" onsubmit="return confirm('Delete this qualification?');" class="inline">
                                     <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo e($qualification['id']); ?>">
-                                    <button type="submit" class="text-sm text-red-600 hover:text-red-800">Delete</button>
+                                    <button type="submit" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
                                 </form>
                             </div>
                         </div>

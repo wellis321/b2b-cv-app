@@ -85,13 +85,19 @@ function loadCvData($userId) {
         [$userId]
     );
 
-    // Load skills
+    // Load skills (decode name/level/category in case they were stored with htmlspecialchars)
     $cvData['skills'] = db()->fetchAll(
         "SELECT * FROM skills
          WHERE profile_id = ?
          ORDER BY category ASC, name ASC",
         [$userId]
     );
+    foreach ($cvData['skills'] as &$s) {
+        $s['name'] = html_entity_decode((string) ($s['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $s['level'] = isset($s['level']) && $s['level'] !== '' ? html_entity_decode((string) $s['level'], ENT_QUOTES, 'UTF-8') : $s['level'];
+        $s['category'] = isset($s['category']) && $s['category'] !== '' ? html_entity_decode((string) $s['category'], ENT_QUOTES, 'UTF-8') : $s['category'];
+    }
+    unset($s);
 
     // Load projects
     $cvData['projects'] = db()->fetchAll(

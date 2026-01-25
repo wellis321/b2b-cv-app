@@ -87,6 +87,7 @@ if (isPost()) {
             'field_of_study' => !empty($fieldOfStudy) ? $fieldOfStudy : null,
             'start_date' => post('start_date', ''),
             'end_date' => post('end_date', '') ?: null,
+            'hide_date' => (int) post('hide_date', 0),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -161,6 +162,7 @@ if (isPost()) {
             'field_of_study' => !empty($fieldOfStudy) ? $fieldOfStudy : null,
             'start_date' => post('start_date', ''),
             'end_date' => post('end_date', '') ?: null,
+            'hide_date' => (int) post('hide_date', 0),
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
@@ -248,6 +250,12 @@ if (isPost()) {
                         <input type="date" id="end_date" name="end_date" value="<?php echo $editingEducation && $editingEducation['end_date'] ? date('Y-m-d', strtotime($editingEducation['end_date'])) : ''; ?>" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <p class="mt-1 text-xs text-gray-500">Leave blank if still studying</p>
                     </div>
+                    <div class="sm:col-span-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="hide_date" value="1" <?php echo $editingEducation && !empty($editingEducation['hide_date']) ? 'checked' : ''; ?> class="mr-2 rounded border-gray-300">
+                            <span class="text-sm text-gray-700">Hide date on CV</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="mt-6">
                     <button type="submit" <?php echo !$editingEducation && !$canAddEducation ? 'disabled' : ''; ?> class="<?php echo $editingEducation ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'; ?> text-white px-6 py-2 rounded-md font-medium <?php echo !$editingEducation && !$canAddEducation ? 'opacity-60 cursor-not-allowed' : ''; ?>">
@@ -267,20 +275,22 @@ if (isPost()) {
                 <div class="bg-white shadow rounded-lg p-6 mb-4">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="text-xl font-semibold text-gray-900"><?php echo e($edu['degree']); ?></h3>
-                            <p class="text-lg text-gray-700"><?php echo e($edu['institution']); ?></p>
+                            <p class="text-xl font-semibold text-gray-900"><span class="text-gray-500 font-normal">Qual:</span> <?php echo e($edu['degree']); ?></p>
+                            <p class="text-lg text-gray-700"><span class="text-gray-500 font-normal">Institution:</span> <?php echo e($edu['institution']); ?></p>
                             <?php if ($edu['field_of_study']): ?>
-                                <p class="text-gray-600"><?php echo e($edu['field_of_study']); ?></p>
+                                <p class="text-gray-600"><span class="text-gray-500 font-normal">Subject:</span> <?php echo e($edu['field_of_study']); ?></p>
                             <?php endif; ?>
-                            <p class="text-sm text-gray-500"><?php echo date('M Y', strtotime($edu['start_date'])); ?> - <?php echo $edu['end_date'] ? date('M Y', strtotime($edu['end_date'])) : 'Present'; ?></p>
+                            <?php if (empty($edu['hide_date'])): ?>
+                                <p class="text-sm text-gray-500"><?php echo date('M Y', strtotime($edu['start_date'])); ?> - <?php echo $edu['end_date'] ? date('M Y', strtotime($edu['end_date'])) : 'Present'; ?></p>
+                            <?php endif; ?>
                         </div>
-                        <div class="flex gap-3">
-                            <a href="/education.php?edit=<?php echo e($edu['id']); ?>" class="text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                        <div class="inline-flex items-center gap-2">
+                            <a href="/education.php?edit=<?php echo e($edu['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
                             <form method="POST" class="inline">
                                 <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo e($edu['id']); ?>">
-                                <button type="submit" onclick="return confirm('Delete this education entry?');" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                <button type="submit" onclick="return confirm('Delete this education entry?');" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
                             </form>
                         </div>
                     </div>

@@ -198,15 +198,15 @@ if (isPost()) {
                                 <p class="text-gray-700 mt-2"><?php echo e($interest['description']); ?></p>
                             <?php endif; ?>
                         </div>
-                        <form method="POST" class="inline">
-                            <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
-                            <input type="hidden" name="action" value="delete">
-                            <input type="hidden" name="id" value="<?php echo e($interest['id']); ?>">
-                            <div class="flex gap-3">
-                                <a href="/interests.php?edit=<?php echo e($interest['id']); ?>" class="text-blue-600 hover:text-blue-800">Edit</a>
-                                <button type="submit" onclick="return confirm('Delete this interest?');" class="text-red-600 hover:text-red-800">Delete</button>
-                            </div>
-                        </form>
+                        <div class="inline-flex items-center gap-2">
+                            <a href="/interests.php?edit=<?php echo e($interest['id']); ?>" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-800 transition-colors">Edit</a>
+                            <form method="POST" class="inline">
+                                <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="<?php echo e($interest['id']); ?>">
+                                <button type="submit" onclick="return confirm('Delete this interest?');" class="inline-flex items-center px-3 py-1.5 rounded text-sm font-medium text-red-600 hover:bg-red-100 hover:text-red-800 transition-colors">Delete</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
