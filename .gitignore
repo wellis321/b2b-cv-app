@@ -38,6 +38,9 @@ Thumbs.db
 # Account creation SQL files (may contain sensitive data)
 database/create_account_*.sql
 
+# Export files (certifications/skills) – may contain user data; do not commit
+scripts/exports/*.json
+
 # Old SvelteKit/Node.js files (if not deleted yet)
 /node_modules
 /.svelte-kit

@@ -76,9 +76,9 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Preview & Generate PDF</h1>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Section Selection Panel -->
-            <div class="lg:col-span-1">
-                <div class="bg-white shadow rounded-lg p-6">
+            <!-- Section Selection Panel: sticky on wrapper (no overflow); card scrolls when taller than viewport -->
+            <div class="lg:col-span-1 lg:sticky lg:top-24 lg:self-start">
+                <div class="bg-white shadow rounded-lg p-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                     <h2 class="text-xl font-semibold mb-4">Select Sections</h2>
 
                     <div class="space-y-3">
@@ -170,11 +170,11 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                             <span id="skill-limit-badge" class="ml-2 text-xs text-gray-500 hidden"></span>
                         </label>
                         <p class="text-xs text-gray-500 mb-3" id="skill-selection-help">
-                            Select which skills to include in your PDF. Only selected skills will appear in the exported PDF.
+                            Select which skills to include in your PDF. Grouped by category; only selected skills appear in the export.
                         </p>
                         
-                        <!-- Skills Checkbox List -->
-                        <div id="skills-checkbox-list" class="max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3 space-y-2">
+                        <!-- Skills Checkbox List (grouped by category) -->
+                        <div id="skills-checkbox-list" class="border border-gray-200 rounded-md p-3 max-h-72 overflow-y-auto space-y-4">
                             <!-- Skills will be populated here -->
                         </div>
                         
@@ -449,18 +449,20 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     includeQRCode: includeQr
                 };
 
-                // Build document definition using the template system
+                // Build cvData with skills filtered by user's skill selection (only include checked skills)
+                const filteredSkills = (cvData.skills || []).filter(s => currentSkillSelection.includes(s.id));
+                const cvDataForPdf = { ...cvData, skills: filteredSkills };
+
                 // Only include photo_base64 if we successfully loaded it
-                const profileWithPhoto = { ...profile }
+                const profileWithPhoto = { ...profile };
                 if (photoBase64) {
-                    profileWithPhoto.photo_base64 = photoBase64
+                    profileWithPhoto.photo_base64 = photoBase64;
                 } else {
-                    // Remove photo_base64 if it wasn't loaded successfully
-                    delete profileWithPhoto.photo_base64
+                    delete profileWithPhoto.photo_base64;
                 }
 
                 const docDefinition = await window.PdfGenerator.buildDocDefinition(
-                    cvData,
+                    cvDataForPdf,
                     profileWithPhoto,
                     config,
                     selectedTemplate,
@@ -468,10 +470,9 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                     qrCodeImage
                 );
 
-                // Generate and download PDF
-                pdfMake.createPdf(docDefinition).download(
-                    `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`
-                );
+                // Generate and download PDF (await so errors are caught)
+                const filename = `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`;
+                await pdfMake.createPdf(docDefinition).download(filename);
 
                 console.log('✅ PDF generated successfully using pdfmake');
 
@@ -524,8 +525,12 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 // Load the actual render function (async loader)
                 const renderFunction = await previewRenderer.render();
 
+                // Filter skills to only those selected in the skill selection checkboxes
+                const filteredSkills = (cvData.skills || []).filter(s => currentSkillSelection.includes(s.id));
+                const cvDataForPreview = { ...cvData, skills: filteredSkills };
+
                 renderFunction(previewDiv, {
-                    cvData,
+                    cvData: cvDataForPreview,
                     profile,
                     sections,
                     includePhoto,
@@ -668,10 +673,12 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 }
 
                 renderSkillSelection();
+                renderPreview();
             } catch (error) {
                 console.error('Error loading skill selection:', error);
                 currentSkillSelection = [];
                 renderSkillSelection();
+                renderPreview();
             }
         }
 
@@ -711,21 +718,42 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
                 limitBadge.classList.add('hidden');
             }
 
-            // Render checkboxes
-            checkboxList.innerHTML = '';
+            // Group skills by category
+            const byCategory = {};
             cvData.skills.forEach(skill => {
-                const isSelected = currentSkillSelection.includes(skill.id);
-                const checkbox = document.createElement('label');
-                checkbox.className = 'flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded';
-                checkbox.innerHTML = `
-                    <input type="checkbox" 
-                           class="mr-2 skill-checkbox" 
-                           data-skill-id="${skill.id}"
-                           ${isSelected ? 'checked' : ''}
-                           ${templateSkillConfig?.maxSkills && currentSkillSelection.length >= templateSkillConfig.maxSkills && !isSelected ? 'disabled' : ''}>
-                    <span class="text-sm text-gray-700">${escapeHtml(skill.name)}${skill.category ? ` <span class="text-gray-500">(${escapeHtml(skill.category)})</span>` : ''}</span>
-                `;
-                checkboxList.appendChild(checkbox);
+                const cat = (skill.category && String(skill.category).trim()) || 'Other';
+                if (!byCategory[cat]) byCategory[cat] = [];
+                byCategory[cat].push(skill);
+            });
+            const categoryOrder = Object.keys(byCategory).sort((a, b) =>
+                a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b)
+            );
+
+            // Render checkboxes grouped by category
+            checkboxList.innerHTML = '';
+            categoryOrder.forEach(cat => {
+                const skills = byCategory[cat];
+                const block = document.createElement('div');
+                block.className = 'space-y-1';
+                const header = document.createElement('div');
+                header.className = 'text-xs font-semibold text-gray-500 uppercase tracking-wide pb-1.5 mb-1.5 border-b border-gray-200';
+                header.textContent = cat;
+                block.appendChild(header);
+                skills.forEach(skill => {
+                    const isSelected = currentSkillSelection.includes(skill.id);
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center cursor-pointer hover:bg-gray-50 px-2 py-1 rounded text-sm';
+                    label.innerHTML = `
+                        <input type="checkbox" 
+                               class="mr-2 skill-checkbox" 
+                               data-skill-id="${skill.id}"
+                               ${isSelected ? 'checked' : ''}
+                               ${templateSkillConfig?.maxSkills && currentSkillSelection.length >= templateSkillConfig.maxSkills && !isSelected ? 'disabled' : ''}>
+                        <span class="text-gray-700">${escapeHtml(skill.name)}${skill.level ? ` <span class="text-gray-400">(${escapeHtml(skill.level)})</span>` : ''}</span>
+                    `;
+                    block.appendChild(label);
+                });
+                checkboxList.appendChild(block);
             });
 
             // Add event listeners

@@ -14,7 +14,8 @@ const pdfTemplates = {
             accent: ACCENT_COLOR,
             muted: '#6b7280',
             divider: ACCENT_COLOR,
-            link: ACCENT_COLOR
+            link: ACCENT_COLOR,
+            tagline: '#1d4ed8'
         },
         sectionHeaderStyle: 'line',
         sectionHeaderLineWidth: 2
@@ -113,43 +114,16 @@ function formatDateRange(startDate, endDate) {
 function createSectionHeader(title, template = {}) {
     const palette = template.colors || {}
     const variant = template.sectionHeaderStyle || 'line'
-    const pageMargins = Array.isArray(template.pageMargins) ? template.pageMargins : [50, 50, 50, 50]
-    const pageWidth = 595.28 // A4 width in points
-    const availableWidth = pageWidth - (pageMargins[0] || 0) - (pageMargins[2] || 0)
-    const lineWidth = template.sectionHeaderLineWidth ?? (variant === 'minimal' ? 0.75 : 2)
     const lineColor = template.sectionHeaderLineColor || palette.divider || ACCENT_COLOR
 
+    // Use a simple text block with underline instead of a table; tables with custom
+    // layout inside column stacks caused overlapping/merged headings in pdfmake.
     return {
+        text: title,
+        style: 'subheader',
         margin: variant === 'minimal' ? [0, 8, 0, 6] : [0, 6, 0, 8],
-        table: {
-            widths: ['*'],
-            body: [
-                [
-                    {
-                        text: title,
-                        style: 'subheader',
-                        margin: [0, 0, 0, variant === 'minimal' ? 4 : 4],
-                        border: [false, false, false, false]
-                    }
-                ]
-            ]
-        },
-        layout: {
-            defaultBorder: false,
-            hLineWidth: (i, node) => {
-                if (variant === 'line' || variant === 'minimal') {
-                    return i === node.table.body.length ? lineWidth : 0
-                }
-                return 0
-            },
-            hLineColor: () => lineColor,
-            vLineWidth: () => 0,
-            paddingLeft: () => 0,
-            paddingRight: () => 0,
-            paddingTop: () => 0,
-            paddingBottom: () => (variant === 'minimal' ? 4 : 6)
-        },
-        width: availableWidth
+        decoration: 'underline',
+        decorationColor: lineColor
     }
 }
 
@@ -205,8 +179,11 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
 
     const headerImages = []
     const includePhoto = config.includePhoto !== false
+    const includeQRCode = config.includeQRCode === true
+    const isValidDataUrl = (s) => typeof s === 'string' && s.length > 100 && /^data:image\//i.test(s)
 
-    if (includePhoto && profile.photo_base64) {
+    // Profile photo in header top-right when included and available
+    if (includePhoto && profile.photo_base64 && isValidDataUrl(profile.photo_base64)) {
         headerImages.push({
             width: 'auto',
             image: profile.photo_base64,
@@ -216,24 +193,29 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
         })
     }
 
+    // When no photo in header: put QR code in that same top-right slot when requested
     let qrInHeader = false
-    if (config.includeQRCode && qrCodeImage) {
-        console.log('Adding QR code to header')
+    if (headerImages.length === 0 && includeQRCode && cvUrl && qrCodeImage && isValidDataUrl(qrCodeImage)) {
         headerImages.push({
             width: 'auto',
             image: qrCodeImage,
-            fit: [70, 70],
+            fit: [50, 50],
             alignment: 'right',
-            margin: [0, 0, 0, 0],
-            link: cvUrl
+            margin: [0, 0, 5, 0]
         })
         qrInHeader = true
-    } else {
-        console.log('QR code NOT added to header. includeQRCode:', config.includeQRCode, 'qrCodeImage:', !!qrCodeImage)
     }
 
     if (headerImages.length) {
         headerColumns.push(...headerImages)
+    }
+
+    // When there is no image, give the text column an explicit width so it uses the full
+    // content area (pdfmake '*' can fail to expand and cause "squashed to the left").
+    const pageMarginsForHeader = template.pageMargins || [50, 50, 50, 50]
+    const availableWidthForHeader = 595.28 - (pageMarginsForHeader[0] || 0) - (pageMarginsForHeader[2] || 0)
+    if (headerImages.length === 0 && headerColumns[0]) {
+        headerColumns[0].width = availableWidthForHeader
     }
 
     content.push({ columns: headerColumns })
@@ -251,6 +233,7 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
     const pageWidth = 595.28
     const availableWidth = pageWidth - (pageMargins[0] || 0) - (pageMargins[2] || 0)
     const dividerColor = palette.divider || ACCENT_COLOR
+    const headerLineWidth = template.sectionHeaderLineWidth ?? 2
 
     content.push({
         table: {
@@ -267,7 +250,7 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
         },
         layout: {
             defaultBorder: false,
-            hLineWidth: (i, node) => (i === node.table.body.length ? 2 : 0),
+            hLineWidth: (i, node) => (i === node.table.body.length ? headerLineWidth : 0),
             hLineColor: () => dividerColor,
             vLineWidth: () => 0,
             paddingLeft: () => 0,
@@ -293,10 +276,15 @@ function pushParagraphs(content, value, palette) {
         return
     }
 
-    const paragraphs = plain.split('\n').filter((line) => line.trim())
+    // Split on double newlines (paragraphs); turn single newlines into spaces
+    // so we avoid "one word per line" when the source has newlines between words.
+    const paragraphs = plain
+        .split(/\n\s*\n/)
+        .map((p) => p.replace(/\r?\n/g, ' ').trim())
+        .filter(Boolean)
     paragraphs.forEach((paragraph, index) => {
         content.push({
-            text: decodeHtmlEntities(paragraph.trim()),
+            text: decodeHtmlEntities(paragraph),
             style: 'paragraph',
             margin: [0, index === 0 ? 2 : 2, 0, index === paragraphs.length - 1 ? 4 : 1],
             color: palette.body || '#374151'
@@ -308,13 +296,9 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
     const template = getTemplate(templateId)
     const palette = template.colors || {}
 
-    console.log('🔧 PDF Builder v2.0 - UPDATED CODE WITH REDUCED SPACING')
-    console.log('PDF Builder - includeQRCode:', config.includeQRCode, 'qrCodeImage provided:', !!qrCodeImage, 'cvUrl:', cvUrl)
-    console.log('Template pageMargins:', template.pageMargins)
-
     const styles = {
         header: { fontSize: 22, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 4] },
-        tagline: { fontSize: 12, color: palette.accent || ACCENT_COLOR, margin: [0, 0, 0, 6] },
+        tagline: { fontSize: 13, bold: true, color: palette.tagline || palette.accent || ACCENT_COLOR, margin: [0, 0, 0, 6] },
         contactInfo: { fontSize: 10, color: palette.body || '#374151', margin: [0, 1, 0, 1] },
         linkedIn: { fontSize: 10, color: palette.link || ACCENT_COLOR, decoration: 'underline', margin: [0, 4, 0, 0] },
         subheader: { fontSize: 15, bold: true, color: palette.header || '#2c3e50', margin: [0, 0, 0, 0] },
@@ -336,7 +320,11 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
         pageSize: 'A4',
         pageMargins: template.pageMargins || [50, 50, 50, 50],
         defaultStyle: { font: 'Roboto', fontSize: 11, color: palette.body || '#374151', lineHeight: 1.3 },
-        footer: (currentPage, pageCount) => ({ text: `${currentPage} / ${pageCount}`, alignment: 'center', style: 'footer' }),
+        footer: (currentPage, pageCount) => {
+            const p = (typeof pageCount === 'number' && !Number.isNaN(pageCount)) ? pageCount : 1
+            const c = (typeof currentPage === 'number' && !Number.isNaN(currentPage)) ? currentPage : 1
+            return { text: `${c} / ${p}`, alignment: 'center', style: 'footer' }
+        },
         content,
         styles,
         pageBreakBefore: function (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) {
@@ -351,6 +339,19 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
     const sections = config.sections || {}
 
     const qrInHeader = buildHeader(content, profile, config, palette, template, cvUrl, qrCodeImage)
+
+    const isMinimal = templateId === 'minimal'
+    // Section blocks: for minimal we merge into one column in order; for professional we split left/right
+    const summaryBlocks = []
+    const workBlocks = []
+    const educationBlocks = []
+    const certBlocks = []
+    const skillsBlocks = []
+    const projectsBlocks = []
+    const qualBlocks = []
+    const membershipsBlocks = []
+    const interestsBlocks = []
+
     const summary = cvData.professional_summary || cvData.summary
     const summaryEnabled = sections.professionalSummary ?? sections.summary ?? true
     if (summaryEnabled && summary) {
@@ -363,21 +364,21 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
         const hasStrengths = strengths.length > 0
 
         if (hasSummaryText || hasStrengths) {
-            content.push(createSectionHeader('Professional Summary', template))
+            summaryBlocks.push(createSectionHeader('Professional Summary', template))
 
             if (hasSummaryText) {
-                pushParagraphs(content, summary.description, palette)
+                pushParagraphs(summaryBlocks, summary.description, palette)
             }
 
             if (hasStrengths) {
-                content.push({ ul: strengths, style: 'bulletList' })
+                summaryBlocks.push({ text: strengths.map((s) => '• ' + s).join('\n'), style: 'bulletList' })
             }
         }
     }
 
     const experiences = Array.isArray(cvData.work_experience) ? cvData.work_experience : []
     if ((sections.workExperience ?? sections.work ?? true) && experiences.length) {
-        content.push(createSectionHeader('Work Experience', template))
+        workBlocks.push(createSectionHeader('Work Experience', template))
 
         experiences.forEach((role) => {
             if (role.position) {
@@ -392,14 +393,14 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                     }
                 }
 
-                content.push({ columns })
+                workBlocks.push({ columns })
             }
 
             if (role.company_name) {
-                content.push({ text: decodeHtmlEntities(role.company_name), style: 'company' })
+                workBlocks.push({ text: decodeHtmlEntities(role.company_name), style: 'company' })
             }
 
-            pushParagraphs(content, role.description, palette)
+            pushParagraphs(workBlocks, role.description, palette)
 
             if (Array.isArray(role.responsibility_categories)) {
                 role.responsibility_categories.forEach((category) => {
@@ -407,54 +408,36 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                         return
                     }
 
-                    if (category.name) {
-                        content.push({ text: `${decodeHtmlEntities(category.name)}:`, bold: true, margin: [0, 4, 0, 2] })
-                    }
-
                     const items = category.items
                         .map((item) => decodeHtmlEntities(item.content || item))
                         .filter(Boolean)
+                    if (!items.length) return
 
-                    if (items.length) {
-                        content.push({ ul: items, style: 'bulletList' })
+                    const name = decodeHtmlEntities(category.name || '')
+                    const itemsJoined = items.join(' ')
+
+                    if (name) {
+                        workBlocks.push({
+                            text: [
+                                { text: name + ': ', bold: true },
+                                { text: itemsJoined }
+                            ],
+                            style: 'paragraph',
+                            margin: [0, 2, 0, 5]
+                        })
+                    } else {
+                        workBlocks.push({ text: itemsJoined, style: 'paragraph', margin: [0, 2, 0, 5] })
                     }
                 })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 6] })
-        })
-    }
-
-    const qualifications = Array.isArray(cvData.qualification_equivalence) ? cvData.qualification_equivalence : []
-    if ((sections.qualificationEquivalence ?? false) && qualifications.length) {
-        content.push(createSectionHeader('Professional Qualification Equivalence', template))
-
-        qualifications.forEach((qual) => {
-            if (qual.level) {
-                content.push({ text: decodeHtmlEntities(qual.level), style: 'jobPosition' })
-            }
-
-            if (qual.description) {
-                pushParagraphs(content, qual.description, palette)
-            }
-
-            if (Array.isArray(qual.evidence) && qual.evidence.length) {
-                const evidenceItems = qual.evidence
-                    .map((item) => decodeHtmlEntities(item.content || item))
-                    .filter(Boolean)
-
-                if (evidenceItems.length) {
-                    content.push({ ul: evidenceItems, style: 'bulletList' })
-                }
-            }
-
-            content.push({ text: '', margin: [0, 0, 0, 6] })
+            workBlocks.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
     const projects = Array.isArray(cvData.projects) ? cvData.projects : []
     if ((sections.projects ?? true) && projects.length) {
-        content.push(createSectionHeader('Projects', template))
+        projectsBlocks.push(createSectionHeader('Projects', template))
 
         projects.forEach((project) => {
             if (project.title) {
@@ -467,87 +450,53 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                     columns.push({ width: 'auto', text: range, style: 'dates' })
                 }
 
-                content.push({ columns })
+                projectsBlocks.push({ columns })
             }
 
-            pushParagraphs(content, project.description, palette)
+            pushParagraphs(projectsBlocks, project.description, palette)
 
             if (project.url) {
-                content.push({ text: decodeHtmlEntities(project.url), style: 'link', link: project.url, margin: [0, 0, 0, 4] })
+                projectsBlocks.push({ text: decodeHtmlEntities(project.url), style: 'link', link: project.url, margin: [0, 0, 0, 4] })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 6] })
+            projectsBlocks.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
-    const skills = Array.isArray(cvData.skills) ? cvData.skills : []
-    if ((sections.skills ?? true) && skills.length) {
-        content.push(createSectionHeader('Skills', template))
+    const qualifications = Array.isArray(cvData.qualification_equivalence) ? cvData.qualification_equivalence : []
+    if ((sections.qualificationEquivalence ?? false) && qualifications.length) {
+        qualBlocks.push(createSectionHeader('Professional Qualification Equivalence', template))
 
-        const grouped = groupSkills(skills)
-        grouped.forEach((skillItems, category) => {
-            if (category && (category !== 'Other' || grouped.size > 1)) {
-                content.push({ text: decodeHtmlEntities(category), style: 'skillsCategory' })
+        qualifications.forEach((qual) => {
+            if (qual.level) {
+                qualBlocks.push({ text: decodeHtmlEntities(qual.level), style: 'jobPosition' })
             }
 
-            const text = skillItems
-                .map((skill) => {
-                    const name = decodeHtmlEntities(skill.name)
-                    return skill.level ? `${name} (${decodeHtmlEntities(skill.level)})` : name
-                })
-                .filter(Boolean)
-                .join(', ')
-
-            if (text) {
-                content.push({ text, style: 'skillsList' })
+            if (qual.description) {
+                pushParagraphs(qualBlocks, qual.description, palette)
             }
-        })
-    }
 
-    const education = Array.isArray(cvData.education) ? cvData.education : []
-    if ((sections.education ?? true) && education.length) {
-        content.push(createSectionHeader('Education', template))
+            if (Array.isArray(qual.evidence) && qual.evidence.length) {
+                const evidenceItems = qual.evidence
+                    .map((item) => decodeHtmlEntities(item.content || item))
+                    .filter(Boolean)
 
-        education.forEach((entry) => {
-            const columns = []
-
-            if (entry.degree || entry.course || entry.institution) {
-                const degreeText = entry.degree || entry.course
-                const stack = []
-                if (degreeText) {
-                    stack.push({ text: decodeHtmlEntities(degreeText), style: 'jobPosition' })
+                if (evidenceItems.length) {
+                    qualBlocks.push({ text: evidenceItems.map((i) => '• ' + i).join('\n'), style: 'bulletList' })
                 }
-                if (entry.institution) {
-                    stack.push({ text: decodeHtmlEntities(entry.institution), style: 'company' })
-                }
-                if (entry.field_of_study) {
-                    stack.push({ text: decodeHtmlEntities(entry.field_of_study), style: 'paragraph', margin: [0, 2, 0, 2] })
-                }
-
-                columns.push({ width: '*', stack })
             }
 
-            const range = formatDateRange(entry.start_date, entry.end_date)
-            if (range) {
-                columns.push({ width: 'auto', text: range, style: 'dates' })
-            }
-
-            if (columns.length) {
-                content.push({ columns })
-            }
-
-            pushParagraphs(content, entry.description, palette)
-            content.push({ text: '', margin: [0, 0, 0, 6] })
+            qualBlocks.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
     const certifications = Array.isArray(cvData.certifications) ? cvData.certifications : []
     if ((sections.certifications ?? true) && certifications.length) {
-        content.push(createSectionHeader('Certifications', template))
+        certBlocks.push(createSectionHeader('Certifications', template))
 
         certifications.forEach((cert) => {
             if (cert.name) {
-                const columns = [
+                const cols = [
                     { width: '*', text: decodeHtmlEntities(cert.name), style: 'jobPosition' }
                 ]
 
@@ -562,82 +511,168 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
                 }
 
                 if (details.length) {
-                    columns.push({ width: 'auto', text: details.join(' · '), style: 'dates' })
+                    cols.push({ width: 'auto', text: details.join(' · '), style: 'dates' })
                 }
 
-                content.push({ columns })
+                certBlocks.push({ columns: cols, margin: [0, 0, 0, 2] })
             }
 
             if (cert.issuer) {
-                content.push({ text: decodeHtmlEntities(cert.issuer), style: 'company' })
+                certBlocks.push({
+                    text: decodeHtmlEntities(cert.issuer),
+                    style: 'company',
+                    margin: [0, 2, 0, 3]
+                })
             }
 
-            pushParagraphs(content, cert.description, palette)
+            pushParagraphs(certBlocks, cert.description, palette)
 
             if (cert.url) {
-                content.push({ text: decodeHtmlEntities(cert.url), style: 'link', link: cert.url, margin: [0, 0, 0, 6] })
+                certBlocks.push({ text: decodeHtmlEntities(cert.url), style: 'link', link: cert.url, margin: [0, 0, 0, 6] })
             }
 
-            content.push({ text: '', margin: [0, 0, 0, 6] })
+            certBlocks.push({ text: '', margin: [0, 0, 0, 6] })
+        })
+    }
+
+    const education = Array.isArray(cvData.education) ? cvData.education : []
+    if ((sections.education ?? true) && education.length) {
+        educationBlocks.push(createSectionHeader('Education', template))
+
+        education.forEach((entry) => {
+            const columns = []
+
+            if (entry.degree || entry.course || entry.institution) {
+                const degreeText = entry.degree || entry.course
+                const stack = []
+                if (degreeText) {
+                    stack.push({ text: 'Qual: ' + decodeHtmlEntities(degreeText), style: 'jobPosition' })
+                }
+                if (entry.institution) {
+                    stack.push({ text: 'Institution: ' + decodeHtmlEntities(entry.institution), style: 'company' })
+                }
+                if (entry.field_of_study) {
+                    stack.push({ text: 'Subject: ' + decodeHtmlEntities(entry.field_of_study), style: 'paragraph', margin: [0, 2, 0, 2] })
+                }
+
+                columns.push({ width: '*', stack })
+            }
+
+            if (!entry.hide_date) {
+                const range = formatDateRange(entry.start_date, entry.end_date)
+                if (range) {
+                    columns.push({ width: 'auto', text: range, style: 'dates' })
+                }
+            }
+
+            if (columns.length) {
+                educationBlocks.push({ columns })
+            }
+
+            pushParagraphs(educationBlocks, entry.description, palette)
+            educationBlocks.push({ text: '', margin: [0, 0, 0, 6] })
+        })
+    }
+
+    const skills = Array.isArray(cvData.skills) ? cvData.skills : []
+    if ((sections.skills ?? true) && skills.length) {
+        skillsBlocks.push(createSectionHeader('Skills', template))
+
+        const grouped = groupSkills(skills)
+        grouped.forEach((skillItems, category) => {
+            if (category && (category !== 'Other' || grouped.size > 1)) {
+                skillsBlocks.push({ text: decodeHtmlEntities(category), style: 'skillsCategory' })
+            }
+
+            const text = skillItems
+                .map((skill) => {
+                    const name = decodeHtmlEntities(skill.name)
+                    return skill.level ? `${name} (${decodeHtmlEntities(skill.level)})` : name
+                })
+                .filter(Boolean)
+                .join(', ')
+
+            if (text) {
+                skillsBlocks.push({ text, style: 'skillsList' })
+            }
         })
     }
 
     const memberships = Array.isArray(cvData.memberships) ? cvData.memberships : []
     if ((sections.memberships ?? true) && memberships.length) {
-        content.push(createSectionHeader('Professional Memberships', template))
+        membershipsBlocks.push(createSectionHeader('Professional Memberships', template))
 
         memberships.forEach((membership) => {
             if (membership.organisation) {
-                content.push({ text: decodeHtmlEntities(membership.organisation), style: 'jobPosition' })
+                membershipsBlocks.push({ text: decodeHtmlEntities(membership.organisation), style: 'jobPosition' })
             }
 
             if (membership.role) {
-                content.push({ text: decodeHtmlEntities(membership.role), style: 'company' })
+                membershipsBlocks.push({ text: decodeHtmlEntities(membership.role), style: 'company' })
             }
 
             const range = formatDateRange(membership.start_date, membership.end_date)
             if (range) {
-                content.push({ text: range, style: 'dates' })
+                membershipsBlocks.push({ text: range, style: 'dates' })
             }
 
-            pushParagraphs(content, membership.description, palette)
-            content.push({ text: '', margin: [0, 0, 0, 6] })
+            pushParagraphs(membershipsBlocks, membership.description, palette)
+            membershipsBlocks.push({ text: '', margin: [0, 0, 0, 6] })
         })
     }
 
     const interests = Array.isArray(cvData.interests) ? cvData.interests : []
     if ((sections.interests ?? true) && interests.length) {
-        content.push(createSectionHeader('Interests & Activities', template))
+        interestsBlocks.push(createSectionHeader('Interests & Activities', template))
 
-        const interestItems = interests
-            .map((interest) => {
-                const name = decodeHtmlEntities(interest.name || '')
-                const description = interest.description ? ` — ${decodeHtmlEntities(interest.description)}` : ''
-                return name ? `${name}${description}` : null
+        interests.forEach((interest) => {
+            const name = decodeHtmlEntities(interest.name || '')
+            const desc = interest.description ? ` — ${decodeHtmlEntities(interest.description)}` : ''
+            if (!name && !desc.trim()) return
+            interestsBlocks.push({
+                text: [
+                    { text: name, bold: true },
+                    { text: desc }
+                ],
+                style: 'paragraph',
+                margin: [0, 0, 0, 5]
             })
-            .filter(Boolean)
-
-        if (interestItems.length) {
-            content.push({ ul: interestItems, style: 'bulletList' })
-        }
+        })
     }
 
-    if (config.includeQRCode && qrCodeImage && !qrInHeader) {
-        console.log('Adding QR code to footer')
+    // Minimal = one column; Professional Blue = two columns
+    if (isMinimal) {
+        const mainCol = [].concat(
+            summaryBlocks, workBlocks, educationBlocks, certBlocks, skillsBlocks,
+            projectsBlocks, qualBlocks, membershipsBlocks, interestsBlocks
+        )
+        content.push({ stack: mainCol })
+    } else {
+        const leftCol = [].concat(certBlocks, educationBlocks, skillsBlocks, interestsBlocks)
+        const rightCol = [].concat(summaryBlocks, workBlocks, projectsBlocks, qualBlocks, membershipsBlocks)
+
+        // Explicit pt widths so the two-column body uses the full content area.
+        // pdfmake's '*'/'2*' can fail to expand in some builds, causing "squashed to the left".
+        const pageMargins = template.pageMargins || [50, 50, 50, 50]
+        const pageWidth = 595.28 // A4
+        const bodyWidth = pageWidth - (pageMargins[0] || 0) - (pageMargins[2] || 0)
+        const columnGap = 10
+        const leftWidth = Math.round((bodyWidth - columnGap) / 3)
+        const rightWidth = Math.round((bodyWidth - columnGap) * 2 / 3)
+
         content.push({
             columns: [
-                { width: '*', text: '' },
-                { width: 100, image: qrCodeImage, alignment: 'right', fit: [80, 80], link: cvUrl, margin: [0, 18, 0, 0] }
-            ]
+                { width: leftWidth, stack: leftCol },
+                { width: rightWidth, stack: rightCol }
+            ],
+            columnGap
         })
-        content.push({ text: 'View my full CV online', alignment: 'right', fontSize: 9, color: palette.muted || '#6b7280', margin: [0, 6, 0, 0] })
-    } else {
-        console.log('QR code NOT added to footer. includeQRCode:', config.includeQRCode, 'qrCodeImage:', !!qrCodeImage, 'qrInHeader:', qrInHeader)
     }
 
-    console.log('Total content blocks:', content.length)
-    console.log('DocDefinition pageMargins:', docDefinition.pageMargins)
-    console.log('DocDefinition defaultStyle lineHeight:', docDefinition.defaultStyle.lineHeight)
+    // When QR requested: use link-only footer (embedding the QR image causes pdfmake "unsupported number: NaN")
+    if (config.includeQRCode && cvUrl) {
+        content.push({ text: 'View my full CV online', alignment: 'right', fontSize: 9, color: palette.muted || '#6b7280', margin: [0, 18, 0, 0], link: cvUrl })
+    }
 
     return docDefinition
 }

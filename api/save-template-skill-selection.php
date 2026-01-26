@@ -23,18 +23,17 @@ if (!verifyCsrfToken(post(CSRF_TOKEN_NAME))) {
 
 $userId = getUserId();
 $templateId = sanitizeInput(post('template_id') ?? '');
-$selectedSkillIds = post('selected_skill_ids', []);
+$raw = post('selected_skill_ids');
+if (is_string($raw)) {
+    $decoded = json_decode($raw, true);
+    $selectedSkillIds = is_array($decoded) ? $decoded : [];
+} else {
+    $selectedSkillIds = is_array($raw) ? $raw : [];
+}
 
 if (empty($templateId)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Template ID is required']);
-    exit;
-}
-
-// Validate that selected_skill_ids is an array
-if (!is_array($selectedSkillIds)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'selected_skill_ids must be an array']);
     exit;
 }
 

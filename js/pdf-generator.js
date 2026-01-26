@@ -87,11 +87,17 @@ async function getImageAsBase64(url) {
                 const img = new Image()
                 img.crossOrigin = 'anonymous'
                 img.onload = () => {
+                    const w = Math.max(1, Math.min(img.width || 1, 800))
+                    const h = Math.max(1, Math.min(img.height || 1, 800))
+                    if (w <= 0 || h <= 0) {
+                        resolve(null)
+                        return
+                    }
                     const canvas = document.createElement('canvas')
-                    canvas.width = Math.min(img.width, 800)
-                    canvas.height = Math.min(img.height, 800)
+                    canvas.width = w
+                    canvas.height = h
                     const ctx = canvas.getContext('2d')
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                    ctx.drawImage(img, 0, 0, w, h)
                     const convertedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
                     resolve(convertedDataUrl)
                 }
