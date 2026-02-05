@@ -21,7 +21,17 @@ self.addEventListener('fetch', function (event) {
   if (isAppRequest) {
     event.respondWith(
       fetch(event.request).catch(function (err) {
-        return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
+        // Return JSON error response so frontend can parse it properly
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Network error: ' + (err.message || 'Failed to connect to server')
+        }), {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
       })
     );
   }

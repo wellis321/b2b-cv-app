@@ -82,6 +82,9 @@ if ($sectionId === 'cv-variants') {
     } elseif ($viewId) {
         // Single job view within content-editor
         $job = getJobApplication($viewId, $userId);
+        if ($job) {
+            $job['questions'] = getJobApplicationQuestions($viewId, $userId);
+        }
         $partialPath = __DIR__ . '/../../views/partials/content-editor/jobs-panel-view.php';
         if ($job && file_exists($partialPath)) {
             include $partialPath;

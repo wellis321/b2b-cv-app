@@ -110,10 +110,12 @@ $preselectJobId = isset($_GET['job']) ? $_GET['job'] : null;
                 <label for="job_description" class="block text-sm font-medium text-gray-700 mb-2">
                     Job Description <span class="text-red-600">*</span>
                 </label>
+                <p class="text-xs text-gray-500 mb-1">Use the toolbar for formatting: bold, italic, headers, lists, and links</p>
                 <textarea id="job_description" 
                           name="job_description" 
                           rows="8" 
                           required
+                          data-markdown
                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Paste the job description here..."></textarea>
                 <p class="mt-1 text-sm text-gray-500">The AI will rewrite your CV to match this job description</p>

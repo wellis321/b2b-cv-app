@@ -10,6 +10,8 @@ requireAuth();
 $userId = getUserId();
 $error = getFlash('error');
 $success = getFlash('success');
+$passwordError = getFlash('password_error');
+$passwordSuccess = getFlash('password_success');
 
 // Get profile data
 $profile = db()->fetchOne(
@@ -46,7 +48,29 @@ $tabVisibilityComplete = true; // Visibility always has a value
 
 // Handle form submission
 if (isPost()) {
-    // Verify CSRF token
+    // Password change (separate from main profile form)
+    if (post('profile_action') === 'change_password') {
+        if (!verifyCsrfToken(post(CSRF_TOKEN_NAME))) {
+            setFlash('password_error', 'Invalid security token. Please try again.');
+            redirect('/profile.php?tab=password');
+        }
+        $currentPassword = post('current_password', '');
+        $newPassword = post('new_password', '');
+        $confirmPassword = post('confirm_password', '');
+        if ($newPassword !== $confirmPassword) {
+            setFlash('password_error', 'New passwords do not match.');
+            redirect('/profile.php?tab=password');
+        }
+        $result = changePasswordForUser($userId, $currentPassword, $newPassword);
+        if ($result['success']) {
+            setFlash('password_success', 'Your password has been updated successfully.');
+            redirect('/profile.php?tab=password');
+        }
+        setFlash('password_error', $result['error']);
+        redirect('/profile.php?tab=password');
+    }
+
+    // Verify CSRF token (main profile form)
     $token = post(CSRF_TOKEN_NAME);
     if (!verifyCsrfToken($token)) {
         setFlash('error', 'Invalid security token. Please try again.');
@@ -169,6 +193,20 @@ if (isPost()) {
     if (!empty($data['linkedin_url']) && !validateUrl($data['linkedin_url'])) {
         setFlash('error', 'Invalid LinkedIn URL');
         redirect('/profile.php');
+    }
+
+    // Closing date reminder preferences (only if migration has run)
+    if (array_key_exists('closing_date_reminder_enabled', $profile)) {
+        $data['closing_date_reminder_enabled'] = (post('closing_date_reminder_enabled') === '1' || post('closing_date_reminder_enabled') === 'on') ? 1 : 0;
+        $customDays = array_filter(array_map('intval', preg_split('/[\s,]+/', trim(post('closing_date_reminder_days_custom', '')), -1, PREG_SPLIT_NO_EMPTY)));
+        $presetDays = [];
+        if (post('remind_14') === '1' || post('remind_14') === 'on') $presetDays[] = 14;
+        if (post('remind_7') === '1' || post('remind_7') === 'on') $presetDays[] = 7;
+        if (post('remind_3') === '1' || post('remind_3') === 'on') $presetDays[] = 3;
+        if (post('remind_1') === '1' || post('remind_1') === 'on') $presetDays[] = 1;
+        $allDays = array_unique(array_merge($presetDays, $customDays));
+        sort($allDays, SORT_NUMERIC);
+        $data['closing_date_reminder_days'] = implode(',', $allDays) ?: '7,3,1';
     }
 
     // Check for XSS on all fields that are set
@@ -314,7 +352,7 @@ if (isPost()) {
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit My CV
                         </a>
-                        <a href="/change-password.php" class="px-4 py-2 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-50">Change Password</a>
+                        <button type="button" onclick="switchTab('password')" class="px-4 py-2 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-50">Change Password</button>
                         <a href="/dashboard.php" class="px-4 py-2 text-gray-700 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</a>
                         <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                             Save Profile
@@ -323,41 +361,45 @@ if (isPost()) {
                 </div>
 
                 <!-- Intro: complete all tabs -->
-                <div class="px-6 pt-4 pb-4 bg-blue-50 border-b border-blue-100">
-                    <p class="text-sm text-blue-900 font-medium">This is the first part of your CV. Complete each tab below so your name, contact details, photo, header style, and visibility are set.</p>
-                    <p class="text-xs text-blue-700 mt-2">Tabs: <strong>Name &amp; contact</strong> (required) → <strong>Photo</strong> (optional) → <strong>Header colours</strong> → <strong>Who can see my CV</strong>. Then go to <strong>Edit My CV</strong> to add work experience, education, skills, and the rest.</p>
+                <div class="px-6 pt-4 pb-4 bg-gray-50 border-b border-gray-200">
+                    <p class="text-base text-gray-800 font-medium">Set up your basic profile information using the tabs below.</p>
+                    <p class="text-sm text-gray-700 mt-2">Fill in your <strong>name and contact details</strong>, optionally add a <strong>photo</strong>, choose your <strong>header colours</strong>, and set who can see your CV. Then use <strong>Edit My CV</strong> to add your work experience, education, and skills.</p>
                 </div>
 
                 <!-- Tabs Navigation -->
-                <div class="border-b border-gray-200 px-6">
-                    <nav class="-mb-px flex flex-wrap gap-6 sm:gap-8" aria-label="Profile tabs">
-                        <button type="button" onclick="switchTab('main')" id="tab-main" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600 whitespace-nowrap flex items-center gap-1.5">
-                            <span>1. Name &amp; contact</span>
+                <div class="px-6 py-3 bg-gray-100 border-b border-gray-200">
+                    <nav class="flex flex-nowrap gap-2 overflow-x-auto pb-1" aria-label="Profile tabs">
+                        <button type="button" onclick="switchTab('main')" id="tab-main" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-blue-500 bg-blue-50 text-blue-700 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                            <span>1. Details</span>
                             <?php if ($tabMainComplete): ?>
-                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            <?php else: ?>
-                                <span class="text-xs font-normal text-amber-600">Required</span>
+                                <svg class="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('photo')" id="tab-photo" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex items-center gap-1.5">
+                        <button type="button" onclick="switchTab('photo')" id="tab-photo" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
                             <span>2. Photo</span>
                             <?php if ($tabPhotoComplete): ?>
-                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-                            <?php else: ?>
-                                <span class="text-xs font-normal text-gray-500">Optional</span>
+                                <svg class="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('colors')" id="tab-colors" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex items-center gap-1.5">
-                            <span>3. Header colours</span>
+                        <button type="button" onclick="switchTab('colors')" id="tab-colors" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                            <span>3. Colours</span>
                             <?php if ($tabColorsComplete): ?>
-                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             <?php endif; ?>
                         </button>
-                        <button type="button" onclick="switchTab('visibility')" id="tab-visibility" class="tab-button py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap flex items-center gap-1.5">
-                            <span>4. Who can see my CV</span>
+                        <button type="button" onclick="switchTab('visibility')" id="tab-visibility" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                            <span>4. Visibility</span>
                             <?php if ($tabVisibilityComplete): ?>
-                                <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                <svg class="w-4 h-4 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                             <?php endif; ?>
+                        </button>
+                        <?php if (array_key_exists('closing_date_reminder_enabled', $profile)): ?>
+                        <button type="button" onclick="switchTab('reminders')" id="tab-reminders" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                            <span>5. Reminders</span>
+                        </button>
+                        <?php endif; ?>
+                        <button type="button" onclick="switchTab('password')" id="tab-password" class="tab-button shrink-0 py-2.5 px-4 rounded-lg font-medium text-sm border-2 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 whitespace-nowrap flex items-center gap-1.5 shadow-sm">
+                            <span><?php echo array_key_exists('closing_date_reminder_enabled', $profile) ? '6' : '5'; ?>. Password</span>
                         </button>
                     </nav>
                 </div>
@@ -682,6 +724,73 @@ if (isPost()) {
                         </div>
                     </div>
 
+                    <?php if (array_key_exists('closing_date_reminder_enabled', $profile)): ?>
+                    <!-- Job closing date reminders tab -->
+                    <div id="tab-content-reminders" class="tab-content hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Job application closing date reminders</h2>
+                        <p class="text-sm text-gray-600 mb-6">Get browser notifications when a closing date is approaching for jobs you haven’t applied to yet (status <strong>Interested</strong> or <strong>In Progress</strong>).</p>
+                        <div class="space-y-4">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" name="closing_date_reminder_enabled" value="1"
+                                    <?php echo !empty($profile['closing_date_reminder_enabled']) ? 'checked' : ''; ?>
+                                    class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="text-sm font-medium text-gray-700">Enable closing date reminders (browser notifications)</span>
+                            </label>
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Notify me this many days before the closing date:</p>
+                                <div class="flex flex-wrap gap-4 mb-2">
+                                    <?php
+                                    $savedDays = isset($profile['closing_date_reminder_days']) ? array_map('intval', array_filter(explode(',', $profile['closing_date_reminder_days']))) : [7, 3, 1];
+                                    ?>
+                                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="remind_14" value="1" <?php echo in_array(14, $savedDays) ? 'checked' : ''; ?> class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> 14 days</label>
+                                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="remind_7" value="1" <?php echo in_array(7, $savedDays) ? 'checked' : ''; ?> class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> 7 days</label>
+                                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="remind_3" value="1" <?php echo in_array(3, $savedDays) ? 'checked' : ''; ?> class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> 3 days</label>
+                                    <label class="inline-flex items-center gap-2"><input type="checkbox" name="remind_1" value="1" <?php echo in_array(1, $savedDays) ? 'checked' : ''; ?> class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> 1 day</label>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Or add custom days (comma-separated, e.g. 14, 5, 2):</p>
+                                <input type="text" name="closing_date_reminder_days_custom" placeholder="e.g. 14, 5, 2"
+                                    value="<?php echo e(implode(', ', array_diff($savedDays, [14, 7, 3, 1]))); ?>"
+                                    class="mt-1 block w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+            </form>
+
+                    <!-- Password tab (own form; not nested) -->
+                    <div id="tab-content-password" class="tab-content hidden">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">Change password</h2>
+                        <p class="text-sm text-gray-600 mb-6">Update your account password. Use at least 8 characters with uppercase, lowercase, and a number.</p>
+                        <?php if ($passwordError): ?>
+                            <div class="mb-4 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700"><?php echo e($passwordError); ?></div>
+                        <?php endif; ?>
+                        <?php if ($passwordSuccess): ?>
+                            <div class="mb-4 rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-700"><?php echo e($passwordSuccess); ?></div>
+                        <?php endif; ?>
+                        <form method="POST" action="/profile.php" class="space-y-4 max-w-md">
+                            <input type="hidden" name="<?php echo CSRF_TOKEN_NAME; ?>" value="<?php echo csrfToken(); ?>">
+                            <input type="hidden" name="profile_action" value="change_password">
+                            <div>
+                                <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+                                <input type="password" id="current_password" name="current_password" required
+                                    class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">New password</label>
+                                <input type="password" id="new_password" name="new_password" required minlength="8"
+                                    class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+                                <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
+                                    class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                Update password
+                            </button>
+                        </form>
+                    </div>
+
                     <!-- Next step: Edit My CV (prominent CTA) -->
                     <div class="mt-8 pt-6 border-t border-gray-200 bg-green-50 -mx-6 px-6 py-6 rounded-b-lg">
                         <p class="text-sm font-medium text-green-900 mb-2">Next: build the rest of your CV</p>
@@ -692,7 +801,6 @@ if (isPost()) {
                         </a>
                     </div>
                 </div>
-            </form>
         </div>
     </div>
 
@@ -706,8 +814,8 @@ if (isPost()) {
 
             // Remove active styling from all tabs
             document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('border-blue-500', 'text-blue-600');
-                button.classList.add('border-transparent', 'text-gray-500');
+                button.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                button.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
             });
 
             // Show selected tab content
@@ -719,14 +827,20 @@ if (isPost()) {
             // Add active styling to selected tab
             const selectedTab = document.getElementById('tab-' + tabName);
             if (selectedTab) {
-                selectedTab.classList.remove('border-transparent', 'text-gray-500');
-                selectedTab.classList.add('border-blue-500', 'text-blue-600');
+                selectedTab.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
+                selectedTab.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
             }
         }
 
-        // Initialize - show main tab by default
+        // Initialize - show main tab or ?tab= query
         document.addEventListener('DOMContentLoaded', function() {
-            switchTab('main');
+            var match = /[?&]tab=([^&]+)/.exec(window.location.search);
+            var tab = match ? match[1] : 'main';
+            if (document.getElementById('tab-' + tab)) {
+                switchTab(tab);
+            } else {
+                switchTab('main');
+            }
         });
 
         function copyCvUrl() {

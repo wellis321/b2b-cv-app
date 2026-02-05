@@ -132,6 +132,97 @@ function jobDescriptionHtml($html) {
 }
 
 /**
+ * Render job description for display. If content contains HTML (e.g. imported tables),
+ * output safe HTML; otherwise render as markdown so **bold** etc. work.
+ */
+if (!function_exists('renderJobDescription')) {
+function renderJobDescription($text) {
+    if ($text === null || $text === '') return '';
+    $trimmed = trim($text);
+    // Content that looks like HTML (tables from Word/PDF import) – render as safe HTML
+    if (preg_match('/<\s*table[\s>]|<\s*tr\s|<\s*td\s|<\s*th\s/i', $trimmed)) {
+        return jobDescriptionHtml($trimmed);
+    }
+    return renderMarkdown($trimmed);
+}
+}
+
+/**
+ * Render markdown to HTML (basic server-side conversion, enhanced client-side with marked.js)
+ * This provides a fallback; marked.js will enhance it client-side for better rendering.
+ */
+if (!function_exists('renderMarkdown')) {
+function renderMarkdown($markdown) {
+    if ($markdown === null || $markdown === '') return '';
+    
+    // Decode HTML entities
+    $markdown = html_entity_decode($markdown, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    // Escape HTML to prevent XSS, then convert markdown syntax
+    $text = htmlspecialchars($markdown, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    // Convert bold **text** to <strong>text</strong>
+    $text = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $text);
+    
+    // Convert italic *text* to <em>text</em> (but not if it's part of **text**)
+    $text = preg_replace('/(?<!\*)\*([^*]+?)\*(?!\*)/', '<em>$1</em>', $text);
+    
+    // Convert headers
+    $text = preg_replace('/^### (.*?)$/m', '<h3>$1</h3>', $text);
+    $text = preg_replace('/^## (.*?)$/m', '<h2>$1</h2>', $text);
+    $text = preg_replace('/^# (.*?)$/m', '<h1>$1</h1>', $text);
+    
+    // Convert links [text](url)
+    $text = preg_replace('/\[([^\]]+)\]\(([^\)]+)\)/', '<a href="$2" target="_blank" rel="noopener">$1</a>', $text);
+    
+    // Convert underline tags (if they were in original)
+    $text = preg_replace('/&lt;u&gt;(.*?)&lt;\/u&gt;/', '<u>$1</u>', $text);
+    
+    // Convert line breaks (preserve formatting)
+    $text = nl2br($text);
+    
+    // Allow safe HTML tags only
+    $allowed = '<h1><h2><h3><strong><em><u><a><ul><ol><li><br><p>';
+    $text = strip_tags($text, $allowed);
+    
+    return $text;
+}
+}
+
+/**
+ * Strip markdown syntax for plain text (useful for AI processing)
+ */
+if (!function_exists('stripMarkdown')) {
+function stripMarkdown($markdown) {
+    if ($markdown === null || $markdown === '') return '';
+    
+    $text = $markdown;
+    
+    // Remove headers
+    $text = preg_replace('/^#{1,6}\s+(.*?)$/m', '$1', $text);
+    
+    // Remove bold/italic
+    $text = preg_replace('/\*\*(.*?)\*\*/', '$1', $text);
+    $text = preg_replace('/\*(.*?)\*/', '$1', $text);
+    
+    // Remove underline tags
+    $text = preg_replace('/<u>(.*?)<\/u>/', '$1', $text);
+    
+    // Remove links (keep text)
+    $text = preg_replace('/\[([^\]]+)\]\([^\)]+\)/', '$1', $text);
+    
+    // Remove list markers
+    $text = preg_replace('/^[-*+]\s+/m', '', $text);
+    $text = preg_replace('/^\d+\.\s+/m', '', $text);
+    
+    // Decode HTML entities
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    
+    return trim($text);
+}
+}
+
+/**
  * Get flash message
  */
 if (!function_exists('getFlash')) {

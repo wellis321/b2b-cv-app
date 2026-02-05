@@ -67,6 +67,10 @@ $profileShowQrCodePdfDefault = $profileShowPhotoPdf ? $profileShowQrCode : 1;
 $subscriptionContext = getUserSubscriptionContext($userId);
 $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionContext);
 
+// Nav bar (same as content-editor): variants + quick links back to editor
+$cvVariants = getUserCvVariants($userId);
+$masterVariantId = getOrCreateMasterVariant($userId);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,13 +93,18 @@ $subscriptionFrontendContext = buildSubscriptionFrontendContext($subscriptionCon
 </head>
 <body class="bg-gray-50">
     <?php partial('header'); ?>
+    <?php partial('content-editor/cv-nav-bar', [
+        'cvVariants' => $cvVariants,
+        'masterVariantId' => $masterVariantId,
+        'isPreviewPage' => true,
+    ]); ?>
 
     <div class="max-w-6xl mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-6">Preview & Generate PDF</h1>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Section Selection Panel: sticky on wrapper (no overflow); card scrolls when taller than viewport -->
-            <div class="lg:col-span-1 lg:sticky lg:top-24 lg:self-start">
+            <div id="generate-pdf" class="lg:col-span-1 lg:sticky lg:top-24 lg:self-start scroll-mt-4">
                 <div class="bg-white shadow rounded-lg p-6 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                     <h2 class="text-xl font-semibold mb-4">Select Sections</h2>
 

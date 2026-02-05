@@ -74,3 +74,5 @@ outputStructuredData($schemas);
 (function(){var w=typeof console!=='undefined'&&console.warn;if(w){var o=console.warn;console.warn=function(){var a=arguments[0];if(a&&typeof a==='string'&&a.indexOf('cdn.tailwindcss.com')!==-1&&a.indexOf('should not be used in production')!==-1)return;o.apply(console,arguments);};}})();
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Markdown support -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>

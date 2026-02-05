@@ -45,6 +45,7 @@ $stats = getJobApplicationStats();
     <!-- Browser AI Service Dependencies -->
     <script src="/js/model-cache-manager.js"></script>
     <script src="/js/browser-ai-service.js"></script>
+    <script src="/js/markdown-editor.js"></script>
     <style>
         .status-badge {
             display: inline-flex;
@@ -61,6 +62,7 @@ $stats = getJobApplicationStats();
         .status-rejected { background-color: #fee2e2; color: #991b1b; }
         .status-withdrawn { background-color: #f3f4f6; color: #374151; }
         .status-in_progress { background-color: #fed7aa; color: #9a3412; }
+        .status-interested { background-color: #bae6fd; color: #0c4a6e; }
         .job-description-view-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
         .job-description-view-content td, .job-description-view-content th { border: 1px solid #d1d5db; padding: 0.375rem 0.5rem; text-align: left; vertical-align: top; }
         .job-description-view-content th { background: #f3f4f6; font-weight: 600; }
@@ -207,13 +209,14 @@ $stats = getJobApplicationStats();
                     <div class="mb-6 flex flex-wrap gap-4">
                         <select id="status-filter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="all">All Status</option>
+                            <option value="interested">Interested</option>
+                            <option value="in_progress">In Progress</option>
                             <option value="applied">Applied</option>
                             <option value="interviewing">Interviewing</option>
                             <option value="offered">Offered</option>
                             <option value="accepted">Accepted</option>
                             <option value="rejected">Rejected</option>
                             <option value="withdrawn">Withdrawn</option>
-                            <option value="in_progress">In Progress</option>
                         </select>
                         <input type="text" 
                                id="search-input" 
@@ -332,13 +335,14 @@ $stats = getJobApplicationStats();
                             <label for="form-status" class="block text-base font-semibold text-gray-900 mb-3">Status</label>
                             <select id="form-status" name="status"
                                     class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                                <option value="interested">Interested</option>
+                                <option value="in_progress">In Progress</option>
                                 <option value="applied">Applied</option>
                                 <option value="interviewing">Interviewing</option>
                                 <option value="offered">Offered</option>
                                 <option value="accepted">Accepted</option>
                                 <option value="rejected">Rejected</option>
                                 <option value="withdrawn">Withdrawn</option>
-                                <option value="in_progress">In Progress</option>
                             </select>
                         </div>
                         <div>
@@ -378,7 +382,8 @@ $stats = getJobApplicationStats();
                     
                     <div>
                         <label for="form-notes" class="block text-base font-semibold text-gray-900 mb-3">Notes</label>
-                        <textarea id="form-notes" name="notes" rows="8"
+                        <p class="text-xs text-gray-500 mb-1">Use the toolbar for formatting: bold, italic, headers, lists, and links</p>
+                        <textarea id="form-notes" name="notes" rows="8" data-markdown
                                   class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none resize-y min-h-[200px]"
                                   placeholder="Add any additional notes about this application..."></textarea>
                         <p class="mt-2 text-sm text-gray-600 font-medium">You can expand this field by dragging the bottom-right corner if needed.</p>
@@ -437,6 +442,20 @@ $stats = getJobApplicationStats();
     </div>
 
     <?php partial('footer'); ?>
+    <script>
+    // Enhance markdown rendering for job applications page
+    if (typeof marked !== 'undefined') {
+        document.querySelectorAll('.markdown-content').forEach(function(el) {
+            const originalHtml = el.innerHTML;
+            try {
+                const rendered = marked.parse(originalHtml, { breaks: true, gfm: true });
+                el.innerHTML = rendered;
+            } catch (e) {
+                console.warn('Markdown parsing failed:', e);
+            }
+        });
+    }
+    </script>
 
     <script>
         // Simple job applications manager
@@ -660,13 +679,14 @@ $stats = getJobApplicationStats();
             
             formatStatus(status) {
                 const statusMap = {
+                    'interested': 'Interested',
+                    'in_progress': 'In Progress',
                     'applied': 'Applied',
                     'interviewing': 'Interviewing',
                     'offered': 'Offered',
                     'accepted': 'Accepted',
                     'rejected': 'Rejected',
-                    'withdrawn': 'Withdrawn',
-                    'in_progress': 'In Progress'
+                    'withdrawn': 'Withdrawn'
                 };
                 return statusMap[status] || status;
             },
@@ -1398,10 +1418,14 @@ $stats = getJobApplicationStats();
                     <div class="bg-white rounded-lg p-8 max-w-md text-center">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                         <p class="text-gray-800 font-medium">Generating cover letter with AI...</p>
-                        <p class="text-gray-600 text-sm mt-2">This may take 30-60 seconds</p>
+                        <p class="text-gray-600 text-sm mt-2">This may take 30–90 seconds</p>
                     </div>
                 `;
                 document.body.appendChild(loadingOverlay);
+                
+                const timeoutMs = 150000; // 2.5 minutes
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
                 
                 try {
                     const formData = new FormData();
@@ -1410,10 +1434,21 @@ $stats = getJobApplicationStats();
                     
                     const response = await fetch('/api/ai-generate-cover-letter.php', {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        signal: controller.signal
                     });
+                    clearTimeout(timeoutId);
                     
-                    const result = await response.json();
+                    const text = await response.text();
+                    let result;
+                    try {
+                        result = JSON.parse(text);
+                    } catch (e) {
+                        if (text.indexOf('Fatal error') !== -1 || text.indexOf('Maximum execution time') !== -1) {
+                            throw new Error('The server ran out of time while generating. Try again or use a smaller/faster AI model.');
+                        }
+                        throw new Error('Invalid response from server. Please try again.');
+                    }
                     
                     if (result.success) {
                         // Check if browser AI execution is required
@@ -1421,7 +1456,9 @@ $stats = getJobApplicationStats();
                             await this.executeBrowserAICoverLetter(result, applicationId, loadingOverlay);
                         } else {
                             // Server-side generation completed
-                            document.body.removeChild(loadingOverlay);
+                            if (document.body.contains(loadingOverlay)) {
+                                document.body.removeChild(loadingOverlay);
+                            }
                             await this.loadCoverLetter(applicationId);
                             alert('Cover letter generated successfully!');
                         }
@@ -1429,12 +1466,15 @@ $stats = getJobApplicationStats();
                         throw new Error(result.error || 'Failed to generate cover letter');
                     }
                 } catch (error) {
+                    clearTimeout(timeoutId);
                     console.error('Error generating cover letter:', error);
                     if (document.body.contains(loadingOverlay)) {
                         document.body.removeChild(loadingOverlay);
                     }
-                    alert('Error generating cover letter: ' + error.message);
-                    // Reload to show empty state
+                    const msg = error.name === 'AbortError'
+                        ? 'The request took too long. The server or AI model may be busy. Try again or use a smaller/faster model.'
+                        : error.message;
+                    alert('Error generating cover letter: ' + msg);
                     await this.loadCoverLetter(applicationId);
                 }
             },
@@ -1601,34 +1641,46 @@ $stats = getJobApplicationStats();
                             `;
                             document.body.appendChild(retryOverlay);
                             
+                            const retryController = new AbortController();
+                            const retryTimeoutId = setTimeout(() => retryController.abort(), 150000);
                             try {
                                 const response = await fetch('/api/ai-generate-cover-letter.php', {
                                     method: 'POST',
-                                    body: formData
+                                    body: formData,
+                                    signal: retryController.signal
                                 });
-                                
-                                const result = await response.json();
-                                
+                                clearTimeout(retryTimeoutId);
+                                const text = await response.text();
+                                let result;
+                                try {
+                                    result = JSON.parse(text);
+                                } catch (e) {
+                                    if (text.indexOf('Fatal error') !== -1 || text.indexOf('Maximum execution time') !== -1) {
+                                        throw new Error('The server ran out of time. Try again or use a smaller/faster model.');
+                                    }
+                                    throw new Error('Invalid response from server. Please try again.');
+                                }
                                 if (document.body.contains(retryOverlay)) {
                                     document.body.removeChild(retryOverlay);
                                 }
-                                
                                 if (result.success && !result.browser_execution) {
-                                    // Server-side generation completed
                                     await this.loadCoverLetter(applicationId);
                                     alert('Cover letter generated successfully using server AI!');
                                 } else if (result.browser_execution) {
-                                    // Still trying browser AI - show error
                                     alert('Server AI is not configured. Please configure a cloud AI service (OpenAI, Anthropic, Gemini, or Grok) in Settings → AI Settings.');
                                     await this.loadCoverLetter(applicationId);
                                 } else {
                                     throw new Error(result.error || 'Failed to generate cover letter');
                                 }
                             } catch (retryError) {
+                                clearTimeout(retryTimeoutId);
                                 if (document.body.contains(retryOverlay)) {
                                     document.body.removeChild(retryOverlay);
                                 }
-                                alert('Error generating cover letter: ' + retryError.message);
+                                const msg = retryError.name === 'AbortError'
+                                    ? 'The request took too long. Try again or use a smaller/faster model.'
+                                    : retryError.message;
+                                alert('Error generating cover letter: ' + msg);
                                 await this.loadCoverLetter(applicationId);
                             }
                         } else {

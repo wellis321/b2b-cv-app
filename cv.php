@@ -213,6 +213,70 @@ if ($activeTemplate) {
             @media print {
                 .no-print { display: none !important; }
             }
+            /* Prevent left column (e.g. interests) content from bleeding into right column */
+            .cv-container .grid > *,
+            .cv-container [class*="col-span"] {
+                min-width: 0;
+            }
+            .cv-container .grid .space-y-6 > section {
+                overflow: hidden;
+            }
+            /* Keep pre/code from marked.js visible and within column */
+            .cv-container .markdown-content pre,
+            .cv-container .markdown-content code {
+                max-width: 100%;
+                overflow-wrap: break-word;
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+            .cv-container .markdown-content pre {
+                margin: 0.5em 0;
+                padding: 0.5em;
+                background: #f3f4f6;
+                border-radius: 0.25rem;
+                font-size: inherit;
+            }
+            .cv-container .markdown-content code {
+                padding: 0.125em 0.25em;
+                background: #f3f4f6;
+                border-radius: 0.125rem;
+                font-size: 0.875em;
+            }
+            /* Interests & Activities: same as body text, align with title */
+            #cv-interests-section .markdown-content pre,
+            #cv-interests-section .markdown-content code,
+            #cv-interests-section .markdown-content p,
+            #cv-interests-section .markdown-content blockquote {
+                font-family: inherit;
+                background: transparent;
+                padding: 0;
+                margin: 0 0 0.5em 0;
+                margin-left: 0;
+                padding-left: 0;
+                border-radius: 0;
+                font-size: inherit;
+                font-weight: inherit;
+                line-height: inherit;
+                color: inherit;
+                text-align: left;
+                text-indent: 0;
+                white-space: normal;
+            }
+            #cv-interests-section .markdown-content blockquote {
+                border-left: none;
+            }
+            #cv-interests-section .markdown-content > *:first-child {
+                margin-top: 0;
+            }
+            #cv-interests-section .markdown-content ul,
+            #cv-interests-section .markdown-content ol {
+                margin-left: 0;
+                padding-left: 1.25em;
+            }
+            #cv-interests-section .markdown-content {
+                margin-left: 0;
+                padding-left: 0;
+            }
         </style>
     </head>
     <body class="bg-gray-100">
@@ -252,10 +316,25 @@ if ($activeTemplate) {
                     <?php echo $renderedContent; ?>
                 </div>
             </div>
-        </main>
-        <?php partial('footer'); ?>
-    </body>
-    </html>
+    </main>
+    <?php partial('footer'); ?>
+    <script>
+    // Enhance markdown rendering with marked.js for better support
+    if (typeof marked !== 'undefined') {
+        document.querySelectorAll('.markdown-content').forEach(function(el) {
+            const originalHtml = el.innerHTML;
+            try {
+                const rendered = marked.parse(originalHtml, { breaks: true, gfm: true });
+                el.innerHTML = rendered;
+            } catch (e) {
+                // Fallback to original if parsing fails
+                console.warn('Markdown parsing failed, using original:', e);
+            }
+        });
+    }
+    </script>
+</body>
+</html>
     <?php
     exit; // Stop here, don't render default template
 }
@@ -269,6 +348,7 @@ if ($activeTemplate) {
     <title><?php echo e($profile['full_name'] ?? 'CV'); ?> - CV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
     <style>
         @media print {
             .no-print { display: none; }
@@ -281,6 +361,62 @@ if ($activeTemplate) {
             height: 1em;
             vertical-align: middle;
             margin-right: 0.25em;
+        }
+        /* Keep pre/code from marked.js visible and within column (no overflow) */
+        .cv-container .markdown-content pre,
+        .cv-container .markdown-content code {
+            max-width: 100%;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .cv-container .markdown-content pre {
+            margin: 0.5em 0;
+            padding: 0.5em;
+            background: #f3f4f6;
+            border-radius: 0.25rem;
+            font-size: inherit;
+        }
+        .cv-container .markdown-content code {
+            padding: 0.125em 0.25em;
+            background: #f3f4f6;
+            border-radius: 0.125rem;
+            font-size: 0.875em;
+        }
+        /* Interests & Activities: render like normal body text, not code; align with title */
+        #cv-interests-section .markdown-content pre,
+        #cv-interests-section .markdown-content code,
+        #cv-interests-section .markdown-content p,
+        #cv-interests-section .markdown-content blockquote {
+            font-family: inherit;
+            background: transparent;
+            padding: 0;
+            margin: 0 0 0.5em 0;
+            margin-left: 0;
+            padding-left: 0;
+            border-radius: 0;
+            font-size: inherit;
+            font-weight: inherit;
+            line-height: inherit;
+            color: inherit;
+            text-align: left;
+            text-indent: 0;
+            white-space: normal;
+        }
+        #cv-interests-section .markdown-content blockquote {
+            border-left: none;
+        }
+        #cv-interests-section .markdown-content > *:first-child {
+            margin-top: 0;
+        }
+        #cv-interests-section .markdown-content ul,
+        #cv-interests-section .markdown-content ol {
+            margin-left: 0;
+            padding-left: 1.25em;
+        }
+        #cv-interests-section .markdown-content {
+            margin-left: 0;
+            padding-left: 0;
         }
     </style>
     </head>
@@ -389,7 +525,7 @@ if ($activeTemplate) {
             <div class="p-6 sm:p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
                     <!-- Left Column (Narrower) - Certifications, Education, Skills, Interests -->
-                    <div class="lg:col-span-1 space-y-6 order-2 lg:order-1">
+                    <div class="lg:col-span-1 min-w-0 overflow-hidden space-y-6 order-2 lg:order-1">
                         <!-- Certifications -->
                         <?php if (!empty($cvData['certifications'])): ?>
                             <section>
@@ -475,20 +611,20 @@ if ($activeTemplate) {
 
                         <!-- Interests & Activities -->
                         <?php if (!empty($cvData['interests'])): ?>
-                            <section>
+                            <section id="cv-interests-section">
                                 <h2 class="text-xl font-bold text-gray-900 mb-3 border-b-2 border-gray-300 pb-2">
                                     Interests & Activities
                                 </h2>
                                 <div class="space-y-3">
                                     <?php foreach ($cvData['interests'] as $interest): ?>
-                                        <div class="rounded-lg border border-gray-200 bg-white/70 p-4 shadow-sm">
+                                        <div class="min-w-0 rounded-lg border border-gray-200 bg-white/70 p-4 shadow-sm">
                                             <h3 class="text-sm font-semibold text-gray-800">
                                                 <?php echo e($interest['name']); ?>
                                             </h3>
                                             <?php if (!empty($interest['description'])): ?>
-                                                <p class="mt-2 text-sm text-gray-600 leading-relaxed">
-                                                    <?php echo nl2br(e($interest['description'])); ?>
-                                                </p>
+                                                <div class="mt-2 text-sm text-gray-600 leading-relaxed break-words markdown-content">
+                                                    <?php echo renderMarkdown(trim($interest['description'] ?? '')); ?>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
@@ -498,7 +634,7 @@ if ($activeTemplate) {
                     </div>
 
                     <!-- Right Column (Wider) - Summary, Work Experience, Projects, Memberships -->
-                    <div class="lg:col-span-2 space-y-6 order-1 lg:order-2">
+                    <div class="lg:col-span-2 min-w-0 space-y-6 order-1 lg:order-2">
                         <!-- Professional Summary -->
                         <?php if (!empty($cvData['professional_summary'])): ?>
                             <section>
@@ -506,7 +642,7 @@ if ($activeTemplate) {
                                     Professional Summary
                                 </h2>
                                 <?php if (!empty($cvData['professional_summary']['description'])): ?>
-                                    <p class="text-gray-700 mb-3 text-sm leading-relaxed"><?php echo nl2br(e(html_entity_decode($cvData['professional_summary']['description'], ENT_QUOTES, 'UTF-8'))); ?></p>
+                                    <div class="text-gray-700 mb-3 text-sm leading-relaxed markdown-content"><?php echo renderMarkdown($cvData['professional_summary']['description'] ?? ''); ?></div>
                                 <?php endif; ?>
                                 <?php if (!empty($cvData['professional_summary']['strengths'])): ?>
                                     <h3 class="font-semibold text-gray-800 mb-2 text-sm">Key Strengths:</h3>
@@ -544,7 +680,7 @@ if ($activeTemplate) {
                                             <?php endif; ?>
                                         </div>
                                         <?php if (!empty($work['description'])): ?>
-                                            <p class="text-gray-700 mb-3 text-sm leading-relaxed"><?php echo nl2br(e(html_entity_decode($work['description'], ENT_QUOTES, 'UTF-8'))); ?></p>
+                                            <div class="text-gray-700 mb-3 text-sm leading-relaxed markdown-content"><?php echo renderMarkdown($work['description'] ?? ''); ?></div>
                                         <?php endif; ?>
 
                                         <!-- Responsibilities -->
@@ -623,7 +759,7 @@ if ($activeTemplate) {
                                             <?php endif; ?>
                                         </div>
                                         <?php if (!empty($project['description'])): ?>
-                                            <p class="text-gray-700 text-sm leading-relaxed"><?php echo nl2br(e(html_entity_decode($project['description'], ENT_QUOTES, 'UTF-8'))); ?></p>
+                                            <div class="text-gray-700 text-sm leading-relaxed markdown-content"><?php echo renderMarkdown($project['description'] ?? ''); ?></div>
                                         <?php endif; ?>
                                         <?php
                                         $projectImagePath = isset($project['image_path']) ? html_entity_decode($project['image_path'], ENT_QUOTES, 'UTF-8') : null;
@@ -720,7 +856,7 @@ if ($activeTemplate) {
                                     <div class="mb-4">
                                         <h3 class="font-semibold text-gray-900 text-sm mb-1"><?php echo e($qual['level']); ?></h3>
                                         <?php if (!empty($qual['description'])): ?>
-                                            <p class="text-gray-700 text-sm leading-relaxed"><?php echo nl2br(e(html_entity_decode($qual['description'], ENT_QUOTES, 'UTF-8'))); ?></p>
+                                            <div class="text-gray-700 text-sm leading-relaxed markdown-content"><?php echo renderMarkdown($qual['description'] ?? ''); ?></div>
                                         <?php endif; ?>
                                             <?php if (!empty($qual['evidence'])): ?>
                                                 <?php $evidenceId = 'evidence-' . $qual['id']; ?>

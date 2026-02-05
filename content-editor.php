@@ -296,8 +296,23 @@ $subscriptionContext = getUserSubscriptionContext($userId);
     </script>
     <script src="/js/model-cache-manager.js?v=<?php echo time(); ?>"></script>
     <script src="/js/browser-ai-service.js?v=<?php echo time(); ?>"></script>
+    <script src="/js/markdown-editor.js?v=<?php echo time(); ?>"></script>
     <script src="/js/content-editor.js?v=<?php echo time(); ?>"></script>
     <script src="/js/resizable-panes.js?v=<?php echo time(); ?>"></script>
+    <script>
+    // Enhance markdown rendering with marked.js
+    if (typeof marked !== 'undefined') {
+        document.querySelectorAll('.markdown-content').forEach(function(el) {
+            const originalHtml = el.innerHTML;
+            try {
+                const rendered = marked.parse(originalHtml, { breaks: true, gfm: true });
+                el.innerHTML = rendered;
+            } catch (e) {
+                console.warn('Markdown parsing failed:', e);
+            }
+        });
+    }
+    </script>
     <?php partial('footer'); ?>
 </body>
 </html>

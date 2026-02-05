@@ -38,23 +38,33 @@ $jobJson = htmlspecialchars(json_encode($job), ENT_QUOTES, 'UTF-8');
             </div>
 
             <div>
-                <label for="form-description" class="block text-base font-semibold text-gray-900 mb-3">Job Description</label>
-                <textarea id="form-description" name="job_description" rows="4"
-                          class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none resize-y"></textarea>
+                <?php
+                $desc = trim($job['job_description'] ?? '');
+                $descIsHtml = $desc !== '' && preg_match('/<\s*table[\s>]|<\s*tr\s|<\s*td\s|<\s*th\s/i', $desc);
+                $descRendered = $descIsHtml ? jobDescriptionHtml($desc) : renderMarkdown($desc);
+                ?>
+                <label for="job-description-editable" class="block text-base font-semibold text-gray-900 mb-3">Job Description</label>
+                <p class="text-xs text-gray-500 mb-2">Use the toolbar for formatting, tables, and links. Edit in place like a document.</p>
+                <input type="hidden" name="job_description" id="form-description-hidden" value="">
+                <div id="job-description-editable" data-markdown role="textbox" aria-label="Job description" contenteditable="true" class="job-description-editable text-gray-700 rounded-lg border-2 border-gray-400 bg-white px-4 py-3 min-h-[200px] max-h-[480px] overflow-y-auto focus:ring-4 focus:ring-blue-200 focus:border-blue-600 focus:outline-none"><?php echo $descRendered; ?></div>
+                <style>.job-description-editable table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+.job-description-editable td, .job-description-editable th { border: 1px solid #d1d5db; padding: 0.375rem 0.5rem; text-align: left; vertical-align: top; }
+.job-description-editable th { background: #f3f4f6; font-weight: 600; }</style>
             </div>
 
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                     <label for="form-status" class="block text-base font-semibold text-gray-900 mb-3">Status</label>
                     <select id="form-status" name="status"
                             class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                        <option value="interested">Interested</option>
+                        <option value="in_progress">In Progress</option>
                         <option value="applied">Applied</option>
                         <option value="interviewing">Interviewing</option>
                         <option value="offered">Offered</option>
                         <option value="accepted">Accepted</option>
                         <option value="rejected">Rejected</option>
                         <option value="withdrawn">Withdrawn</option>
-                        <option value="in_progress">In Progress</option>
                     </select>
                 </div>
                 <div>
@@ -66,10 +76,19 @@ $jobJson = htmlspecialchars(json_encode($job), ENT_QUOTES, 'UTF-8');
                         <option value="remote">Remote</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
                     <label for="form-date" class="block text-base font-semibold text-gray-900 mb-3">Application Date</label>
                     <input type="date" id="form-date" name="application_date"
                            class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                </div>
+                <div>
+                    <label for="form-followup" class="block text-base font-semibold text-gray-900 mb-3">Follow-up / closing date</label>
+                    <input type="date" id="form-followup" name="next_follow_up"
+                           class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                    <p class="mt-2 text-sm text-gray-600 font-medium">Deadline or when you want to follow up</p>
                 </div>
             </div>
 
@@ -94,7 +113,8 @@ $jobJson = htmlspecialchars(json_encode($job), ENT_QUOTES, 'UTF-8');
 
             <div>
                 <label for="form-notes" class="block text-base font-semibold text-gray-900 mb-3">Notes</label>
-                <textarea id="form-notes" name="notes" rows="8"
+                <p class="text-xs text-gray-500 mb-1">Use the toolbar for formatting: bold, italic, headers, lists, and links</p>
+                <textarea id="form-notes" name="notes" rows="8" data-markdown
                           class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none resize-y min-h-[200px]"
                           placeholder="Add any additional notes about this application..."></textarea>
                 <p class="mt-2 text-sm text-gray-600 font-medium">You can expand this field by dragging the bottom-right corner if needed.</p>
@@ -126,13 +146,7 @@ $jobJson = htmlspecialchars(json_encode($job), ENT_QUOTES, 'UTF-8');
                 <div id="file-list" class="mt-4 space-y-2"></div>
             </div>
 
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div>
-                    <label for="form-followup" class="block text-base font-semibold text-gray-900 mb-3">Follow-up / closing date</label>
-                    <input type="date" id="form-followup" name="next_follow_up"
-                           class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
-                    <p class="mt-2 text-sm text-gray-600 font-medium">Deadline or when you want to follow up</p>
-                </div>
+            <div class="flex flex-wrap items-center gap-6">
                 <div class="flex items-center">
                     <input type="checkbox" id="form-interview" name="had_interview"
                            class="h-5 w-5 rounded border-2 border-gray-400 text-blue-600 focus:ring-4 focus:ring-blue-200 focus:ring-offset-0">

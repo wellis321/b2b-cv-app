@@ -70,41 +70,35 @@
                             </a>
                         <?php endif; ?>
                         <?php if (!$isAgencyPage): ?>
-                            <div class="relative group">
-                                <button type="button"
-                                        aria-expanded="false"
-                                        aria-haspopup="true"
-                                        class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
-                                    My CV
-                                    <svg class="ml-0.5 md:ml-1 h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                    </svg>
+                            <div class="relative group inline-flex items-stretch rounded-md">
+                                <a href="/content-editor.php" class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-l-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-inset <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">My CV</a>
+                                <button type="button" aria-haspopup="true" aria-expanded="false" class="inline-flex items-center px-0.5 py-1.5 md:px-1 md:py-2 rounded-r-md border-l border-gray-200 text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
+                                    <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                                 </button>
                                 <div role="menu" class="absolute right-0 top-full hidden min-w-[10rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg group-hover:block z-50">
-                                    <a href="/content-editor.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                        Edit CV
-                                    </a>
                                     <a href="/cv.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                        View CV
+                                        Online CV
                                     </a>
-                                <a href="/content-editor.php#ai-tools" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#ai-tools') !== false ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                    AI CV Tools
-                                </a>
-<?php /* Template customizer temporarily hidden
-                                    <a href="/cv-template-customizer.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv-template-customizer.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                        Customise Template
+                                    <a href="/preview-cv.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'preview-cv.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
+                                        PDF CV
                                     </a>
-*/ ?>
-                                    <a href="/cv-prompt-settings.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv-prompt-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                        Prompt Settings
-                                    </a>
-                                    <a href="/ai-settings.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                        AI Settings
+                                    <a href="/content-editor.php#jobs" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#jobs') !== false ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
+                                        Jobs
                                     </a>
                                 </div>
                             </div>
                         <?php endif; ?>
-                        <a href="/job-applications.php" class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $currentPage === 'job-applications.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Jobs</a>
+                        <div class="relative group inline-flex items-stretch rounded-md">
+                            <a href="/profile.php" class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-l-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-inset <?php echo $isProfile ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Profile</a>
+                            <button type="button" aria-haspopup="true" aria-expanded="false" class="inline-flex items-center px-0.5 py-1.5 md:px-1 md:py-2 rounded-r-md border-l border-gray-200 text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isProfile || $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
+                                <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div role="menu" class="absolute right-0 top-full hidden min-w-[10rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg group-hover:block z-50">
+                                <a href="/ai-settings.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
+                                    AI Settings
+                                </a>
+                            </div>
+                        </div>
                         <?php if ($isAgencyPage): ?>
                             <div class="relative group">
                                 <button type="button"
@@ -135,32 +129,34 @@
                         <?php
                         $isCvPage = in_array($currentPage, ['dashboard.php', 'preview-cv.php', 'cv.php', 'cv-variants.php', 'cv-quality.php', 'content-editor.php']) || strpos($_SERVER['REQUEST_URI'], '/cv-variants/') !== false;
                         ?>
-                        <div class="relative group">
-                            <button type="button"
-                                    aria-expanded="false"
-                                    aria-haspopup="true"
-                                    class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
-                                My CV
-                                <svg class="ml-0.5 md:ml-1 h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                </svg>
+                        <div class="relative group inline-flex items-stretch rounded-md">
+                            <a href="/content-editor.php" class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-l-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-inset <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">My CV</a>
+                            <button type="button" aria-haspopup="true" aria-expanded="false" class="inline-flex items-center px-0.5 py-1.5 md:px-1 md:py-2 rounded-r-md border-l border-gray-200 text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isCvPage ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
+                                <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                             </button>
                             <div role="menu" class="absolute right-0 top-full hidden min-w-[10rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg group-hover:block z-50">
-                                <a href="/content-editor.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                    Edit CV
-                                </a>
                                 <a href="/cv.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'cv.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                    View CV
+                                    Online CV
                                 </a>
-                                <a href="/content-editor.php#ai-tools" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#ai-tools') !== false ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
-                                    AI CV Tools
+                                <a href="/preview-cv.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'preview-cv.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
+                                    PDF CV
                                 </a>
+                                <a href="/content-editor.php#jobs" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#jobs') !== false ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
+                                    Jobs
+                                </a>
+                            </div>
+                        </div>
+                        <div class="relative group inline-flex items-stretch rounded-md">
+                            <a href="/profile.php" class="inline-flex items-center px-1.5 py-1.5 md:px-2 md:py-2 rounded-l-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-inset <?php echo $isProfile ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Profile</a>
+                            <button type="button" aria-haspopup="true" aria-expanded="false" class="inline-flex items-center px-0.5 py-1.5 md:px-1 md:py-2 rounded-r-md border-l border-gray-200 text-xs md:text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 <?php echo $isProfile || $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">
+                                <svg class="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </button>
+                            <div role="menu" class="absolute right-0 top-full hidden min-w-[10rem] rounded-lg border border-gray-200 bg-white py-2 shadow-lg group-hover:block z-50">
                                 <a href="/ai-settings.php" role="menuitem" class="block px-4 py-2 text-sm font-medium transition-colors <?php echo $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?> focus:outline-none focus:bg-blue-50">
                                     AI Settings
                                 </a>
                             </div>
                         </div>
-                        <a href="/content-editor.php#jobs" class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $currentPage === 'job-applications.php' || ($currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#jobs') !== false) ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Jobs</a>
                         <a href="/subscription.php" class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $isSubscription ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Plan</a>
                     <?php endif; ?>
                     <div class="relative group">
@@ -295,29 +291,19 @@
                         </div>
                         <a href="/content-editor.php" 
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'content-editor.php' && !$isAgencyPage ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Edit CV
+                            My CV
                         </a>
                         <a href="/cv.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            View CV
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Online CV
                         </a>
-                        <a href="/content-editor.php#cv-variants" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo in_array($currentPage, ['cv-variants.php', 'content-editor.php']) || strpos($_SERVER['REQUEST_URI'], '/cv-variants/') !== false ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            AI CV Tools
+                        <a href="/preview-cv.php" 
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'preview-cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            PDF CV
                         </a>
-<?php /* Template customizer temporarily hidden
-                        <a href="/cv-template-customizer.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv-template-customizer.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Customise Template
-                        </a>
-*/ ?>
-                        <a href="/cv-prompt-settings.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv-prompt-settings.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Prompt Settings
-                        </a>
-                        <a href="/job-applications.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'job-applications.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Job Applications
+                        <a href="/content-editor.php#jobs" 
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#jobs') !== false ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Jobs
                         </a>
                         <?php if ($isAgencyPage): ?>
                             <div class="px-4 py-2 text-base font-semibold text-gray-900 border-t border-gray-200 mt-2 pt-4">
@@ -347,25 +333,36 @@
                         </div>
                         <a href="/content-editor.php" 
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'content-editor.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Edit CV
+                            My CV
                         </a>
                         <a href="/cv.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            View CV
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Online CV
                         </a>
-                        <a href="/content-editor.php#cv-variants" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo in_array($currentPage, ['cv-variants.php', 'content-editor.php']) || strpos($_SERVER['REQUEST_URI'], '/cv-variants/') !== false ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            AI CV Tools
+                        <a href="/preview-cv.php" 
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'preview-cv.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            PDF CV
                         </a>
-                        <a href="/job-applications.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'job-applications.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Job Applications
+                        <a href="/content-editor.php#jobs" 
+                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'content-editor.php' && strpos($_SERVER['REQUEST_URI'], '#jobs') !== false ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Jobs
                         </a>
                         <a href="/subscription.php" 
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $isSubscription ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Subscription
                         </a>
                     <?php endif; ?>
+                    <div class="px-4 py-2 text-base font-semibold text-gray-900 border-t border-gray-200 mt-2 pt-4">
+                        Profile
+                    </div>
+                    <a href="/profile.php" 
+                       class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'profile.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Profile
+                    </a>
+                    <a href="/ai-settings.php" 
+                       class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'ai-settings.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        AI Settings
+                    </a>
                     <div class="px-4 py-2 text-base font-semibold text-gray-900 border-t border-gray-200 mt-2 pt-4">
                         Resources
                     </div>
@@ -376,10 +373,6 @@
                     <a href="/resources/ai/setup-ollama.php" 
                        class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo strpos($currentPage, 'setup-ollama.php') !== false ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                         AI Setup Guide
-                    </a>
-                    <a href="/ai-settings.php" 
-                       class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'ai-settings.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        AI Settings
                     </a>
                     <a href="/ai-cv-assessment.php" 
                        class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $currentPage === 'ai-cv-assessment.php' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">

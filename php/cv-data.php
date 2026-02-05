@@ -180,9 +180,9 @@ function loadCvData($userId) {
         [$userId]
     );
     foreach ($cvData['interests'] as &$int) {
-        $int['name'] = decodeHtmlEntities($int['name'] ?? '');
+        $int['name'] = decodeHtmlEntities(trim($int['name'] ?? ''));
         if (isset($int['description']) && $int['description'] !== '') {
-            $int['description'] = decodeHtmlEntities($int['description']);
+            $int['description'] = decodeHtmlEntities(trim($int['description']));
         }
     }
     unset($int);

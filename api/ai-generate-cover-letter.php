@@ -8,9 +8,9 @@ define('SKIP_CANONICAL_REDIRECT', true);
 
 ob_start();
 
-// Increase timeout for AI processing
-set_time_limit(180);
-ini_set('max_execution_time', 180);
+// Increase timeout for AI processing (Ollama/local models can take 1–2 minutes)
+@set_time_limit(300);
+@ini_set('max_execution_time', '300');
 
 require_once __DIR__ . '/../php/helpers.php';
 require_once __DIR__ . '/../php/ai-service.php';

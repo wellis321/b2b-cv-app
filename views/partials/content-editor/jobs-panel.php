@@ -19,56 +19,49 @@ $stats = getJobApplicationStats($userId);
             <p class="mt-1 text-sm text-gray-500">Track and manage your job applications</p>
         </div>
 
-        <!-- Statistics -->
-        <div class="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4 lg:grid-cols-7">
+        <!-- Statistics: single row, compact, no wrap -->
+        <div class="flex flex-nowrap gap-2 overflow-x-auto pb-1 mb-6 scrollbar-thin">
             <button type="button" 
                     onclick="filterJobsByStatus('all')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-blue-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-blue-300 whitespace-nowrap"
                     data-status="all">
-                <p class="text-sm text-gray-500">Total</p>
-                <p class="text-2xl font-bold text-gray-900"><?php echo $stats['total']; ?></p>
+                <span class="text-xs text-gray-500">Total</span> <span class="text-lg font-bold text-gray-900"><?php echo $stats['total']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('applied')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-yellow-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-yellow-300 whitespace-nowrap"
                     data-status="applied">
-                <p class="text-sm text-gray-500">Applied</p>
-                <p class="text-2xl font-bold text-yellow-600"><?php echo $stats['applied']; ?></p>
+                <span class="text-xs text-gray-500">Applied</span> <span class="text-lg font-bold text-yellow-600"><?php echo $stats['applied']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('interviewing')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-purple-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-purple-300 whitespace-nowrap"
                     data-status="interviewing">
-                <p class="text-sm text-gray-500">Interviewing</p>
-                <p class="text-2xl font-bold text-purple-600"><?php echo $stats['interviewing']; ?></p>
+                <span class="text-xs text-gray-500">Interviewing</span> <span class="text-lg font-bold text-purple-600"><?php echo $stats['interviewing']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('offered')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-blue-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-blue-300 whitespace-nowrap"
                     data-status="offered">
-                <p class="text-sm text-gray-500">Offered</p>
-                <p class="text-2xl font-bold text-blue-600"><?php echo $stats['offered']; ?></p>
+                <span class="text-xs text-gray-500">Offered</span> <span class="text-lg font-bold text-blue-600"><?php echo $stats['offered']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('accepted')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-green-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-green-300 whitespace-nowrap"
                     data-status="accepted">
-                <p class="text-sm text-gray-500">Accepted</p>
-                <p class="text-2xl font-bold text-green-600"><?php echo $stats['accepted']; ?></p>
+                <span class="text-xs text-gray-500">Accepted</span> <span class="text-lg font-bold text-green-600"><?php echo $stats['accepted']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('rejected')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-red-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-red-300 whitespace-nowrap"
                     data-status="rejected">
-                <p class="text-sm text-gray-500">Rejected</p>
-                <p class="text-2xl font-bold text-red-600"><?php echo $stats['rejected']; ?></p>
+                <span class="text-xs text-gray-500">Rejected</span> <span class="text-lg font-bold text-red-600"><?php echo $stats['rejected']; ?></span>
             </button>
             <button type="button" 
                     onclick="filterJobsByStatus('all')"
-                    class="stat-card bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-indigo-300"
+                    class="stat-card flex-shrink-0 bg-white rounded-lg shadow px-3 py-2 hover:shadow-lg transition-shadow cursor-pointer text-left border-2 border-transparent hover:border-indigo-300 whitespace-nowrap"
                     data-filter="interview">
-                <p class="text-sm text-gray-500">Interviews</p>
-                <p class="text-2xl font-bold text-indigo-600"><?php echo $stats['had_interview']; ?></p>
+                <span class="text-xs text-gray-500">Interviews</span> <span class="text-lg font-bold text-indigo-600"><?php echo $stats['had_interview']; ?></span>
             </button>
         </div>
 

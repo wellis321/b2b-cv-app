@@ -130,3 +130,116 @@ function input($key = null, $default = null) {
     }
     return get($key, $default);
 }
+
+/**
+ * Recursively apply British English spelling to all string values (e.g. in CV data).
+ * Converts American spellings so only English (UK) is used.
+ *
+ * @param mixed $data String, array, or other (other returned unchanged)
+ * @return mixed
+ */
+function apply_british_spelling_to_cv_data($data) {
+    if (is_string($data)) {
+        return convert_american_to_british_spelling($data);
+    }
+    if (is_array($data)) {
+        $result = [];
+        foreach ($data as $key => $value) {
+            $result[$key] = apply_british_spelling_to_cv_data($value);
+        }
+        return $result;
+    }
+    return $data;
+}
+
+/**
+ * Convert American spelling to British spelling in a string (English UK only).
+ *
+ * @param string $text
+ * @return string
+ */
+function convert_american_to_british_spelling($text) {
+    if (!is_string($text) || $text === '') {
+        return $text;
+    }
+    $replacements = [
+        '/\borganization\b/i' => 'organisation',
+        '/\borganizations\b/i' => 'organisations',
+        '/\borganized\b/i' => 'organised',
+        '/\borganizing\b/i' => 'organising',
+        '/\borganize\b/i' => 'organise',
+        '/\bemphasize\b/i' => 'emphasise',
+        '/\bemphasized\b/i' => 'emphasised',
+        '/\bemphasizing\b/i' => 'emphasising',
+        '/\bcolor\b/i' => 'colour',
+        '/\bcolors\b/i' => 'colours',
+        '/\bcenter\b/i' => 'centre',
+        '/\bcenters\b/i' => 'centres',
+        '/\brealize\b/i' => 'realise',
+        '/\brealized\b/i' => 'realised',
+        '/\brealizes\b/i' => 'realises',
+        '/\brecognize\b/i' => 'recognise',
+        '/\brecognized\b/i' => 'recognised',
+        '/\brecognizes\b/i' => 'recognises',
+        '/\banalyze\b/i' => 'analyse',
+        '/\banalyzed\b/i' => 'analysed',
+        '/\banalyzes\b/i' => 'analyses',
+        '/\bfavor\b/i' => 'favour',
+        '/\bfavors\b/i' => 'favours',
+        '/\bfavored\b/i' => 'favoured',
+        '/\bhonor\b/i' => 'honour',
+        '/\bhonors\b/i' => 'honours',
+        '/\bhonored\b/i' => 'honoured',
+        '/\blabor\b/i' => 'labour',
+        '/\blabors\b/i' => 'labours',
+        '/\bneighbor\b/i' => 'neighbour',
+        '/\bneighbors\b/i' => 'neighbours',
+        '/\bbehavior\b/i' => 'behaviour',
+        '/\bbehaviors\b/i' => 'behaviours',
+        '/\bbehavioral\b/i' => 'behavioural',
+        '/\bcustomize\b/i' => 'customise',
+        '/\bcustomized\b/i' => 'customised',
+        '/\bcustomizing\b/i' => 'customising',
+        '/\bcustomization\b/i' => 'customisation',
+        '/\bprioritize\b/i' => 'prioritise',
+        '/\bprioritized\b/i' => 'prioritised',
+        '/\bprioritizing\b/i' => 'prioritising',
+        '/\bprioritization\b/i' => 'prioritisation',
+        '/\bspecialize\b/i' => 'specialise',
+        '/\bspecialized\b/i' => 'specialised',
+        '/\bspecializing\b/i' => 'specialising',
+        '/\bspecialization\b/i' => 'specialisation',
+        '/\boptimize\b/i' => 'optimise',
+        '/\boptimized\b/i' => 'optimised',
+        '/\boptimizing\b/i' => 'optimising',
+        '/\boptimization\b/i' => 'optimisation',
+        '/\bauthorize\b/i' => 'authorise',
+        '/\bauthorized\b/i' => 'authorised',
+        '/\bauthorization\b/i' => 'authorisation',
+        '/\bdefense\b/i' => 'defence',
+        '/\bcatalog\b/i' => 'catalogue',
+        '/\bcatalogs\b/i' => 'catalogues',
+        '/\banalog\b/i' => 'analogue',
+        '/\banalogs\b/i' => 'analogues',
+        '/\bdialog\b/i' => 'dialogue',
+        '/\bdialogs\b/i' => 'dialogues',
+        '/\blabeled\b/i' => 'labelled',
+        '/\blabeling\b/i' => 'labelling',
+        '/\btraveled\b/i' => 'travelled',
+        '/\btraveling\b/i' => 'travelling',
+        '/\bcanceled\b/i' => 'cancelled',
+        '/\bcanceling\b/i' => 'cancelling',
+        '/\bmodeled\b/i' => 'modelled',
+        '/\bmodeling\b/i' => 'modelling',
+        '/\bfulfill\b/i' => 'fulfil',
+        '/\bfulfilled\b/i' => 'fulfilled',
+        '/\bfulfillment\b/i' => 'fulfilment',
+        '/\bskillful\b/i' => 'skilful',
+        '/\bmaneuver\b/i' => 'manoeuvre',
+        '/\bmaneuvers\b/i' => 'manoeuvres',
+    ];
+    foreach ($replacements as $pattern => $replacement) {
+        $text = preg_replace($pattern, $replacement, $text);
+    }
+    return $text;
+}

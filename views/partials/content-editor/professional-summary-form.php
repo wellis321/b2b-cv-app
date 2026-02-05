@@ -65,7 +65,8 @@ if ($editingStrengthId && $summary) {
                 <?php if ($summaryWordLimit): ?>
                     <p class="text-xs text-gray-500 mb-2">Free plan summaries are limited to <?php echo $summaryWordLimit; ?> words.</p>
                 <?php endif; ?>
-                <textarea id="description" name="description" rows="6" maxlength="5000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo e($summary['description'] ?? ''); ?></textarea>
+                <p class="text-xs text-gray-500 mb-1">Use the toolbar for formatting: bold, italic, headers, lists, and links</p>
+                <textarea id="description" name="description" rows="6" maxlength="5000" data-markdown class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo e($summary['description'] ?? ''); ?></textarea>
             </div>
             
             <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500">

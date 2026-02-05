@@ -184,6 +184,154 @@ function getJobApplication($applicationId, $userId = null) {
 }
 
 /**
+ * Get all application questions for a job
+ */
+function getJobApplicationQuestions($applicationId, $userId = null) {
+    if ($userId === null) {
+        $userId = getUserId();
+    }
+    if (!$userId) {
+        return [];
+    }
+    $rows = db()->fetchAll(
+        "SELECT id, job_application_id, question_text, answer_text, sort_order, created_at, updated_at
+         FROM job_application_questions
+         WHERE job_application_id = ? AND user_id = ?
+         ORDER BY sort_order ASC, created_at ASC",
+        [$applicationId, $userId]
+    );
+    if ($rows) {
+        foreach ($rows as &$r) {
+            $r['answer_instructions'] = null;
+        }
+        unset($r);
+        try {
+            $withInst = db()->fetchAll(
+                "SELECT id, answer_instructions FROM job_application_questions WHERE job_application_id = ? AND user_id = ?",
+                [$applicationId, $userId]
+            );
+            if ($withInst) {
+                $byId = array_column($withInst, 'answer_instructions', 'id');
+                foreach ($rows as &$r) {
+                    $r['answer_instructions'] = $byId[$r['id']] ?? null;
+                }
+                unset($r);
+            }
+        } catch (Exception $e) {
+            // Column answer_instructions may not exist before migration 20250203
+        }
+    }
+    return $rows ?: [];
+}
+
+/**
+ * Add an application question
+ * @param string|null $answerInstructions Optional stipulations (e.g. "Max 100 words", "Use bullet points")
+ */
+function addJobApplicationQuestion($applicationId, $userId, $questionText, $sortOrder = 0, $answerInstructions = null) {
+    if (!$userId) {
+        return ['success' => false, 'error' => 'User not authenticated'];
+    }
+    $job = getJobApplication($applicationId, $userId);
+    if (!$job) {
+        return ['success' => false, 'error' => 'Application not found'];
+    }
+    $id = generateUuid();
+    db()->insert('job_application_questions', [
+        'id' => $id,
+        'job_application_id' => $applicationId,
+        'user_id' => $userId,
+        'question_text' => $questionText,
+        'answer_text' => null,
+        'sort_order' => (int) $sortOrder,
+        'created_at' => date('Y-m-d H:i:s'),
+        'updated_at' => date('Y-m-d H:i:s'),
+    ]);
+    if ($answerInstructions !== null && trim($answerInstructions) !== '') {
+        try {
+            db()->update(
+                'job_application_questions',
+                ['answer_instructions' => trim($answerInstructions), 'updated_at' => date('Y-m-d H:i:s')],
+                'id = ? AND user_id = ?',
+                [$id, $userId]
+            );
+        } catch (Exception $e) {
+            // answer_instructions column may not exist before migration 20250203
+        }
+    }
+    return ['success' => true, 'id' => $id];
+}
+
+/**
+ * Update an application question's answer
+ */
+function updateJobApplicationQuestionAnswer($questionId, $userId, $answerText) {
+    return updateJobApplicationQuestionFields($questionId, $userId, ['answer_text' => $answerText]);
+}
+
+/**
+ * Update one or more fields on an application question (answer_text, answer_instructions)
+ */
+function updateJobApplicationQuestionFields($questionId, $userId, $fields) {
+    if (!$userId) {
+        return ['success' => false, 'error' => 'User not authenticated'];
+    }
+    $row = db()->fetchOne(
+        "SELECT id FROM job_application_questions WHERE id = ? AND user_id = ?",
+        [$questionId, $userId]
+    );
+    if (!$row) {
+        return ['success' => false, 'error' => 'Question not found'];
+    }
+    $allowed = ['answer_text', 'answer_instructions'];
+    $update = ['updated_at' => date('Y-m-d H:i:s')];
+    foreach ($allowed as $key) {
+        if (array_key_exists($key, $fields)) {
+            $update[$key] = $fields[$key];
+        }
+    }
+    try {
+        db()->update(
+            'job_application_questions',
+            $update,
+            'id = ? AND user_id = ?',
+            [$questionId, $userId]
+        );
+    } catch (Exception $e) {
+        if (isset($update['answer_instructions'])) {
+            unset($update['answer_instructions']);
+            db()->update(
+                'job_application_questions',
+                $update,
+                'id = ? AND user_id = ?',
+                [$questionId, $userId]
+            );
+        } else {
+            throw $e;
+        }
+    }
+    return ['success' => true];
+}
+
+/**
+ * Delete an application question
+ */
+function deleteJobApplicationQuestion($questionId, $userId) {
+    if (!$userId) {
+        return ['success' => false, 'error' => 'User not authenticated'];
+    }
+    $row = db()->fetchOne(
+        "SELECT id FROM job_application_questions WHERE id = ? AND user_id = ?",
+        [$questionId, $userId]
+    );
+    if (!$row) {
+        return ['success' => false, 'error' => 'Question not found'];
+    }
+    db()->delete('job_application_questions', 'id = ? AND user_id = ?', [$questionId, $userId]);
+    return ['success' => true];
+}
+
+/**
  * Create a new job application
  */
 function createJobApplication($data, $userId = null) {
@@ -201,7 +349,7 @@ function createJobApplication($data, $userId = null) {
     }
     
     // Validate status
-    $validStatuses = ['applied', 'interviewing', 'offered', 'rejected', 'accepted', 'withdrawn', 'in_progress'];
+    $validStatuses = ['interested', 'in_progress', 'applied', 'interviewing', 'offered', 'rejected', 'accepted', 'withdrawn'];
     $status = in_array($data['status'] ?? 'applied', $validStatuses) ? ($data['status'] ?? 'applied') : 'applied';
     
     // Validate remote_type
@@ -216,6 +364,11 @@ function createJobApplication($data, $userId = null) {
         if (!empty($data['application_date']) && strlen($data['application_date']) === 10) {
             // Date-only format (Y-m-d), convert to datetime
             $applicationDate = $data['application_date'] . ' 00:00:00';
+        }
+        
+        // Auto-update status: if application_date is set and status is "interested" or "in_progress", change to "applied"
+        if (!empty($data['application_date']) && in_array($status, ['interested', 'in_progress'])) {
+            $status = 'applied';
         }
         
         db()->insert('job_applications', [
@@ -286,7 +439,7 @@ function updateJobApplication($applicationId, $data, $userId = null) {
     // Validate status if provided
     $updateData = [];
     if (isset($data['status'])) {
-        $validStatuses = ['applied', 'interviewing', 'offered', 'rejected', 'accepted', 'withdrawn', 'in_progress'];
+        $validStatuses = ['interested', 'in_progress', 'applied', 'interviewing', 'offered', 'rejected', 'accepted', 'withdrawn'];
         if (in_array($data['status'], $validStatuses)) {
             $updateData['status'] = $data['status'];
         }
@@ -315,6 +468,17 @@ function updateJobApplication($applicationId, $data, $userId = null) {
                 $updateData[$field] = prepareJobDescriptionForStorage($data[$field]);
             } else {
                 $updateData[$field] = sanitizeInput($data[$field]);
+            }
+        }
+    }
+    
+    // Auto-update status: if application_date is being set and current status is "interested" or "in_progress", change to "applied"
+    if (isset($updateData['application_date']) && !empty($updateData['application_date'])) {
+        $currentStatus = $existing['status'] ?? null;
+        if (in_array($currentStatus, ['interested', 'in_progress'])) {
+            // Only auto-update if status wasn't explicitly changed in this update
+            if (!isset($updateData['status'])) {
+                $updateData['status'] = 'applied';
             }
         }
     }

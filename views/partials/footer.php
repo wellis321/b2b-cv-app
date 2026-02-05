@@ -163,3 +163,47 @@
         });
     })();
 </script>
+
+<script>
+// Enhance markdown rendering with marked.js on all pages
+(function() {
+    if (typeof marked !== 'undefined') {
+        // Wait for DOM to be ready
+        function enhanceMarkdown() {
+            document.querySelectorAll('.markdown-content').forEach(function(el) {
+                // Skip if already enhanced
+                if (el.dataset.markdownEnhanced === 'true') {
+                    return;
+                }
+                
+                const originalHtml = el.innerHTML;
+                try {
+                    // Parse markdown and render
+                    const rendered = marked.parse(originalHtml, { 
+                        breaks: true, 
+                        gfm: true,
+                        headerIds: false,
+                        mangle: false
+                    });
+                    el.innerHTML = rendered;
+                    el.dataset.markdownEnhanced = 'true';
+                } catch (e) {
+                    // Fallback to original if parsing fails
+                    console.warn('Markdown parsing failed:', e);
+                }
+            });
+        }
+        
+        // Run on load and after a short delay for dynamically loaded content
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', enhanceMarkdown);
+        } else {
+            enhanceMarkdown();
+        }
+        
+        // Re-run after a delay for content loaded via AJAX
+        setTimeout(enhanceMarkdown, 500);
+    }
+})();
+</script>
+<script src="/js/closing-date-reminders.js"></script>

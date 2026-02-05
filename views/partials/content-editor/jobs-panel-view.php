@@ -4,22 +4,24 @@
  * $job and $userId are set by get-section-form.php
  */
 $statusLabels = [
+    'interested' => 'Interested',
+    'in_progress' => 'In Progress',
     'applied' => 'Applied',
     'interviewing' => 'Interviewing',
     'offered' => 'Offered',
     'accepted' => 'Accepted',
     'rejected' => 'Rejected',
     'withdrawn' => 'Withdrawn',
-    'in_progress' => 'In Progress',
 ];
 $statusClass = [
+    'interested' => 'bg-sky-100 text-sky-800',
+    'in_progress' => 'bg-orange-100 text-orange-800',
     'applied' => 'bg-amber-100 text-amber-800',
     'interviewing' => 'bg-purple-100 text-purple-800',
     'offered' => 'bg-blue-100 text-blue-800',
     'accepted' => 'bg-green-100 text-green-800',
     'rejected' => 'bg-red-100 text-red-800',
     'withdrawn' => 'bg-gray-100 text-gray-800',
-    'in_progress' => 'bg-orange-100 text-orange-800',
 ];
 $status = $job['status'] ?? 'applied';
 $statusLabel = $statusLabels[$status] ?? $status;
@@ -48,6 +50,7 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
                 <?php if (!empty($job['notes'])): ?>
                 <li><a href="#notes" class="job-nav-link block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" data-section="notes">Notes</a></li>
                 <?php endif; ?>
+                <li><a href="#application-questions" class="job-nav-link block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" data-section="application-questions">Application questions</a></li>
                 <li><a href="#job-actions" class="job-nav-link block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" data-section="job-actions">Job Actions</a></li>
                 <li><a href="#cover-letter" class="job-nav-link block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" data-section="cover-letter">Cover Letter</a></li>
                 <li><a href="#cover-letter-actions" class="job-nav-link block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors" data-section="cover-letter-actions">Cover Letter Actions</a></li>
@@ -116,7 +119,7 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
         <?php if (!empty($job['job_description'])): ?>
         <div id="job-description" class="mt-6 pt-6 border-t border-gray-200 scroll-mt-6">
             <h2 class="text-sm font-semibold text-gray-900 mb-2">Description</h2>
-            <div class="text-gray-700 whitespace-pre-wrap job-description-content"><?php echo jobDescriptionHtml($job['job_description']); ?></div>
+            <div class="text-gray-700 job-description-content"><?php echo renderJobDescription($job['job_description'] ?? ''); ?></div>
         </div>
         <style>.job-description-content table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
 .job-description-content td, .job-description-content th { border: 1px solid #d1d5db; padding: 0.375rem 0.5rem; text-align: left; vertical-align: top; }
@@ -192,7 +195,7 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
         <?php if (!empty($job['notes'])): ?>
         <div id="notes" class="mt-6 pt-6 border-t border-gray-200 scroll-mt-6">
             <h2 class="text-sm font-semibold text-gray-900 mb-2">Notes</h2>
-            <div class="text-gray-700 whitespace-pre-wrap"><?php echo e(html_entity_decode($job['notes'], ENT_QUOTES | ENT_HTML5, 'UTF-8')); ?></div>
+            <div class="text-gray-700 notes-content"><?php echo renderMarkdown($job['notes'] ?? ''); ?></div>
         </div>
         <?php endif; ?>
         <?php if (!empty($job['application_url'])): ?>
@@ -201,6 +204,52 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
             <a href="<?php echo e($job['application_url']); ?>" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Link here</a>
         </div>
         <?php endif; ?>
+
+        <!-- Application questions -->
+        <div id="application-questions" class="mt-6 pt-6 border-t border-gray-200 scroll-mt-6">
+            <h2 class="text-sm font-semibold text-gray-900 mb-2">Application questions</h2>
+            <p class="text-xs text-gray-600 mb-4">Add questions from the application form and generate draft answers tailored to this role and your CV.</p>
+            <div class="space-y-4 mb-4">
+                <div class="flex gap-2 flex-wrap items-start">
+                    <div class="flex-1 min-w-[200px] space-y-1">
+                        <input type="text" id="app-question-new-text" placeholder="Paste or type a question from the application form…" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500">
+                        <input type="text" id="app-question-new-instructions" placeholder="Instructions (optional) – e.g. Max 100 words, use bullet points" class="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-600">
+                    </div>
+                    <button type="button" id="app-question-add-btn" data-application-id="<?php echo e($job['id']); ?>" data-csrf="<?php echo e($csrf); ?>" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-1 focus:ring-green-500 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Add question
+                    </button>
+                </div>
+            </div>
+            <div id="application-questions-list" class="space-y-6">
+                <?php 
+                $jobQuestions = isset($job['questions']) && is_array($job['questions']) ? $job['questions'] : [];
+                foreach ($jobQuestions as $q): 
+                    $qId = $q['id'] ?? '';
+                    $qText = $q['question_text'] ?? '';
+                    $qAnswer = $q['answer_text'] ?? '';
+                    $qInstructions = $q['answer_instructions'] ?? '';
+                ?>
+                <div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50" data-question-id="<?php echo e($qId); ?>">
+                    <p class="text-sm font-medium text-gray-900 mb-2"><?php echo e($qText); ?></p>
+                    <label class="block text-xs text-gray-600 mb-1">Instructions (optional) – e.g. max 100 words, use bullet points</label>
+                    <input type="text" class="app-question-instructions w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 mb-2" data-question-id="<?php echo e($qId); ?>" placeholder="e.g. Max 150 words, use bullet points" value="<?php echo e($qInstructions); ?>">
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="app-question-generate inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700" data-question-id="<?php echo e($qId); ?>" data-application-id="<?php echo e($job['id']); ?>" data-csrf="<?php echo e($csrf); ?>">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Generate answer with AI
+                        </button>
+                        <button type="button" class="app-question-save inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" data-question-id="<?php echo e($qId); ?>" data-csrf="<?php echo e($csrf); ?>">Save answer</button>
+                        <button type="button" class="app-question-delete inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100" data-question-id="<?php echo e($qId); ?>" data-csrf="<?php echo e($csrf); ?>">Delete question</button>
+                    </div>
+                    <textarea class="app-question-answer w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 min-h-[120px]" data-question-id="<?php echo e($qId); ?>" placeholder="Answer (generate with AI or type)"><?php echo e($qAnswer); ?></textarea>
+                </div>
+                <?php endforeach; ?>
+                <?php if (empty($jobQuestions)): ?>
+                <div id="application-questions-empty" class="text-sm text-gray-500 italic">No questions yet. Add a question above to get started.</div>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <!-- Job actions (pertain to job description, not cover letter) -->
         <div id="job-actions" class="mt-6 pt-6 border-t border-gray-200 scroll-mt-6" role="group" aria-labelledby="job-actions-heading">
@@ -300,7 +349,47 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
                 credentials: 'include'
             })
             .then(function(response) {
-                return response.json();
+                if (!response.ok) {
+                    var contentType = response.headers.get('content-type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        // JSON error response - parse it
+                        return response.json().then(function(json) {
+                            return Promise.reject(new Error(json.error || 'Request failed'));
+                        });
+                    } else {
+                        // Non-JSON error response - read as text
+                        return response.text().then(function(text) {
+                            // Try to parse as JSON in case it's JSON but content-type is wrong
+                            try {
+                                var json = JSON.parse(text);
+                                return Promise.reject(new Error(json.error || 'Request failed'));
+                            } catch (e) {
+                                // Not JSON - return user-friendly error
+                                if (response.status === 503) {
+                                    return Promise.reject(new Error('Service temporarily unavailable. Please check your connection and try again.'));
+                                }
+                                return Promise.reject(new Error('Server error: ' + response.status + ' - ' + (text || response.statusText)));
+                            }
+                        });
+                    }
+                }
+                var contentType = response.headers.get('content-type');
+                if (contentType && contentType.indexOf('application/json') === -1) {
+                    return response.text().then(function(text) {
+                        return Promise.reject(new Error('Expected JSON but got ' + contentType + ': ' + text.substring(0, 200)));
+                    });
+                }
+                return response.text().then(function(text) {
+                    // Check if response starts with HTML (PHP error)
+                    if (text.trim().indexOf('<') === 0 || text.indexOf('<br') !== -1 || text.indexOf('<b>') !== -1) {
+                        return Promise.reject(new Error('Server error: The server returned an error page instead of JSON. Please check the server logs or try again.'));
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        return Promise.reject(new Error('Invalid JSON response from server: ' + text.substring(0, 200)));
+                    }
+                });
             })
             .then(function(result) {
                 if (result.success && result.browser_execution) {
@@ -368,6 +457,201 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
                 });
         });
     }
+    
+    // --- Application questions ---
+    var appQuestionAddBtn = container.querySelector('#app-question-add-btn');
+    var appQuestionNewText = container.querySelector('#app-question-new-text');
+    var appQuestionNewInstructions = container.querySelector('#app-question-new-instructions');
+    var appQuestionsList = container.querySelector('#application-questions-list');
+    var appQuestionsEmpty = container.querySelector('#application-questions-empty');
+    
+    function escapeHtmlApp(s) {
+        if (!s) return '';
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+    
+    function renderQuestionRow(q) {
+        var id = q.id || '';
+        var text = q.question_text || '';
+        var answer = q.answer_text || '';
+        var instructions = q.answer_instructions || '';
+        var csrf = container.getAttribute('data-csrf');
+        var applicationId = container.getAttribute('data-application-id');
+        return '<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50" data-question-id="' + escapeHtmlApp(id) + '">' +
+            '<p class="text-sm font-medium text-gray-900 mb-2">' + escapeHtmlApp(text) + '</p>' +
+            '<label class="block text-xs text-gray-600 mb-1">Instructions (optional) – e.g. max 100 words, use bullet points</label>' +
+            '<input type="text" class="app-question-instructions w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 mb-2" data-question-id="' + escapeHtmlApp(id) + '" placeholder="e.g. Max 150 words, use bullet points" value="' + escapeHtmlApp(instructions) + '">' +
+            '<div class="flex flex-wrap gap-2 mb-2">' +
+            '<button type="button" class="app-question-generate inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700" data-question-id="' + escapeHtmlApp(id) + '" data-application-id="' + escapeHtmlApp(applicationId) + '" data-csrf="' + escapeHtmlApp(csrf) + '">' +
+            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate answer with AI</button>' +
+            '<button type="button" class="app-question-save inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50" data-question-id="' + escapeHtmlApp(id) + '" data-csrf="' + escapeHtmlApp(csrf) + '">Save answer</button>' +
+            '<button type="button" class="app-question-delete inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100" data-question-id="' + escapeHtmlApp(id) + '" data-csrf="' + escapeHtmlApp(csrf) + '">Delete question</button>' +
+            '</div>' +
+            '<textarea class="app-question-answer w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500 min-h-[120px]" data-question-id="' + escapeHtmlApp(id) + '" placeholder="Answer (generate with AI or type)">' + escapeHtmlApp(answer) + '</textarea>' +
+            '</div>';
+    }
+    
+    if (appQuestionAddBtn && appQuestionNewText && appQuestionsList) {
+        appQuestionAddBtn.addEventListener('click', function() {
+            var applicationId = appQuestionAddBtn.getAttribute('data-application-id');
+            var csrf = appQuestionAddBtn.getAttribute('data-csrf');
+            var questionText = (appQuestionNewText.value || '').trim();
+            if (!questionText) {
+                alert('Please enter a question.');
+                return;
+            }
+            if (!applicationId || !csrf) return;
+            appQuestionAddBtn.disabled = true;
+            appQuestionAddBtn.textContent = 'Adding…';
+            var instructions = (appQuestionNewInstructions && appQuestionNewInstructions.value) ? appQuestionNewInstructions.value.trim() : '';
+            var fd = new FormData();
+            fd.append('<?php echo CSRF_TOKEN_NAME; ?>', csrf);
+            fd.append('application_id', applicationId);
+            fd.append('question_text', questionText);
+            if (instructions) fd.append('answer_instructions', instructions);
+            fetch('/api/job-application-questions.php', { method: 'POST', body: fd, credentials: 'include' })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success && result.id) {
+                        if (appQuestionsEmpty) appQuestionsEmpty.style.display = 'none';
+                        var div = document.createElement('div');
+                        div.innerHTML = renderQuestionRow({ id: result.id, question_text: questionText, answer_text: '', answer_instructions: instructions });
+                        appQuestionsList.appendChild(div.firstElementChild);
+                        appQuestionNewText.value = '';
+                        if (appQuestionNewInstructions) appQuestionNewInstructions.value = '';
+                    } else {
+                        alert(result.error || 'Failed to add question');
+                    }
+                })
+                .catch(function() { alert('Failed to add question. Please try again.'); })
+                .finally(function() {
+                    appQuestionAddBtn.disabled = false;
+                    appQuestionAddBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Add question';
+                });
+        });
+    }
+    
+    container.addEventListener('click', function(e) {
+        var applicationId = container.getAttribute('data-application-id');
+        var csrf = container.getAttribute('data-csrf');
+        var genBtn = e.target.closest('.app-question-generate');
+        var saveBtn = e.target.closest('.app-question-save');
+        var delBtn = e.target.closest('.app-question-delete');
+        
+        if (genBtn) {
+            e.preventDefault();
+            var questionId = genBtn.getAttribute('data-question-id');
+            var row = genBtn.closest('[data-question-id]');
+            var ta = row ? row.querySelector('.app-question-answer') : null;
+            var instInput = row ? row.querySelector('.app-question-instructions') : null;
+            if (!questionId || !csrf || !applicationId) return;
+            genBtn.disabled = true;
+            genBtn.textContent = 'Generating…';
+            var fd = new FormData();
+            fd.append('<?php echo CSRF_TOKEN_NAME; ?>', genBtn.getAttribute('data-csrf'));
+            fd.append('application_id', applicationId);
+            fd.append('question_id', questionId);
+            if (instInput && instInput.value.trim()) fd.append('answer_instructions', instInput.value.trim());
+            fetch('/api/ai-generate-application-answer.php', { method: 'POST', body: fd, credentials: 'include' })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success && result.answer_text) {
+                        if (ta) ta.value = result.answer_text;
+                    } else if (result.success && result.browser_execution) {
+                        if (typeof BrowserAIService !== 'undefined' && BrowserAIService.generateText) {
+                            BrowserAIService.initBrowserAI(result.model_type || 'webllm', result.model).then(function() {
+                                return BrowserAIService.generateText(result.prompt, { temperature: 0.6, maxTokens: 600 });
+                            }).then(function(text) {
+                                if (ta) ta.value = text || '';
+                                var saveFd = new FormData();
+                                saveFd.append('<?php echo CSRF_TOKEN_NAME; ?>', csrf);
+                                saveFd.append('application_id', applicationId);
+                                saveFd.append('question_id', questionId);
+                                saveFd.append('answer_text', text || '');
+                                return fetch('/api/ai-generate-application-answer.php', { method: 'POST', body: saveFd, credentials: 'include' });
+                            }).then(function(r) { return r.json(); }).then(function() {
+                                if (ta) { /* already set */ }
+                            }).catch(function(err) {
+                                alert('Browser AI failed: ' + (err.message || 'Please try again.'));
+                            });
+                        } else {
+                            alert('Browser AI is not available. Please use server AI or try again.');
+                        }
+                    } else {
+                        alert(result.error || 'Failed to generate answer');
+                    }
+                })
+                .catch(function(err) {
+                    alert(err.message || 'Failed to generate answer. Please try again.');
+                })
+                .finally(function() {
+                    genBtn.disabled = false;
+                    genBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Generate answer with AI';
+                });
+            return;
+        }
+        
+        if (saveBtn) {
+            e.preventDefault();
+            var questionId = saveBtn.getAttribute('data-question-id');
+            var row = saveBtn.closest('[data-question-id]');
+            var ta = row ? row.querySelector('.app-question-answer') : null;
+            var instInput = row ? row.querySelector('.app-question-instructions') : null;
+            var answerText = ta ? ta.value : '';
+            var answerInstructions = instInput ? instInput.value : '';
+            var body = JSON.stringify({
+                question_id: questionId,
+                answer_text: answerText,
+                answer_instructions: answerInstructions,
+                csrf_token: saveBtn.getAttribute('data-csrf')
+            });
+            fetch('/api/job-application-questions.php', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+                credentials: 'include'
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        saveBtn.textContent = 'Saved';
+                        setTimeout(function() { saveBtn.textContent = 'Save answer'; }, 1500);
+                    } else {
+                        alert(result.error || 'Failed to save');
+                    }
+                })
+                .catch(function() { alert('Failed to save. Please try again.'); });
+            return;
+        }
+        
+        if (delBtn) {
+            e.preventDefault();
+            if (!confirm('Delete this question and its answer?')) return;
+            var questionId = delBtn.getAttribute('data-question-id');
+            var row = delBtn.closest('[data-question-id]');
+            var body = JSON.stringify({ question_id: questionId, csrf_token: delBtn.getAttribute('data-csrf') });
+            fetch('/api/job-application-questions.php', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+                credentials: 'include'
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success && row) {
+                        row.remove();
+                        if (appQuestionsList && appQuestionsList.querySelectorAll('[data-question-id]').length === 0 && appQuestionsEmpty) {
+                            appQuestionsEmpty.style.display = 'block';
+                        }
+                    } else {
+                        alert(result.error || 'Failed to delete');
+                    }
+                })
+                .catch(function() { alert('Failed to delete. Please try again.'); });
+        }
+    });
     
     function displayKeywords(keywords, container, button, selectedKeywords) {
         var deleteBtn = document.getElementById('delete-keywords-btn');
@@ -570,7 +854,7 @@ $appDate = !empty($job['application_date']) ? date('j M Y', strtotime($job['appl
     // Initialize sticky navigation
     function initJobViewNavigation() {
         var navLinks = document.querySelectorAll('.job-nav-link');
-        var sections = document.querySelectorAll('[id^="job-"], #keywords, #notes, #application-link, #cover-letter, #cover-letter-actions');
+        var sections = document.querySelectorAll('[id^="job-"], #keywords, #notes, #application-link, #application-questions, #cover-letter, #cover-letter-actions');
         
         // Ensure nav structure is correct
         var nav = document.getElementById('job-view-nav');

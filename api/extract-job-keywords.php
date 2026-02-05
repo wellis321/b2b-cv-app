@@ -119,4 +119,12 @@ try {
         'success' => false,
         'error' => $e->getMessage()
     ]);
+} catch (Throwable $e) {
+    // Catch any fatal errors or other throwables
+    if (ob_get_length()) ob_end_clean();
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Server error: ' . $e->getMessage()
+    ]);
 }

@@ -117,15 +117,24 @@
             body: JSON.stringify({ csrf_token: token })
         })
             .then(function(response) {
-                if (response.ok && typeof loadJobsData === 'function') {
-                    loadJobsData();
-                } else {
-                    alert('Error deleting application');
-                }
+                return response.json().then(function(data) {
+                    if (response.ok && data.success) {
+                        // Reload jobs list if loadJobsData exists, otherwise reload page
+                        if (typeof loadJobsData === 'function') {
+                            loadJobsData();
+                        } else {
+                            // Fallback: reload the page or navigate back to jobs list
+                            window.location.hash = '#jobs';
+                            window.location.reload();
+                        }
+                    } else {
+                        alert(data.error || 'Error deleting application');
+                    }
+                });
             })
             .catch(function(err) {
                 console.error('Error deleting:', err);
-                alert('Error deleting application');
+                alert('Error deleting application. Please try again.');
             });
     };
 
@@ -523,29 +532,51 @@
         function doGenerateCoverLetter() {
             var overlay = document.createElement('div');
             overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            overlay.innerHTML = '<div class="bg-white rounded-lg p-8 max-w-md text-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div><p class="text-gray-800 font-medium">Generating cover letter with AI...</p><p class="text-gray-600 text-sm mt-2">This may take 30-60 seconds</p></div>';
+            overlay.innerHTML = '<div class="bg-white rounded-lg p-8 max-w-md text-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div><p class="text-gray-800 font-medium">Generating cover letter with AI...</p><p class="text-gray-600 text-sm mt-2">This may take 30–90 seconds</p></div>';
             document.body.appendChild(overlay);
             var formData = new FormData();
             formData.append('job_application_id', applicationId);
             formData.append('csrf_token', csrfToken || '');
+            var timeoutMs = 150000; // 2.5 minutes
+            var timeoutId = setTimeout(function() {
+                timeoutId = null;
+                if (overlay.parentNode) document.body.removeChild(overlay);
+                alert('The request took too long. The server or AI model may be busy. Try again, or if you use a local model (e.g. Ollama), try a smaller model or wait and retry.');
+                loadCoverLetter();
+            }, timeoutMs);
             fetch('/api/ai-generate-cover-letter.php', { method: 'POST', body: formData, credentials: 'include' })
-                .then(function(r) { return r.json(); })
-                .then(function(result) {
-                    if (result.success && !result.browser_execution) {
+                .then(function(r) {
+                    var contentType = (r.headers.get('Content-Type') || '').toLowerCase();
+                    return r.text().then(function(text) {
+                        if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+                        if (contentType.indexOf('application/json') !== -1) {
+                            try { return { ok: r.ok, body: JSON.parse(text) }; } catch (e) { return { ok: false, body: null, raw: text }; }
+                        }
+                        return { ok: false, body: null, raw: text };
+                    });
+                })
+                .then(function(data) {
+                    if (data.body && data.body.success && !data.body.browser_execution) {
                         if (overlay.parentNode) document.body.removeChild(overlay);
                         loadCoverLetter();
                         alert('Cover letter generated successfully!');
-                    } else if (result.success && result.browser_execution) {
-                        runBrowserAICoverLetter(result, overlay);
+                    } else if (data.body && data.body.success && data.body.browser_execution) {
+                        if (timeoutId) clearTimeout(timeoutId);
+                        runBrowserAICoverLetter(data.body, overlay);
                     } else {
                         if (overlay.parentNode) document.body.removeChild(overlay);
-                        alert(result.error || 'Could not generate cover letter');
+                        var msg = (data.body && data.body.error) ? data.body.error : null;
+                        if (!msg && data.raw && (data.raw.indexOf('Fatal error') !== -1 || data.raw.indexOf('Maximum execution time') !== -1)) {
+                            msg = 'The server ran out of time while generating. Try again or use a smaller/faster AI model.';
+                        }
+                        alert(msg || 'Could not generate cover letter. Please try again.');
                         loadCoverLetter();
                     }
                 })
                 .catch(function(err) {
+                    if (timeoutId) clearTimeout(timeoutId);
                     if (overlay.parentNode) document.body.removeChild(overlay);
-                    alert('Could not generate cover letter. Please try again.');
+                    alert('Could not generate cover letter. Check your connection and try again. If the problem continues, the server or AI service may be unavailable.');
                     loadCoverLetter();
                 });
         }
@@ -638,7 +669,7 @@
         if (g('form-company')) {
             g('form-company').value = decodeHtmlEntities(jobData.company_name || '');
             g('form-job-title').value = decodeHtmlEntities(jobData.job_title || '');
-            g('form-description').value = decodeHtmlEntities(jobData.job_description || '');
+            if (g('form-description')) g('form-description').value = decodeHtmlEntities(jobData.job_description || '');
             g('form-status').value = jobData.status || 'applied';
             g('form-location').value = decodeHtmlEntities(jobData.job_location || '');
             g('form-salary').value = decodeHtmlEntities(jobData.salary_range || '');
@@ -649,6 +680,20 @@
             g('form-followup').value = (jobData.next_follow_up || '').toString().split(' ')[0];
             g('form-interview').checked = !!jobData.had_interview;
         }
+
+        // Initialize markdown editors after form is populated
+        setTimeout(function() {
+            if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                window.MarkdownEditor.initAll();
+            } else {
+                // If MarkdownEditor not loaded yet, try again after a delay
+                setTimeout(function() {
+                    if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                        window.MarkdownEditor.initAll();
+                    }
+                }, 200);
+            }
+        }, 150);
 
         var currentFiles = [];
         function escapeHtmlSafe(t) {
@@ -780,6 +825,11 @@
         if (form) {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
+                var editableDesc = g('job-description-editable');
+                if (editableDesc) {
+                    var hidden = g('form-description-hidden');
+                    if (hidden) hidden.value = editableDesc.innerHTML;
+                }
                 var fd = new FormData(form);
                 var payload = {
                     company_name: fd.get('company_name'),
@@ -858,6 +908,20 @@
     window.initJobsAddForm = function(container) {
         if (!container) return;
         var csrfToken = container.getAttribute('data-csrf');
+
+        // Initialize markdown editors
+        setTimeout(function() {
+            if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                window.MarkdownEditor.initAll();
+            } else {
+                // If MarkdownEditor not loaded yet, try again after a delay
+                setTimeout(function() {
+                    if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                        window.MarkdownEditor.initAll();
+                    }
+                }, 200);
+            }
+        }, 150);
 
         var currentFiles = [];
         function escapeHtmlSafe(t) {

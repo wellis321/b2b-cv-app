@@ -284,6 +284,19 @@
                 mainElement.scrollTop = 0;
             }
             
+            // Initialize markdown editors for dynamically loaded forms
+            setTimeout(() => {
+                if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                    window.MarkdownEditor.initAll();
+                } else {
+                    // Retry if not loaded yet
+                    setTimeout(() => {
+                        if (typeof window.MarkdownEditor !== 'undefined' && window.MarkdownEditor.initAll) {
+                            window.MarkdownEditor.initAll();
+                        }
+                    }, 200);
+                }
+            }, 100);
             
             // Initialize form handlers (only for CV sections, not jobs/ai-tools/cv-variants)
             if (sectionId !== 'jobs' && sectionId !== 'ai-tools' && sectionId !== 'cv-variants') {

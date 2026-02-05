@@ -55,15 +55,17 @@ function prepareForStorage($input) {
 }
 
 /**
- * Prepare job description for DB storage: trim and allow only safe HTML (tables, p, br).
- * Output must be rendered via jobDescriptionHtml() which strips attributes and enforces allowed tags.
+ * Prepare job description for DB storage: trim, allow only safe HTML (tables, p, br), strip attributes.
+ * Prevents XSS from contenteditable/pasted content; output is safe to render via jobDescriptionHtml().
  */
 function prepareJobDescriptionForStorage($input) {
     if ($input === null || $input === '') {
         return null;
     }
     $allowed = '<table><tbody><thead><tr><td><th><p><br>';
-    return strip_tags(trim((string) $input), $allowed);
+    $html = strip_tags(trim((string) $input), $allowed);
+    $html = preg_replace('/<\s*(\w+)\s+[^>]*>/', '<$1>', $html);
+    return $html;
 }
 
 /**
