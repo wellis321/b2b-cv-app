@@ -97,8 +97,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                     <ol class="list-decimal list-inside space-y-3 text-gray-700">
                         <li><strong>Download the extension:</strong>
                             <ul class="list-disc list-inside ml-6 mt-2 space-y-1">
-                                <li><strong>Option 1:</strong> <a href="/download-extension.php" class="text-blue-600 hover:underline">Download Extension</a> on Simple CV Builder to download the extension as a ZIP file.</li>
-                                <li><strong>Option 2:</strong> If you have access to the Simple CV Builder codebase, use the <code class="bg-gray-100 px-1 rounded text-xs">extension</code> folder directly.</li>
+                                <li><a href="/download-extension.php" class="text-blue-600 hover:underline">Download Extension</a> on Simple CV Builder to download the extension as a ZIP file.</li>
                             </ul>
                             Extract the ZIP file to a location you can remember (e.g., <code class="bg-gray-100 px-1 rounded text-xs">Downloads/simple-cv-extension</code>).
                         </li>
