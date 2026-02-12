@@ -162,7 +162,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                         </li>
                         <li class="flex items-start gap-3">
                             <svg class="h-6 w-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <span><strong>PDF exports:</strong> Paid plans include PDF export functionality for your CV and CV variants.</span>
+                            <span><strong>PDF exports:</strong> All plans include PDF export. Pro plans add premium templates, selective section exports, and QR codes in the PDF.</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <svg class="h-6 w-6 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

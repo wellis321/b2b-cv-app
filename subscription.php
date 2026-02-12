@@ -5,7 +5,9 @@ requireAuth();
 
 $userId = getUserId();
 $subscriptionContext = getUserSubscriptionContext($userId);
-$plans = getSubscriptionPlansConfig();
+$allPlans = getSubscriptionPlansConfig();
+$marketingPlanIds = getMarketingPlanIds();
+$plans = array_intersect_key($allPlans, array_flip($marketingPlanIds));
 $error = getFlash('error');
 $success = getFlash('success');
 $pageCsrfToken = csrfToken();
@@ -30,17 +32,13 @@ $pricingDetails = [
         'price' => '£0',
         'subtext' => 'Forever free',
     ],
-    'lifetime' => [
-        'price' => '£39.99',
-        'subtext' => 'one-time payment',
+    'pro_trial_7day' => [
+        'price' => '£1.95',
+        'subtext' => 'After 7 days, renews to £22/month. Cancel anytime.',
     ],
-    'pro_monthly' => [
-        'price' => '£4.99',
-        'subtext' => 'per month (1 month free trial)',
-    ],
-    'pro_annual' => [
-        'price' => '£29.99',
-        'subtext' => 'per year (1 month free trial, save over 40%)',
+    'pro_3month' => [
+        'price' => '£27.88',
+        'subtext' => 'One-time payment today — save 66%',
     ],
 ];
 
@@ -107,11 +105,32 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                 You're logged in! Upgrade to unlock unlimited sections, premium templates, and career-building resources.
             </p>
             <p class="mt-2 text-sm text-gray-500 max-w-2xl mx-auto">
-                Already have a free account? You can upgrade anytime. New to Simple CV Builder? <a href="/" class="text-blue-600 hover:text-blue-800 underline">Create your free account first</a>.
+                Find the plan that fits your job search best. New to Simple CV Builder? <a href="/" class="text-blue-600 hover:text-blue-800 underline">Create your free account first</a>.
             </p>
-            <div class="mt-6 inline-flex items-center rounded-lg bg-white px-4 py-3 shadow">
-                <span class="text-sm text-gray-500 mr-2">Current plan:</span>
-                <span class="text-sm font-semibold text-blue-600"><?php echo e(subscriptionPlanLabel($subscriptionContext)); ?></span>
+            <div class="mt-6 inline-flex flex-col items-center rounded-lg bg-white px-6 py-4 shadow">
+                <div class="flex items-center">
+                    <span class="text-sm text-gray-500 mr-2">Current plan:</span>
+                    <span class="text-sm font-semibold text-blue-600"><?php echo e(subscriptionPlanLabel($subscriptionContext)); ?></span>
+                </div>
+                <?php
+                $expiryInfo = formatSubscriptionExpiry($subscriptionContext);
+                if ($expiryInfo['days_remaining'] !== null || $subscriptionContext['plan'] === 'lifetime' || $subscriptionContext['plan'] === 'free'):
+                ?>
+                    <div class="mt-2 flex items-center text-xs">
+                        <?php if ($expiryInfo['status_color'] === 'green'): ?>
+                            <span class="text-green-600 font-medium">✓ <?php echo e($expiryInfo['status_text']); ?></span>
+                        <?php elseif ($expiryInfo['status_color'] === 'yellow'): ?>
+                            <span class="text-yellow-600 font-medium">⚠ <?php echo e($expiryInfo['status_text']); ?></span>
+                        <?php elseif ($expiryInfo['status_color'] === 'red'): ?>
+                            <span class="text-red-600 font-medium">⚠ <?php echo e($expiryInfo['status_text']); ?></span>
+                        <?php else: ?>
+                            <span class="text-gray-600"><?php echo e($expiryInfo['status_text']); ?></span>
+                        <?php endif; ?>
+                        <?php if ($expiryInfo['formatted_date'] !== 'Never expires' && $expiryInfo['formatted_date'] !== 'N/A' && $expiryInfo['formatted_date'] !== 'Not set'): ?>
+                            <span class="ml-2 text-gray-500">(expires <?php echo e($expiryInfo['formatted_date']); ?>)</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -127,7 +146,7 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
         <?php endif; ?>
         <div data-subscription-message class="hidden mb-6 rounded-md p-4 text-sm font-medium"></div>
 
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-3 max-w-4xl mx-auto">
             <?php foreach ($plans as $planId => $planConfig): ?>
                 <?php
                 $isCurrentPlan = subscriptionPlanId($subscriptionContext) === $planId;
@@ -139,10 +158,10 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                 <div class="rounded-xl border <?php echo $isCurrentPlan ? 'border-blue-500 shadow-lg ring-1 ring-blue-200' : 'border-gray-200 shadow-sm'; ?> bg-white p-6 flex flex-col">
                     <div class="flex items-center justify-between">
                         <h2 class="text-xl font-semibold text-gray-900"><?php echo e($planConfig['label']); ?></h2>
-                        <?php if ($planId === 'pro_monthly'): ?>
-                            <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">1 month free</span>
-                        <?php elseif ($planId === 'pro_annual'): ?>
+                        <?php if ($planId === 'pro_3month'): ?>
                             <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Best value</span>
+                        <?php elseif ($planId === 'pro_trial_7day'): ?>
+                            <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">Most popular</span>
                         <?php endif; ?>
                     </div>
                     <p class="mt-3 text-sm text-gray-600 flex-1"><?php echo e($planConfig['description']); ?></p>
@@ -193,16 +212,36 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                                 data-plan-label="<?php echo e($planConfig['label']); ?>"
                                 class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-200 disabled:text-gray-500"
                             >
-                                <?php echo in_array($planId, ['pro_monthly', 'pro_annual'], true) ? 'Start free trial' : 'Upgrade'; ?>
+                                Get started
                             </button>
-                            <p class="mt-2 text-xs text-gray-500 text-center"><?php echo in_array($planId, ['pro_monthly', 'pro_annual'], true) ? '1 month free, then billed. Secure payments via Stripe.' : 'Secure payments powered by Stripe'; ?></p>
+                            <p class="mt-2 text-xs text-gray-500 text-center">Secure payments via Stripe. Cancel anytime.</p>
                         <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
 
-        <?php if (subscriptionIsPaid($subscriptionContext) && !empty($subscriptionContext['stripe_customer_id']) && stripeIsConfigured() && subscriptionPlanId($subscriptionContext) !== 'lifetime'): ?>
+        <?php
+        // On 7-day trial? Offer subscribe to continue before it ends
+        $onTrial = subscriptionPlanId($subscriptionContext) === 'pro_trial_7day';
+        $trialStripeConfigured = stripeIsConfigured() && getStripePriceIdForPlan('pro_monthly');
+        if ($onTrial && $trialStripeConfigured):
+        ?>
+            <div class="mt-6 max-w-md mx-auto rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+                <p class="text-sm font-medium text-blue-900">On trial? Subscribe to continue after 7 days</p>
+                <p class="text-xs text-blue-700 mt-1">£22/month, cancel anytime</p>
+                <button type="button" data-plan-button="1" data-plan="pro_monthly" data-plan-label="Pro Monthly"
+                    class="mt-3 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                    Subscribe to continue
+                </button>
+            </div>
+        <?php endif; ?>
+
+        <?php
+        $hasStripeSubscription = !empty($subscriptionContext['stripe_subscription_id']);
+        $showManageBilling = subscriptionIsPaid($subscriptionContext) && $hasStripeSubscription && stripeIsConfigured();
+        ?>
+        <?php if ($showManageBilling): ?>
             <div class="mt-10 text-center">
                 <button
                     type="button"
@@ -249,7 +288,7 @@ function renderPlanFeatures(string $planId, array $planConfig): array {
                 <h3 class="text-lg font-semibold text-gray-900">Need help deciding?</h3>
                 <div class="mt-4 space-y-3 text-sm text-gray-600">
                     <p>Stay on the Free plan to build a simple, public CV with a QR code to share.</p>
-                    <p>Upgrade whenever you want to unlock unlimited content and premium features, or switch to the annual plan for the biggest savings.</p>
+                    <p>Try 7 days for £1.95, or go straight to 3 months for the best value. Cancel anytime.</p>
                     <p class="font-medium text-gray-900">Have questions? <a href="mailto:noreply@simple-job-tracker.com" class="text-blue-600 hover:text-blue-800 underline">Email support</a> and we'll be happy to help.</p>
                 </div>
             </div>

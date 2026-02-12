@@ -1,12 +1,5 @@
 <?php
 // Marketing page for non-logged in users
-
-// Free-trial offer: set 'active' => false to hide banner and trial badges. When active, Pro plans show "1 month free".
-$pricingLaunchOffer = [
-    'active' => true,
-    'heading' => 'Try Pro free for 1 month',
-    'subtext' => 'No charge today. Cancel anytime from your billing portal.',
-];
 ?>
 
 <!-- Hero Section -->
@@ -28,11 +21,9 @@ $pricingLaunchOffer = [
                         Individual Users
                     </a>
                 </div>
-                <?php if (!empty($pricingLaunchOffer['active'])): ?>
                 <p class="mt-6 text-sm text-gray-500">
-                    <a href="/#pricing" class="font-medium text-blue-600 hover:text-blue-800">Try Pro free for 1 month</a> — no charge today. Cancel anytime.
+                    <a href="/#pricing" class="font-medium text-blue-600 hover:text-blue-800">Try 7 days for £1.95</a> — full access, then subscribe or stay free.
                 </p>
-                <?php endif; ?>
             </div>
             <div>
                 <div class="mt-10">
@@ -612,7 +603,7 @@ $pricingLaunchOffer = [
 </div>
 
 <!-- Pricing Section -->
-<?php partial('home-pricing', ['pricingLaunchOffer' => $pricingLaunchOffer, 'pricingUseRegisterModal' => true]); ?>
+<?php partial('home-pricing', ['pricingUseRegisterModal' => true]); ?>
 
 <!-- Testimonials Section -->
 <div class="bg-gray-50 py-12 sm:py-16">

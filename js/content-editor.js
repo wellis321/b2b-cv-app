@@ -589,6 +589,18 @@
             `;
         }
 
+        // CV Preview (always show so user can refresh preview)
+        html += `
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-3">CV Preview</h4>
+                <p class="text-sm text-gray-600 mb-3">See your changes after saving sections.</p>
+                <button type="button" id="content-editor-update-preview" class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors">
+                    Update Preview
+                </button>
+                <div id="content-editor-cv-preview" class="mt-4 overflow-auto border border-gray-200 rounded-md bg-white min-h-[200px]" style="max-height: 400px;"></div>
+            </div>
+        `;
+
         html += `
                 </div>
             </div>
@@ -596,6 +608,12 @@
 
         // Update the guidance panel content
         guidancePanel.innerHTML = html;
+
+        // Re-attach Update Preview button listener (element was replaced when guidance updated)
+        const previewBtn = document.getElementById('content-editor-update-preview');
+        if (previewBtn && typeof window.contentEditorRefreshPreview === 'function') {
+            previewBtn.addEventListener('click', window.contentEditorRefreshPreview);
+        }
     }
 
     function initializeFormHandlers(sectionId) {
@@ -694,6 +712,9 @@
         .then(data => {
             if (data.success) {
                 showNotification('success', data.message || 'Saved successfully');
+                if (typeof window.contentEditorRefreshPreview === 'function') {
+                    window.contentEditorRefreshPreview();
+                }
                 // Only reload if it's a create action (to show new entry in list)
                 // For updates, reload to refresh the form and responsibilities
                 if (form.dataset.formType === 'create' || form.dataset.formType === 'add' || form.dataset.formType === 'add_strength') {
@@ -756,6 +777,9 @@
         .then(data => {
             if (data.success) {
                 showNotification('success', 'Deleted successfully');
+                if (typeof window.contentEditorRefreshPreview === 'function') {
+                    window.contentEditorRefreshPreview();
+                }
                 // Reload section to refresh entry list
                 setTimeout(() => {
                     loadSection(sectionId);

@@ -42,30 +42,9 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                     <p class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800"><strong>No new tab, no copy‑paste.</strong> The job appears in your list as soon as you're logged in on the site.</p>
                 </section>
 
-                <!-- Step 1: Get Your Save Token -->
+                <!-- Step 1: Download and Install -->
                 <section>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Step 1: Get Your Save Token</h2>
-                    <ol class="list-decimal list-inside space-y-2 text-gray-700">
-                        <li><strong>Log in</strong> to Simple CV Builder.</li>
-                        <li>Go to <strong>My CV</strong> → <strong>Get save token</strong> (or visit <a href="/save-job-token.php" class="text-blue-600 hover:underline">/save-job-token.php</a>).</li>
-                        <li>Click <strong>Copy token</strong> (or <strong>Regenerate</strong> if you want a new one).</li>
-                        <li><strong>Keep this token safe</strong> — you'll paste it into the extension in Step 3.</li>
-                    </ol>
-                    <?php if (isLoggedIn()): ?>
-                        <div class="mt-4">
-                            <a href="/save-job-token.php" class="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
-                                Get your save token →
-                            </a>
-                        </div>
-                    <?php endif; ?>
-                    <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <p class="text-sm text-amber-800"><strong>Security tip:</strong> Treat your save token like a password. If it's ever exposed, regenerate it immediately.</p>
-                    </div>
-                </section>
-
-                <!-- Step 2: Download and Install -->
-                <section>
-                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Step 2: Download and Install the Extension</h2>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Step 1: Download and Install the Extension</h2>
                     
                     <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                         <p class="text-sm text-amber-800 font-medium mb-2">
@@ -145,6 +124,27 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                     </div>
                 </section>
 
+                <!-- Step 2: Get Your Save Token -->
+                <section>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-4">Step 2: Get Your Save Token</h2>
+                    <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                        <li><strong>Log in</strong> to Simple CV Builder.</li>
+                        <li>Go to <strong>My CV</strong> → <strong>Get save token</strong> (or visit <a href="/save-job-token.php" class="text-blue-600 hover:underline">/save-job-token.php</a>).</li>
+                        <li>Click <strong>Copy token</strong> (or <strong>Regenerate</strong> if you want a new one).</li>
+                        <li><strong>Keep this token safe</strong> — you'll paste it into the extension in Step 3.</li>
+                    </ol>
+                    <?php if (isLoggedIn()): ?>
+                        <div class="mt-4">
+                            <a href="/save-job-token.php" class="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors">
+                                Get your save token →
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p class="text-sm text-amber-800"><strong>Security tip:</strong> Treat your save token like a password. If it's ever exposed, regenerate it immediately.</p>
+                    </div>
+                </section>
+
                 <!-- Step 3: Configure -->
                 <section>
                     <h2 class="text-2xl font-bold text-gray-900 mb-4">Step 3: Configure the Extension</h2>
@@ -164,7 +164,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                                         <li>Or enter a custom URL (no trailing slash).</li>
                                     </ul>
                                 </li>
-                                <li><strong>Save token:</strong> Paste the token you copied in Step 1.</li>
+                                <li><strong>Save token:</strong> Paste the token you copied in Step 2.</li>
                             </ul>
                         </li>
                         <li><strong>Save:</strong> Click <strong>Save settings</strong>. You should see a confirmation message.</li>

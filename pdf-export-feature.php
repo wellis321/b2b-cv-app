@@ -234,7 +234,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                     Export your CV to PDF
                 </h2>
                 <p class="mt-4 text-red-100 max-w-xl mx-auto">
-                    PDF export is available on Pro plans. Upgrade to unlock PDF exports, QR codes, and selective section exports.
+                    PDF export is available on all plans. Pro plans add premium templates, selective section exports, and QR codes in the PDF.
                 </p>
                 <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
                     <?php if (isLoggedIn()): ?>

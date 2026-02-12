@@ -103,6 +103,15 @@ unset($section);
     </div>
 
     <?php
+    // Get subscription context
+    if (function_exists('getUserSubscriptionContext')) {
+        $subscriptionContext = getUserSubscriptionContext($userId);
+    } else {
+        require_once __DIR__ . '/../../php/subscriptions.php';
+        $subscriptionContext = getUserSubscriptionContext($userId);
+    }
+    $expiryInfo = formatSubscriptionExpiry($subscriptionContext);
+    
     // Get job application stats
     if (function_exists('getJobApplicationStats')) {
         $jobStats = getJobApplicationStats();
@@ -131,6 +140,31 @@ unset($section);
     $variantCount = count($cvVariants);
     $showNextSteps = ($jobStats['total'] ?? 0) === 0 || $variantCount === 0;
     ?>
+
+    <!-- Subscription Status Widget -->
+    <?php if (subscriptionIsPaid($subscriptionContext) || $subscriptionContext['plan'] === 'free'): ?>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div class="rounded-lg border <?php echo $expiryInfo['status_color'] === 'red' ? 'border-red-300 bg-red-50' : ($expiryInfo['status_color'] === 'yellow' ? 'border-yellow-300 bg-yellow-50' : 'border-blue-200 bg-blue-50'); ?> p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold <?php echo $expiryInfo['status_color'] === 'red' ? 'text-red-900' : ($expiryInfo['status_color'] === 'yellow' ? 'text-yellow-900' : 'text-blue-900'); ?> mb-1">
+                        Subscription: <?php echo e(subscriptionPlanLabel($subscriptionContext)); ?>
+                    </h2>
+                    <p class="text-sm <?php echo $expiryInfo['status_color'] === 'red' ? 'text-red-800' : ($expiryInfo['status_color'] === 'yellow' ? 'text-yellow-800' : 'text-blue-800'); ?>">
+                        <?php if ($expiryInfo['days_remaining'] !== null): ?>
+                            <?php echo e($expiryInfo['status_text']); ?> — Expires <?php echo e($expiryInfo['formatted_date']); ?>
+                        <?php else: ?>
+                            <?php echo e($expiryInfo['status_text']); ?>
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <a href="/subscription.php" class="text-sm font-medium <?php echo $expiryInfo['status_color'] === 'red' ? 'text-red-700 hover:text-red-900' : ($expiryInfo['status_color'] === 'yellow' ? 'text-yellow-700 hover:text-yellow-900' : 'text-blue-700 hover:text-blue-900'); ?> underline">
+                    Manage subscription →
+                </a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if ($showNextSteps): ?>
     <!-- Next steps for new users -->

@@ -299,6 +299,93 @@ $subscriptionContext = getUserSubscriptionContext($userId);
     <script src="/js/markdown-editor.js?v=<?php echo time(); ?>"></script>
     <script src="/js/content-editor.js?v=<?php echo time(); ?>"></script>
     <script src="/js/resizable-panes.js?v=<?php echo time(); ?>"></script>
+    <script type="module">
+    import { getPreviewRenderer, getTemplateMeta } from '/templates/index.js?v=<?php echo time(); ?>';
+
+    function getHashParam(hash, name) {
+        if (!hash || !hash.includes('&' + name + '=')) return null;
+        const part = hash.split('&').find(p => p.startsWith(name + '='));
+        return part ? part.replace(name + '=', '') : null;
+    }
+
+    async function refreshContentEditorPreview() {
+        const btn = document.getElementById('content-editor-update-preview');
+        const previewDiv = document.getElementById('content-editor-cv-preview');
+        if (!btn || !previewDiv) return;
+
+        const scrollY = window.scrollY;
+        const scrollX = window.scrollX;
+        const mainEl = document.getElementById('main-content');
+        const mainScrollTop = mainEl ? mainEl.scrollTop : 0;
+
+        const originalText = btn.textContent;
+        btn.textContent = 'Updating…';
+        btn.disabled = true;
+        previewDiv.innerHTML = '<p class="p-4 text-gray-500 text-sm">Loading…</p>';
+
+        try {
+            const hash = window.location.hash.substring(1);
+            const variantId = getHashParam(hash, 'variant_id');
+            let url = '/api/content-editor/get-cv-data.php';
+            if (variantId) url += '?variant_id=' + encodeURIComponent(variantId);
+
+            const res = await fetch(url);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to load CV data');
+            }
+            const { cvData, profile, subscriptionContext } = await res.json();
+
+            if (!cvData || !profile) {
+                previewDiv.innerHTML = '<p class="p-4 text-red-600 text-sm">CV data not available.</p>';
+                return;
+            }
+
+            const templateId = profile.template_preference || subscriptionContext?.defaultTemplateId || 'professional';
+            const allowedIds = new Set(subscriptionContext?.allowedTemplateIds || ['professional', 'minimal', 'classic']);
+            const finalTemplateId = allowedIds.has(templateId) ? templateId : 'professional';
+
+            const previewRenderer = getPreviewRenderer(finalTemplateId);
+            const templateMeta = getTemplateMeta(finalTemplateId);
+            if (!previewRenderer || typeof previewRenderer.render !== 'function') {
+                previewDiv.innerHTML = '<p class="p-4 text-red-600 text-sm">Preview not available for this template.</p>';
+                return;
+            }
+
+            const renderFunction = await previewRenderer.render();
+            const sections = { profile: true, summary: true, work: true, education: true, skills: true, projects: true, certifications: true, memberships: true, interests: true, qualificationEquivalence: true };
+            const includePhoto = profile.show_photo ?? 1;
+            const includeQr = profile.show_qr_code ?? (includePhoto ? 0 : 1);
+            const allSkillIds = (cvData.skills || []).map(s => s.id);
+            const cvDataForPreview = { ...cvData, skills: cvData.skills || [] };
+
+            renderFunction(previewDiv, {
+                cvData: cvDataForPreview,
+                profile,
+                sections,
+                includePhoto: !!includePhoto,
+                includeQr: !!includeQr,
+                template: templateMeta
+            });
+        } catch (err) {
+            previewDiv.innerHTML = '<p class="p-4 text-red-600 text-sm">' + (err.message || 'Error loading preview') + '</p>';
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
+            requestAnimationFrame(() => {
+                window.scrollTo(scrollX, scrollY);
+                if (mainEl) mainEl.scrollTop = mainScrollTop;
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('content-editor-update-preview');
+        if (btn) btn.addEventListener('click', refreshContentEditorPreview);
+
+        window.contentEditorRefreshPreview = refreshContentEditorPreview;
+    });
+    </script>
     <script>
     // Enhance markdown rendering with marked.js
     if (typeof marked !== 'undefined') {

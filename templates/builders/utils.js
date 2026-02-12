@@ -88,7 +88,7 @@ export function groupSkills(skills) {
     }
 
     skills.forEach((skill) => {
-        const category = skill.category || 'General'
+        const category = skill.category || 'Other'
         if (!grouped[category]) {
             grouped[category] = []
         }

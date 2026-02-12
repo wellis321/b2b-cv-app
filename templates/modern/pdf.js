@@ -62,10 +62,24 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
     // SIDEBAR CONTENT (Left - 30%)
     const sidebarContent = []
 
-    // Profile photo (if included)
-    if (includePhoto && profile?.photo_base64) {
+    // Sidebar top slot: QR code when chosen, else profile photo (QR replaces image in same position)
+    if (includeQRCode && cvUrl) {
         sidebarContent.push({
-            image: profile.photo_base64,
+            qr: cvUrl,
+            fit: 90,
+            alignment: 'center',
+            margin: [0, 0, 0, 16]
+        })
+        sidebarContent.push({
+            text: 'Scan for online CV',
+            fontSize: 7,
+            color: template.colors.muted,
+            alignment: 'center',
+            margin: [0, 0, 0, 4]
+        })
+    } else if (includePhoto && profile?.photo_base64 && /^data:image\/(jpeg|png);base64,/.test(profile.photo_base64)) {
+        sidebarContent.push({
+            image: 'profilePhoto',
             width: 90,
             height: 90,
             margin: [0, 0, 0, 16],
@@ -148,7 +162,7 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
         // Group skills by category
         const groupedSkills = {}
         cvData.skills.forEach(skill => {
-            const category = skill.category || 'General'
+            const category = skill.category || 'Other'
             if (!groupedSkills[category]) {
                 groupedSkills[category] = []
             }
@@ -462,34 +476,6 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
         }
     ]
 
-    // QR Code (bottom of sidebar if included)
-    if (includeQRCode && qrCodeImage && cvUrl) {
-        content.push({
-            columns: [
-                {
-                    width: sidebarWidth,
-                    stack: [
-                        {
-                            image: qrCodeImage,
-                            width: 60,
-                            height: 60,
-                            alignment: 'center',
-                            margin: [0, 16, 0, 4]
-                        },
-                        {
-                            text: 'Scan for online CV',
-                            fontSize: 7,
-                            color: template.colors.muted,
-                            alignment: 'center'
-                        }
-                    ]
-                },
-                { width: 20, text: '' },
-                { width: mainWidth, text: '' }
-            ]
-        })
-    }
-
     // Footer with page numbers
     const footer = (currentPage, pageCount) => {
         return {
@@ -505,6 +491,7 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
     return {
         ...docConfig,
         pageMargins: [45, 65, 45, 65],
+        ...(includePhoto && profile?.photo_base64 && /^data:image\/(jpeg|png);base64,/.test(profile.photo_base64) && { images: { profilePhoto: profile.photo_base64 } }),
         content: content,
         footer: footer,
         info: {

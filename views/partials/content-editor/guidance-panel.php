@@ -61,5 +61,15 @@ if (!isset($guidance)) {
                 </ul>
             </div>
         <?php endif; ?>
+
+        <!-- CV Preview -->
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">CV Preview</h4>
+            <p class="text-sm text-gray-600 mb-3">See your changes after saving sections.</p>
+            <button type="button" id="content-editor-update-preview" class="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors">
+                Update Preview
+            </button>
+            <div id="content-editor-cv-preview" class="mt-4 overflow-auto border border-gray-200 rounded-md bg-white min-h-[200px]" style="max-height: 400px;"></div>
+        </div>
     </div>
 </div>

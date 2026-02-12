@@ -339,7 +339,7 @@ function groupSkills(skills) {
     if (!Array.isArray(skills)) return grouped
 
     skills.forEach(skill => {
-        const category = skill.category || 'General'
+        const category = skill.category || 'Other'
         if (!grouped[category]) {
             grouped[category] = []
         }

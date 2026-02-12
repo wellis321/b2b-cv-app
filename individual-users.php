@@ -57,29 +57,29 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                 
                 <div class="space-y-8">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-                        <div class="grid md:grid-cols-2 gap-6 items-center mb-6">
-                            <div>
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch mb-6">
+                            <div class="flex flex-col">
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
                                     Creating your professional CV takes just minutes. No downloads, no software installation—everything works right in your browser on any device.
                                 </p>
                                 <p class="text-gray-700 text-lg leading-relaxed">
-                                    Click "Register" on our homepage and enter your name, email, and password. We'll send a verification link to activate your account. No credit card required, and you can start building immediately on our free plan. Explore the platform, see what we offer, then upgrade when you're ready for premium features.
+                                    Click "Register" on our homepage and enter your name, email, and password. We'll send a verification link to activate your account. Start free, or <strong>try 7 days for £1.95</strong>—full access, then subscribe or stay on free. No pressure.
                                 </p>
+                                <div class="mt-6">
+                                    <?php if (!isLoggedIn()): ?>
+                                        <button type="button" data-open-register class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                                            Create Your Free Account
+                                        </button>
+                                    <?php else: ?>
+                                        <a href="/profile.php" class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors">
+                                            Go to Your Profile
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1521737854147-629d0c56a063', 600)); ?>" alt="Person using laptop to create CV" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1507003211169-0a1dd7228f2d', 600)); ?>" alt="Person using laptop to create CV" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
-                        </div>
-                        <div class="mt-6">
-                            <?php if (!isLoggedIn()): ?>
-                                <button type="button" data-open-register class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
-                                    Create Your Free Account
-                                </button>
-                            <?php else: ?>
-                                <a href="/profile.php" class="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors">
-                                    Go to Your Profile
-                                </a>
-                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -102,7 +102,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                 <div class="space-y-8">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
                         <h3 class="text-2xl font-semibold text-gray-900 mb-4">A Living, Breathing CV</h3>
-                        <div class="grid md:grid-cols-2 gap-6 items-center mb-4">
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch mb-4">
                             <div>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
                                     Your CV isn't a static document—it's a dynamic webpage you can share with a simple link. Update your job title or add a certification once, and everyone with your link sees the latest version instantly. No more sending updated PDFs or wondering which version employers are viewing.
@@ -111,8 +111,8 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                                     Your CV link (<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">/cv/@your-username</code>) always shows current information. But we haven't forgotten traditional PDFs—download print-ready versions whenever you need them, complete with a QR code linking back to your online CV.
                                 </p>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1586281380349-632531db7ed4', 600)); ?>" alt="CV link being shared on mobile and desktop" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1586281380349-632531db7ed4', 600)); ?>" alt="CV link being shared on mobile and desktop" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
                         </div>
                     </div>
@@ -179,14 +179,14 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
 
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
                         <h3 class="text-2xl font-semibold text-gray-900 mb-4">Professional PDF Downloads</h3>
-                        <div class="grid md:grid-cols-2 gap-6 items-center">
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch">
                             <div>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
-                                    Generate professional, print-ready PDFs that are ATS-friendly (Applicant Tracking System compatible). Optionally include a QR code in your PDF exports linking to your online CV. With paid plans, access multiple templates with customisable colours and choose which sections to include—create different versions for different opportunities while maintaining one master CV online.
+                                    Generate professional, print-ready PDFs that are ATS-friendly (Applicant Tracking System compatible). All plans include PDF export. Pro plans add multiple templates with customisable colours, a QR code in the PDF linking to your online CV, and the ability to choose which sections to include—create different versions for different opportunities while maintaining one master CV online.
                                 </p>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="PDF download example with QR code" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="PDF download example with QR code" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
                         </div>
                     </div>
@@ -200,7 +200,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                 <div class="space-y-8">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
                         <h3 class="text-2xl font-semibold text-gray-900 mb-4">Your Complete Job Search Command Centre</h3>
-                        <div class="grid md:grid-cols-2 gap-6 items-center mb-4">
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch mb-4">
                             <div>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
                                     Track every application from one dashboard. Record company names, job titles, application dates, and status—from "Interested" through "Applied," "Interviewing," to "Offered" or "Accepted." Add notes about conversations, set follow-up reminders, attach your CV and cover letters, and track salary ranges and locations.
@@ -215,8 +215,8 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                                     This integration is included with every account, even the free one.
                                 </p>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1586281380349-632531db7ed4', 600)); ?>" alt="Job application tracker dashboard" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1586281380349-632531db7ed4', 600)); ?>" alt="Job application tracker dashboard" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
                         </div>
                         <div class="mt-6">
@@ -240,31 +240,28 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                 
                 <div class="space-y-8">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-                        <h3 class="text-2xl font-semibold text-gray-900 mb-4">Start Free, Upgrade When You're Ready</h3>
-                        <div class="grid md:grid-cols-2 gap-6 mb-4">
+                        <h3 class="text-2xl font-semibold text-gray-900 mb-4">Pricing & Plans</h3>
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch mb-4">
                             <div>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
-                                    <strong>Free Plan</strong> — One work experience entry, one project, three skills, basic template, and your online CV link. No credit card required.
+                                    <strong>Basic access (Free)</strong> — CV builder, templates, resume sharing, PDF export. Limited job tracking and AI. No credit card required.
                                 </p>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
-                                    <strong>Pro Monthly</strong> — Try free for 1 month, then £4.99/month. Unlimited sections, professional templates, PDF downloads, and priority support.
-                                </p>
-                                <p class="text-gray-700 text-lg leading-relaxed mb-4">
-                                    <strong>Pro Annual</strong> — Try free for 1 month, then £29.99/year (save over 40% vs monthly).
+                                    <strong>7-day unlimited access</strong> — £1.95 for 7 days full access. After 7 days, renews to £22/month. Cancel anytime.
                                 </p>
                                 <p class="text-gray-700 text-lg leading-relaxed">
-                                    <strong>Lifetime Plan</strong> — £39.99 one-time payment for lifetime access to all Pro features. No subscription.
+                                    <strong>3-month unlimited access</strong> — £27.88 one-time today. Best value. Save 66%.
                                 </p>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="Pricing comparison and plan features" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="Pricing comparison and plan features" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
                         </div>
                         <p class="text-gray-700 text-lg leading-relaxed mb-4">
-                            All payments are processed securely through Stripe. Upgrade or downgrade anytime from your dashboard. Changes take effect immediately for upgrades, or at the end of your billing period for downgrades.
+                            All payments are processed securely through Stripe. Start free, or try 7 days for £1.95. After 7 days, it renews to £22/month—cancel anytime. Or pay £27.88 once for 3 months. See your <a href="/subscription.php" class="text-blue-600 hover:text-blue-800 underline font-medium">Plan</a> page for details.
                         </p>
                         <p class="text-gray-700 text-lg leading-relaxed">
-                            <strong>How to upgrade:</strong> Create your free account, start building, then upgrade from your dashboard when ready. No pressure.
+                            <strong>How it works:</strong> Create your account and use the free plan, or pay £1.95 for 7 days of full access. After 7 days, add payment to continue at £22/month or stay on free. No pressure.
                         </p>
                     </div>
                 </div>
@@ -277,7 +274,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                 <div class="space-y-8">
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
                         <h3 class="text-2xl font-semibold text-gray-900 mb-4">Your Data, Your Control</h3>
-                        <div class="grid md:grid-cols-2 gap-6 items-center mb-4">
+                        <div class="grid md:grid-cols-2 gap-6 items-stretch mb-4">
                             <div>
                                 <p class="text-gray-700 text-lg leading-relaxed mb-4">
                                     Your data is encrypted and stored securely using industry-standard practices. All data transmission uses secure connections (HTTPS), and we regularly update our systems against security threats.
@@ -289,8 +286,8 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                                     We never share your data with third parties for marketing, never sell your information, and never use it for targeted ads. Your data is yours—we're just the platform that helps you manage it.
                                 </p>
                             </div>
-                            <div>
-                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="Security and privacy illustration" class="w-full rounded-lg border border-gray-200 shadow-sm object-cover aspect-video" width="600" height="340" />
+                            <div class="min-h-0">
+                                <img src="<?php echo e($img('1557804506-669a67965ba0', 600)); ?>" alt="Security and privacy illustration" class="h-full w-full rounded-lg border border-gray-200 shadow-sm object-cover" width="600" height="340" />
                             </div>
                         </div>
                         <p class="text-gray-700 text-lg leading-relaxed">
@@ -304,7 +301,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
             <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg p-10 text-center text-white">
                 <h2 class="text-3xl font-bold mb-4">Ready to Build Your Professional CV?</h2>
                 <p class="text-blue-100 text-lg mb-6 max-w-2xl mx-auto leading-relaxed">
-                    Creating a standout CV doesn't have to be complicated or expensive. Start with our free plan, build your CV at your own pace, and upgrade when you're ready to unlock premium features. Your career journey starts here.
+                    Start free, or try 7 days for £1.95. Build your CV at your own pace, then subscribe or stay on the free plan. Your career journey starts here.
                 </p>
                 <?php if (isLoggedIn()): ?>
                     <a href="/profile.php" class="inline-block bg-white text-blue-600 px-8 py-4 rounded-md font-semibold text-lg hover:bg-blue-50 transition-colors">

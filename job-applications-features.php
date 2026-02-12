@@ -684,7 +684,7 @@ $img = function($id, $w = 800) { return 'https://images.unsplash.com/photo-' . $
                             Ready to Track Your Job Applications?
                         </h2>
                         <p class="mt-4 text-lg text-gray-600">
-                            Start tracking your job applications today. Save jobs in one click from any site, set priorities and deadlines, and get reminders—all included with every account. Upgrade to Pro for unlimited applications, PDF exports, and premium CV templates.
+                            Start tracking your job applications today. Save jobs in one click from any site, set priorities and deadlines, and get reminders—all included with every account. Upgrade to Pro for unlimited applications and premium CV templates.
                         </p>
                         <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
                             <?php if (isLoggedIn()): ?>

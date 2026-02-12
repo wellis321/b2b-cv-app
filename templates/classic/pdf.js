@@ -128,7 +128,24 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
         // Divider after header
         headerContent.push(createDivider(template.colors.divider, 1.5, [0, 12, 0, 12]))
 
-        content.push(...headerContent)
+        // QR in header when chosen (replaces footer placement)
+        if (includeQRCode && cvUrl) {
+            content.push({
+                columns: [
+                    { width: '*', stack: headerContent },
+                    {
+                        width: 80,
+                        stack: [
+                            { qr: cvUrl, fit: 70, alignment: 'right' },
+                            { text: 'View Online', link: cvUrl, fontSize: 8, color: template.colors.link, alignment: 'center', margin: [0, 4, 0, 0] }
+                        ]
+                    }
+                ],
+                columnGap: 16
+            })
+        } else {
+            content.push(...headerContent)
+        }
     }
 
     // PROFESSIONAL SUMMARY
@@ -284,35 +301,6 @@ export function buildDocDefinition({ cvData, profile, config, cvUrl, qrCodeImage
                 layout: 'inline'  // Comma-separated for classic look
             }
         ))
-    }
-
-    // QR CODE (Bottom right, if included and not in header)
-    if (includeQRCode && qrCodeImage && cvUrl) {
-        content.push({
-            columns: [
-                { width: '*', text: '' },
-                {
-                    width: 80,
-                    stack: [
-                        {
-                            image: qrCodeImage,
-                            width: 70,
-                            height: 70,
-                            alignment: 'right'
-                        },
-                        {
-                            text: 'View Online',
-                            link: cvUrl,
-                            fontSize: 8,
-                            color: template.colors.link,
-                            alignment: 'center',
-                            margin: [0, 4, 0, 0]
-                        }
-                    ]
-                }
-            ],
-            margin: [0, 16, 0, 0]
-        })
     }
 
     // Footer with page numbers

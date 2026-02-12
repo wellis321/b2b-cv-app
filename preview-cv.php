@@ -78,6 +78,7 @@ $masterVariantId = getOrCreateMasterVariant($userId);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Preview & PDF - CV Builder</title>
+    <script>(function(){var w=typeof console!=='undefined'&&console.warn;if(w){var o=console.warn;console.warn=function(){var a=arguments[0];if(a&&typeof a==='string'&&a.indexOf('cdn.tailwindcss.com')!==-1&&a.indexOf('should not be used in production')!==-1)return;o.apply(console,arguments);};}})();</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         window.addEventListener('load', function() {
@@ -87,8 +88,8 @@ $masterVariantId = getOrCreateMasterVariant($userId);
         })
     </script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.3.3/build/pdfmake.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.3.3/build/vfs_fonts.js"></script>
     <script type="module" src="/js/pdf-generator.js?v=<?php echo time(); ?>"></script>
 </head>
 <body class="bg-gray-50">
@@ -144,6 +145,10 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                         <label class="flex items-center">
                             <input type="checkbox" id="section-interests" checked class="mr-2">
                             <span>Interests & Activities</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="section-qualifications" checked class="mr-2">
+                            <span>Professional Qualification Equivalence</span>
                         </label>
                     </div>
 
@@ -214,6 +219,11 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                         </div>
                     </div>
 
+                    <button type="button" id="update-preview-button" class="mt-6 w-full bg-gray-100 text-gray-800 px-6 py-2.5 rounded-md border border-gray-300 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium">
+                        Update Preview
+                    </button>
+                    <p class="mt-2 text-xs text-gray-500">Refresh the preview to see your latest changes.</p>
+
                     <button id="generate-pdf-button" onclick="generatePDF()" class="mt-6 w-full bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         Generate PDF
                     </button>
@@ -261,8 +271,9 @@ $masterVariantId = getOrCreateMasterVariant($userId);
         const SubscriptionContext = <?php echo json_encode($subscriptionFrontendContext, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         window.SubscriptionContext = SubscriptionContext;
         const allowedTemplateIds = new Set(SubscriptionContext?.allowedTemplateIds || []);
-        const cvData = <?php echo json_encode($cvDataDecoded, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        const profile = <?php echo json_encode($profileDecoded, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const previewVariantId = <?php echo json_encode($variantId ?? null, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        let cvData = <?php echo json_encode($cvDataDecoded, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        let profile = <?php echo json_encode($profileDecoded, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         const dateFormat = <?php echo json_encode($dateFormat, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         const cvUrl = <?php echo json_encode($cvUrl, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
@@ -348,7 +359,8 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                 projects: document.getElementById('section-projects')?.checked ?? true,
                 certifications: document.getElementById('section-certifications')?.checked ?? true,
                 memberships: document.getElementById('section-memberships')?.checked ?? true,
-                interests: document.getElementById('section-interests')?.checked ?? true
+                interests: document.getElementById('section-interests')?.checked ?? true,
+                qualificationEquivalence: document.getElementById('section-qualifications')?.checked ?? true
             };
         }
 
@@ -420,55 +432,6 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                 // Get selected template
                 const selectedTemplate = getSelectedTemplate();
 
-                // Generate QR code if needed
-                let qrCodeImage = null;
-                if (includeQr && cvUrl) {
-                    try {
-                        const qrDiv = document.createElement('div');
-                        qrDiv.style.cssText = 'position: absolute; left: -9999px;';
-                        document.body.appendChild(qrDiv);
-
-                        let QRCodeLib = typeof QRCode !== 'undefined' ? QRCode : window.QRCode;
-                        if (QRCodeLib) {
-                            new QRCodeLib(qrDiv, {
-                                text: cvUrl,
-                                width: 200,
-                                height: 200,
-                                colorDark: '#000000',
-                                colorLight: '#FFFFFF'
-                            });
-
-                            // Wait a moment for QR code to render
-                            await new Promise(resolve => setTimeout(resolve, 100));
-
-                            // Get the canvas element
-                            const qrCanvas = qrDiv.querySelector('canvas');
-                            if (qrCanvas) {
-                                qrCodeImage = qrCanvas.toDataURL('image/png');
-                                console.log('QR code generated');
-                            }
-                        }
-
-                        document.body.removeChild(qrDiv);
-                    } catch (qrError) {
-                        console.warn('QR code generation failed:', qrError);
-                    }
-                }
-
-                // Get profile photo as base64 if needed
-                let photoBase64 = null;
-                if (includePhoto && profile.photo_url) {
-                    try {
-                        photoBase64 = await window.PdfGenerator.getImageAsBase64(profile.photo_url);
-                        if (!photoBase64) {
-                            console.warn('Failed to load profile photo, continuing without it');
-                        }
-                    } catch (error) {
-                        console.error('Error loading profile photo:', error);
-                        // Continue without photo
-                    }
-                }
-
                 // Prepare config
                 const config = {
                     sections: sections,
@@ -480,28 +443,97 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                 const filteredSkills = (cvData.skills || []).filter(s => currentSkillSelection.includes(s.id));
                 const cvDataForPdf = { ...cvData, skills: filteredSkills };
 
-                // Only include photo_base64 if we successfully loaded it
+                // Build preview-photo URL for pdfmake (supports various photo_url formats)
                 const profileWithPhoto = { ...profile };
-                if (photoBase64) {
-                    profileWithPhoto.photo_base64 = photoBase64;
-                } else {
-                    delete profileWithPhoto.photo_base64;
+                if (includePhoto && profile.photo_url) {
+                    let path = null;
+                    const m = profile.photo_url.match(/\/storage\/(.+)$/);
+                    if (m) {
+                        path = m[1];
+                    } else if (/^profiles\//.test(profile.photo_url)) {
+                        path = profile.photo_url;
+                    }
+                    if (path) {
+                        profileWithPhoto.photo_url_pdf = window.location.origin + '/api/preview-photo.php?path=' + encodeURIComponent(path);
+                    } else {
+                        console.warn('[PDF] Could not parse photo_url for PDF:', profile.photo_url?.substring?.(0, 80));
+                    }
                 }
 
-                const docDefinition = await window.PdfGenerator.buildDocDefinition(
+                let docDefinition = await window.PdfGenerator.buildDocDefinition(
                     cvDataForPdf,
                     profileWithPhoto,
                     config,
                     selectedTemplate,
                     cvUrl,
-                    qrCodeImage
+                    null
                 );
 
-                // Generate and download PDF (await so errors are caught)
+                const scrollY = window.scrollY;
+                const scrollX = window.scrollX;
                 const filename = `${(profile.full_name || 'CV').replace(/[^a-z0-9_\-]/gi, '_')}_CV.pdf`;
-                await pdfMake.createPdf(docDefinition).download(filename);
+
+                // DEBUG: Log image data before pdfmake
+                const imgs = docDefinition?.images;
+                if (imgs?.profilePhoto) {
+                    const d = imgs.profilePhoto;
+                    console.log('[PDF DEBUG] images.profilePhoto:', {
+                        type: typeof d,
+                        length: d?.length,
+                        prefix: d?.substring?.(0, 50),
+                        startsWithData: d?.startsWith?.('data:'),
+                        base64Start: d?.includes?.('base64,') ? d.substring(d.indexOf('base64,') + 7, d.indexOf('base64,') + 50) + '...' : 'N/A'
+                    });
+                    // Try clean copy (fix for React/proxy mutation issues per Stack Overflow)
+                    if (typeof d === 'string') {
+                        docDefinition.images = { profilePhoto: String(d) };
+                    }
+                } else {
+                    console.log('[PDF DEBUG] No images.profilePhoto in docDefinition', { hasImages: !!imgs, keys: imgs ? Object.keys(imgs) : [] });
+                }
+
+                // DEBUG: pdfmake version
+                console.log('[PDF DEBUG] pdfMake version:', typeof pdfMake?.version !== 'undefined' ? pdfMake.version : 'unknown');
+
+                // DEBUG: Test with minimal 1x1 PNG - set ?test=1 in URL to try (isolates pdfmake vs our image)
+                const TEST_MINIMAL = (new URLSearchParams(window.location.search)).get('test') === '1';
+                if (TEST_MINIMAL) {
+                    const minimalPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmiQQAAAABJRU5ErkJggg==';
+                    docDefinition.images = docDefinition.images || {};
+                    docDefinition.images.profilePhoto = minimalPng;
+                    console.log('[PDF DEBUG] Using minimal 1x1 PNG test image (URL ?test=1)');
+                }
+
+                try {
+                    await pdfMake.createPdf(docDefinition).download(filename);
+                } catch (imgErr) {
+                    console.error('[PDF] Image error:', imgErr?.message, imgErr);
+                    const msg = (imgErr?.message || '').toLowerCase();
+                    const isImageError = msg.includes('unknown image format') || msg.includes('invalid image');
+                    const hasPhoto = !!profileWithPhoto.photo_url_pdf;
+                    if (isImageError && hasPhoto) {
+                        delete profileWithPhoto.photo_url_pdf;
+                        docDefinition = await window.PdfGenerator.buildDocDefinition(
+                            cvDataForPdf,
+                            profileWithPhoto,
+                            config,
+                            selectedTemplate,
+                            cvUrl,
+                            null
+                        );
+                        await pdfMake.createPdf(docDefinition).download(filename);
+                        alert('PDF downloaded. The profile photo could not be embedded and was omitted.');
+                    } else {
+                        throw imgErr;
+                    }
+                }
 
                 console.log('✅ PDF generated successfully using pdfmake');
+
+                // Restore scroll position (PDF download can scroll page)
+                requestAnimationFrame(() => {
+                    window.scrollTo(scrollX, scrollY);
+                });
 
                 // Restore button
                 if (button) {
@@ -523,6 +555,8 @@ $masterVariantId = getOrCreateMasterVariant($userId);
         }
 
         async function renderPreview() {
+            const scrollY = window.scrollY;
+            const scrollX = window.scrollX;
             try {
                 const previewDiv = document.getElementById('cv-preview');
                 if (!previewDiv) {
@@ -570,12 +604,53 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                 if (previewDiv) {
                     previewDiv.innerHTML = '<p class="text-red-600">Error rendering preview: ' + error.message + '</p>';
                 }
+            } finally {
+                requestAnimationFrame(() => {
+                    window.scrollTo(scrollX, scrollY);
+                });
             }
         }
 
+        const PREVIEW_STORAGE_KEY = 'preview-cv-prefs';
+
+        function loadPreviewPrefs() {
+            try {
+                const raw = localStorage.getItem(PREVIEW_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function savePreviewPrefs(prefs) {
+            try {
+                const current = loadPreviewPrefs();
+                localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
+            } catch (e) { /* ignore */ }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            const prefs = loadPreviewPrefs();
+            const includePhotoEl = document.getElementById('include-photo');
+            const includeQrEl = document.getElementById('include-qr');
+            if (includePhotoEl && prefs.includePhoto !== undefined) {
+                includePhotoEl.checked = !!prefs.includePhoto;
+            }
+            if (includeQrEl && prefs.includeQr !== undefined) {
+                includeQrEl.checked = !!prefs.includeQr;
+            }
+
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach((checkbox) => checkbox.addEventListener('change', renderPreview));
+            checkboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.id === 'include-photo') {
+                        savePreviewPrefs({ includePhoto: checkbox.checked });
+                    } else if (checkbox.id === 'include-qr') {
+                        savePreviewPrefs({ includeQr: checkbox.checked });
+                    }
+                    renderPreview();
+                });
+            });
 
             const templateSelectEl = document.getElementById('template-select');
             if (templateSelectEl) {
@@ -656,6 +731,35 @@ $masterVariantId = getOrCreateMasterVariant($userId);
                 pdfButton.disabled = true;
                 pdfButton.classList.add('opacity-60', 'cursor-not-allowed');
                 pdfButton.textContent = 'Upgrade to download PDF';
+            }
+
+            // Update Preview button – fetch fresh CV data and re-render
+            const updatePreviewBtn = document.getElementById('update-preview-button');
+            if (updatePreviewBtn) {
+                updatePreviewBtn.addEventListener('click', async () => {
+                    const originalText = updatePreviewBtn.textContent;
+                    updatePreviewBtn.textContent = 'Updating…';
+                    updatePreviewBtn.disabled = true;
+                    try {
+                        let url = '/api/content-editor/get-cv-data.php';
+                        if (previewVariantId) url += '?variant_id=' + encodeURIComponent(previewVariantId);
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error('Failed to load CV data');
+                        const { cvData: newCvData, profile: newProfile } = await res.json();
+                        if (!newCvData || !newProfile) throw new Error('Invalid CV data');
+                        cvData = newCvData;
+                        profile = newProfile;
+                        currentSkillSelection = (cvData.skills || []).map(s => s.id);
+                        await renderPreview();
+                        if (typeof renderSkillSelection === 'function') renderSkillSelection();
+                    } catch (err) {
+                        console.error('Update preview error:', err);
+                        alert('Could not update preview. Please refresh the page.');
+                    } finally {
+                        updatePreviewBtn.textContent = originalText;
+                        updatePreviewBtn.disabled = false;
+                    }
+                });
             }
 
             renderPreview();

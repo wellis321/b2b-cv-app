@@ -43,6 +43,11 @@ if (!$userData) {
 // Get all organisations for assignment
 $allOrganisations = getAllOrganisations();
 
+// Get subscription context for display
+$subscriptionContext = getUserSubscriptionContext($userId);
+$expiryInfo = formatSubscriptionExpiry($subscriptionContext);
+$plans = getSubscriptionPlansConfig();
+
 // Handle form submission
 if (isPost()) {
     if (!verifyCsrfToken(post(CSRF_TOKEN_NAME))) {
@@ -60,6 +65,39 @@ if (isPost()) {
         $updates[] = 'Super admin status: ' . ($isSuperAdmin ? 'Enabled' : 'Disabled');
     }
 
+    // Subscription plan and expiration
+    $newPlan = sanitizeInput(post('plan') ?? '');
+    $newSubscriptionStatus = sanitizeInput(post('subscription_status') ?? '');
+    $newExpiryDate = sanitizeInput(post('subscription_current_period_end') ?? '');
+    
+    if ($newPlan !== '' && $newPlan !== ($userData['plan'] ?? '')) {
+        $updateData['plan'] = $newPlan;
+        $updates[] = 'Plan changed to: ' . (getSubscriptionPlanConfig($newPlan)['label'] ?? $newPlan);
+    }
+    
+    if ($newSubscriptionStatus !== '' && $newSubscriptionStatus !== ($userData['subscription_status'] ?? '')) {
+        $updateData['subscription_status'] = $newSubscriptionStatus;
+        $updates[] = 'Subscription status changed to: ' . ucfirst($newSubscriptionStatus);
+    }
+    
+    if ($newExpiryDate !== '') {
+        // Validate date format
+        $expiryTimestamp = strtotime($newExpiryDate);
+        if ($expiryTimestamp !== false) {
+            $formattedExpiry = date('Y-m-d H:i:s', $expiryTimestamp);
+            if ($formattedExpiry !== ($userData['subscription_current_period_end'] ?? '')) {
+                $updateData['subscription_current_period_end'] = $formattedExpiry;
+                $updates[] = 'Expiration date changed to: ' . date('j M Y', $expiryTimestamp);
+            }
+        }
+    } elseif (post('clear_expiry') === '1') {
+        // Clear expiration date
+        if (!empty($userData['subscription_current_period_end'])) {
+            $updateData['subscription_current_period_end'] = null;
+            $updates[] = 'Expiration date cleared';
+        }
+    }
+    
     // Organisation membership and role
     $newOrgId = sanitizeInput(post('organisation_id') ?? '');
     $newRole = sanitizeInput(post('organisation_role') ?? '');
@@ -220,6 +258,27 @@ $userData = db()->fetchOne(
                             </span>
                         </dd>
                     </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Current Plan</dt>
+                        <dd class="mt-1">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <?php echo $subscriptionContext['plan'] === 'lifetime' ? 'bg-purple-100 text-purple-800' : ($subscriptionContext['plan'] === 'free' ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'); ?>">
+                                <?php echo e(subscriptionPlanLabel($subscriptionContext)); ?>
+                            </span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Subscription Expires</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            <?php if ($expiryInfo['days_remaining'] !== null): ?>
+                                <span class="<?php echo $expiryInfo['status_color'] === 'red' ? 'text-red-600 font-semibold' : ($expiryInfo['status_color'] === 'yellow' ? 'text-yellow-600 font-medium' : ''); ?>">
+                                    <?php echo e($expiryInfo['formatted_date']); ?> (<?php echo e($expiryInfo['status_text']); ?>)
+                                </span>
+                            <?php else: ?>
+                                <span class="text-gray-500"><?php echo e($expiryInfo['formatted_date']); ?></span>
+                            <?php endif; ?>
+                        </dd>
+                    </div>
                 </dl>
             </div>
 
@@ -286,6 +345,81 @@ $userData = db()->fetchOne(
                         <p class="mt-2 text-sm text-gray-600 font-medium">
                             Required when assigning to an organisation
                         </p>
+                    </div>
+
+                    <!-- Subscription Management -->
+                    <div class="border-t border-gray-200 pt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription Management</h3>
+                        
+                        <!-- Plan Selection -->
+                        <div class="mb-4">
+                            <label for="plan" class="block text-base font-semibold text-gray-900 mb-3">
+                                Subscription Plan
+                            </label>
+                            <select name="plan" id="plan" 
+                                    class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                                <?php foreach ($plans as $planId => $planConfig): ?>
+                                    <option value="<?php echo e($planId); ?>" 
+                                            <?php echo ($userData['plan'] ?? 'free') === $planId ? 'selected' : ''; ?>>
+                                        <?php echo e($planConfig['label']); ?> - <?php echo e($planConfig['description']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="mt-2 text-sm text-gray-600 font-medium">
+                                Change the user's subscription plan
+                            </p>
+                        </div>
+
+                        <!-- Subscription Status -->
+                        <div class="mb-4">
+                            <label for="subscription_status" class="block text-base font-semibold text-gray-900 mb-3">
+                                Subscription Status
+                            </label>
+                            <select name="subscription_status" id="subscription_status" 
+                                    class="block w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                                <option value="">Not set</option>
+                                <option value="active" <?php echo ($userData['subscription_status'] ?? '') === 'active' ? 'selected' : ''; ?>>
+                                    Active
+                                </option>
+                                <option value="inactive" <?php echo ($userData['subscription_status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>
+                                    Inactive
+                                </option>
+                                <option value="cancelled" <?php echo ($userData['subscription_status'] ?? '') === 'cancelled' ? 'selected' : ''; ?>>
+                                    Cancelled
+                                </option>
+                                <option value="past_due" <?php echo ($userData['subscription_status'] ?? '') === 'past_due' ? 'selected' : ''; ?>>
+                                    Past Due
+                                </option>
+                            </select>
+                            <p class="mt-2 text-sm text-gray-600 font-medium">
+                                Current status: <strong><?php echo e(ucfirst($userData['subscription_status'] ?? 'Not set')); ?></strong>
+                            </p>
+                        </div>
+
+                        <!-- Expiration Date -->
+                        <div class="mb-4">
+                            <label for="subscription_current_period_end" class="block text-base font-semibold text-gray-900 mb-3">
+                                Subscription Expiration Date
+                            </label>
+                            <div class="flex items-center gap-3">
+                                <input type="datetime-local" 
+                                       name="subscription_current_period_end" 
+                                       id="subscription_current_period_end"
+                                       value="<?php echo !empty($userData['subscription_current_period_end']) ? date('Y-m-d\TH:i', strtotime($userData['subscription_current_period_end'])) : ''; ?>"
+                                       class="block flex-1 rounded-lg border-2 border-gray-400 bg-white px-4 py-3 text-base font-medium text-gray-900 shadow-sm transition-colors focus:border-blue-600 focus:ring-4 focus:ring-blue-200 focus:outline-none">
+                                <label class="flex items-center text-sm text-gray-600">
+                                    <input type="checkbox" name="clear_expiry" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mr-2">
+                                    Clear expiration
+                                </label>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600 font-medium">
+                                <?php if (!empty($userData['subscription_current_period_end'])): ?>
+                                    Current expiration: <strong><?php echo date('j M Y, H:i', strtotime($userData['subscription_current_period_end'])); ?></strong>
+                                <?php else: ?>
+                                    No expiration date currently set
+                                <?php endif; ?>
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Form Actions -->

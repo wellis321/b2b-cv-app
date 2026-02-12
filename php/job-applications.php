@@ -397,6 +397,15 @@ function createJobApplication($data, $userId = null) {
         $priority = $data['priority'];
     }
     
+    // Enforce job application limit for free plan
+    if (function_exists('getUserSubscriptionContext') && function_exists('planCanAddEntry')) {
+        $context = getUserSubscriptionContext($userId);
+        if (!planCanAddEntry($context, 'job_applications', $userId)) {
+            $limit = isset($context['config']['limits']['job_applications']) ? (int) $context['config']['limits']['job_applications'] : 5;
+            return ['success' => false, 'error' => 'Your plan allows up to ' . $limit . ' job applications. Upgrade to Pro for unlimited applications.'];
+        }
+    }
+    
     try {
         $applicationId = generateUuid();
         

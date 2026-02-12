@@ -142,6 +142,8 @@ $allOrganisations = getAllOrganisations();
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organisation</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Super Admin</th>
@@ -152,12 +154,18 @@ $allOrganisations = getAllOrganisations();
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if (empty($users)): ?>
                             <tr>
-                                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                                <td colspan="10" class="px-6 py-4 text-center text-sm text-gray-500">
                                     No users found.
                                 </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($users as $u): ?>
+                                <?php
+                                // Get subscription info for this user
+                                $userSubContext = getUserSubscriptionContext($u['id']);
+                                $userExpiryInfo = formatSubscriptionExpiry($userSubContext);
+                                $planLabel = subscriptionPlanLabel($userSubContext);
+                                ?>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900"><?php echo e($u['full_name'] ?? 'N/A'); ?></div>
@@ -171,6 +179,24 @@ $allOrganisations = getAllOrganisations();
                                             <?php echo $u['account_type'] === 'candidate' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'; ?>">
                                             <?php echo ucfirst($u['account_type'] ?? 'individual'); ?>
                                         </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            <?php echo $userSubContext['plan'] === 'lifetime' ? 'bg-purple-100 text-purple-800' : ($userSubContext['plan'] === 'free' ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'); ?>">
+                                            <?php echo e($planLabel); ?>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php if ($userExpiryInfo['days_remaining'] !== null): ?>
+                                            <div class="text-sm <?php echo $userExpiryInfo['status_color'] === 'red' ? 'text-red-600 font-semibold' : ($userExpiryInfo['status_color'] === 'yellow' ? 'text-yellow-600 font-medium' : 'text-gray-900'); ?>">
+                                                <?php echo e($userExpiryInfo['formatted_date']); ?>
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                <?php echo e($userExpiryInfo['status_text']); ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-sm text-gray-400"><?php echo e($userExpiryInfo['formatted_date']); ?></span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-500"><?php echo e($u['organisation_name'] ?? '—'); ?></div>

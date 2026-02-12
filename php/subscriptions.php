@@ -24,6 +24,7 @@ function getSubscriptionPlansConfig(): array {
                     'interests' => 2,
                     'qualification_equivalence' => 1,
                     'summary_strengths' => 3,
+                    'job_applications' => 5,
                 ],
                 'word_limits' => [
                     'summary_description' => 200,
@@ -33,15 +34,37 @@ function getSubscriptionPlansConfig(): array {
                 'allowed_templates' => ['minimal', 'classic'],
                 'default_template' => 'minimal',
                 'template_customization' => false,
-                'pdf_enabled' => false,
+                'pdf_enabled' => true,
                 'support_level' => 'community',
+            ],
+            'pro_trial_7day' => [
+                'label' => '7-day unlimited access',
+                'description' => 'Full access for 7 days. After 7 days, renews to £22/month. Cancel anytime.',
+                'limits' => [],
+                'word_limits' => [],
+                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern', 'structured'],
+                'default_template' => 'professional',
+                'template_customization' => true,
+                'pdf_enabled' => true,
+                'support_level' => 'priority',
             ],
             'pro_monthly' => [
                 'label' => 'Pro Monthly',
-                'description' => 'Unlimited sections, premium templates, and PDF exports.',
+                'description' => 'Unlimited sections, premium templates, and PDF exports. Cancel anytime.',
                 'limits' => [],
                 'word_limits' => [],
-                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern'],
+                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern', 'structured'],
+                'default_template' => 'professional',
+                'template_customization' => true,
+                'pdf_enabled' => true,
+                'support_level' => 'priority',
+            ],
+            'pro_3month' => [
+                'label' => '3-month unlimited access',
+                'description' => 'One-time payment for 3 months. Best value.',
+                'limits' => [],
+                'word_limits' => [],
+                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern', 'structured'],
                 'default_template' => 'professional',
                 'template_customization' => true,
                 'pdf_enabled' => true,
@@ -52,7 +75,7 @@ function getSubscriptionPlansConfig(): array {
                 'description' => 'Everything in Pro Monthly plus discounted pricing and priority support.',
                 'limits' => [],
                 'word_limits' => [],
-                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern'],
+                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern', 'structured'],
                 'default_template' => 'professional',
                 'template_customization' => true,
                 'pdf_enabled' => true,
@@ -63,7 +86,7 @@ function getSubscriptionPlansConfig(): array {
                 'description' => 'One-time payment for lifetime access. All Pro features, forever.',
                 'limits' => [],
                 'word_limits' => [],
-                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern'],
+                'allowed_templates' => ['professional', 'minimal', 'classic', 'modern', 'structured'],
                 'default_template' => 'professional',
                 'template_customization' => true,
                 'pdf_enabled' => true,
@@ -73,6 +96,13 @@ function getSubscriptionPlansConfig(): array {
     }
 
     return $plans;
+}
+
+/**
+ * Plans shown in marketing/pricing (Resume.co-style: Free, 7-day trial, 3-month only)
+ */
+function getMarketingPlanIds(): array {
+    return ['free', 'pro_trial_7day', 'pro_3month'];
 }
 
 /**
@@ -111,8 +141,29 @@ function getUserSubscriptionContext(string $userId): array {
     );
 
     $planId = $profile['plan'] ?? DEFAULT_PLAN;
-    $config = getSubscriptionPlanConfig($planId);
     $status = $profile['subscription_status'] ?? 'inactive';
+    $periodEnd = $profile['subscription_current_period_end'] ?? null;
+    $stripeSubId = $profile['stripe_subscription_id'] ?? null;
+
+    // One-time or trial plans (no Stripe subscription): when period ends, downgrade to free.
+    // Applies to: pro_trial_7day (7-day trial), pro_3month (3-month access).
+    $trialOrOneTimePlans = ['pro_trial_7day', 'pro_3month'];
+    if (in_array($planId, $trialOrOneTimePlans, true) && empty($stripeSubId) && $periodEnd) {
+        if (strtotime($periodEnd) < time()) {
+            db()->update('profiles', [
+                'plan' => 'free',
+                'subscription_status' => 'inactive',
+                'subscription_current_period_end' => null,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ], 'id = ?', [$userId]);
+            $planId = 'free';
+            $status = 'inactive';
+            $periodEnd = null;
+            $profile = array_merge($profile ?? [], ['plan' => 'free', 'subscription_status' => 'inactive', 'subscription_current_period_end' => null]);
+        }
+    }
+
+    $config = getSubscriptionPlanConfig($planId);
 
     // For lifetime plans, always treat as active regardless of subscription_status
     if ($planId === 'lifetime') {
@@ -123,10 +174,10 @@ function getUserSubscriptionContext(string $userId): array {
         'user_id' => $userId,
         'plan' => $planId,
         'status' => $status,
-        'current_period_end' => $profile['subscription_current_period_end'] ?? null,
+        'current_period_end' => $periodEnd,
         'cancel_at' => $profile['subscription_cancel_at'] ?? null,
         'stripe_customer_id' => $profile['stripe_customer_id'] ?? null,
-        'stripe_subscription_id' => $profile['stripe_subscription_id'] ?? null,
+        'stripe_subscription_id' => $stripeSubId,
         'config' => $config,
         'is_paid' => $planId !== 'free',
     ];
@@ -147,6 +198,98 @@ function subscriptionPlanId(array $context): string {
 
 function subscriptionPlanLabel(array $context): string {
     return $context['config']['label'] ?? ucfirst(subscriptionPlanId($context));
+}
+
+/**
+ * Calculate days remaining until subscription expires
+ * Returns null for lifetime/free plans or if no expiration date
+ */
+function subscriptionDaysRemaining(array $context): ?int {
+    $planId = subscriptionPlanId($context);
+    
+    // Lifetime and free plans don't expire
+    if ($planId === 'lifetime' || $planId === 'free') {
+        return null;
+    }
+    
+    $expiryDate = $context['current_period_end'] ?? null;
+    if (empty($expiryDate)) {
+        return null;
+    }
+    
+    $expiryTimestamp = strtotime($expiryDate);
+    $now = time();
+    $daysRemaining = floor(($expiryTimestamp - $now) / 86400);
+    
+    return max(0, $daysRemaining);
+}
+
+/**
+ * Format subscription expiration info for display
+ * Returns array with 'date', 'days_remaining', 'status_color', 'status_text'
+ */
+function formatSubscriptionExpiry(array $context): array {
+    $planId = subscriptionPlanId($context);
+    $daysRemaining = subscriptionDaysRemaining($context);
+    $expiryDate = $context['current_period_end'] ?? null;
+    
+    if ($planId === 'lifetime') {
+        return [
+            'date' => null,
+            'days_remaining' => null,
+            'status_color' => 'green',
+            'status_text' => 'Never expires',
+            'formatted_date' => 'Never expires'
+        ];
+    }
+    
+    if ($planId === 'free') {
+        return [
+            'date' => null,
+            'days_remaining' => null,
+            'status_color' => 'gray',
+            'status_text' => 'Free plan',
+            'formatted_date' => 'N/A'
+        ];
+    }
+    
+    if (empty($expiryDate)) {
+        return [
+            'date' => null,
+            'days_remaining' => null,
+            'status_color' => 'yellow',
+            'status_text' => 'No expiration date set',
+            'formatted_date' => 'Not set'
+        ];
+    }
+    
+    $formattedDate = date('j M Y', strtotime($expiryDate));
+    $statusColor = 'green';
+    $statusText = '';
+    
+    if ($daysRemaining === null) {
+        $statusText = 'Active';
+    } elseif ($daysRemaining > 30) {
+        $statusText = $daysRemaining . ' days remaining';
+        $statusColor = 'green';
+    } elseif ($daysRemaining > 7) {
+        $statusText = $daysRemaining . ' days remaining';
+        $statusColor = 'yellow';
+    } elseif ($daysRemaining > 0) {
+        $statusText = $daysRemaining . ' day' . ($daysRemaining !== 1 ? 's' : '') . ' remaining';
+        $statusColor = 'red';
+    } else {
+        $statusText = 'Expired';
+        $statusColor = 'red';
+    }
+    
+    return [
+        'date' => $expiryDate,
+        'days_remaining' => $daysRemaining,
+        'status_color' => $statusColor,
+        'status_text' => $statusText,
+        'formatted_date' => $formattedDate
+    ];
 }
 
 function subscriptionIsPaid(array $context): bool {
@@ -229,6 +372,9 @@ function getSectionCountForUser(string $userId, string $section): int {
                 [$summary['id']]
             );
             return (int)($row['count'] ?? 0);
+        case 'job_applications':
+            $row = db()->fetchOne("SELECT COUNT(*) AS count FROM job_applications WHERE user_id = ?", [$userId]);
+            return (int)($row['count'] ?? 0);
         default:
             return 0;
     }
@@ -303,6 +449,7 @@ function getSectionLabel(string $section): string {
         'interests' => 'interest',
         'qualification_equivalence' => 'qualification equivalence entry',
         'summary_strengths' => 'strength',
+        'job_applications' => 'job application',
     ];
 
     return $labels[$section] ?? 'item';
@@ -343,6 +490,10 @@ function getStripePriceIdForPlan(string $planId): ?string {
             return STRIPE_PRICE_PRO_MONTHLY ?: null;
         case 'pro_annual':
             return STRIPE_PRICE_PRO_ANNUAL ?: null;
+        case 'pro_trial_7day':
+            return defined('STRIPE_PRICE_PRO_TRIAL_7DAY') && STRIPE_PRICE_PRO_TRIAL_7DAY ? STRIPE_PRICE_PRO_TRIAL_7DAY : null;
+        case 'pro_3month':
+            return defined('STRIPE_PRICE_PRO_3MONTH') && STRIPE_PRICE_PRO_3MONTH ? STRIPE_PRICE_PRO_3MONTH : null;
         case 'lifetime':
             return STRIPE_PRICE_LIFETIME ?: null;
         default:
@@ -359,6 +510,12 @@ function getPlanIdForStripePrice(string $priceId): ?string {
     }
     if (!empty(STRIPE_PRICE_PRO_ANNUAL) && $priceId === STRIPE_PRICE_PRO_ANNUAL) {
         return 'pro_annual';
+    }
+    if (defined('STRIPE_PRICE_PRO_TRIAL_7DAY') && STRIPE_PRICE_PRO_TRIAL_7DAY && $priceId === STRIPE_PRICE_PRO_TRIAL_7DAY) {
+        return 'pro_trial_7day';
+    }
+    if (defined('STRIPE_PRICE_PRO_3MONTH') && STRIPE_PRICE_PRO_3MONTH && $priceId === STRIPE_PRICE_PRO_3MONTH) {
+        return 'pro_3month';
     }
     if (!empty(STRIPE_PRICE_LIFETIME) && $priceId === STRIPE_PRICE_LIFETIME) {
         return 'lifetime';
@@ -406,7 +563,7 @@ function getOrganisationPlansConfig(): array {
                 'features' => [
                     'candidate_management' => true,
                     'team_roles' => true,
-                    'cv_templates' => ['minimal', 'classic', 'modern', 'professional'],
+                    'cv_templates' => ['minimal', 'classic', 'modern', 'professional', 'structured'],
                     'pdf_export' => true,
                     'custom_branding' => true,
                     'bulk_export' => true,
@@ -424,7 +581,7 @@ function getOrganisationPlansConfig(): array {
                 'features' => [
                     'candidate_management' => true,
                     'team_roles' => true,
-                    'cv_templates' => ['minimal', 'classic', 'modern', 'professional'],
+                    'cv_templates' => ['minimal', 'classic', 'modern', 'professional', 'structured'],
                     'pdf_export' => true,
                     'custom_branding' => true,
                     'bulk_export' => true,

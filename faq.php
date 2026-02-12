@@ -12,7 +12,7 @@ $faqs = [
     ],
     [
         'question' => 'Is Simple CV Builder free to use?',
-        'answer' => 'Yes! Simple CV Builder offers a free plan that allows you to create a basic CV with essential sections and share it with a unique link. The free plan has limited CV sections and no PDF export; upgrade to Pro for unlimited sections, PDF downloads, and premium templates.'
+        'answer' => 'Yes! Simple CV Builder offers a free plan that allows you to create a basic CV with essential sections, share it with a unique link, and export to PDF. The free plan has limited entries per section; upgrade to Pro for unlimited sections, premium templates, and priority support.'
     ],
     [
         'question' => 'How do I create my CV?',
@@ -24,7 +24,7 @@ $faqs = [
     ],
     [
         'question' => 'Can I download my CV as a PDF?',
-        'answer' => 'PDF download is available with Pro plans (Pro Monthly, Pro Annual, or Lifetime). The PDF includes a QR code that links back to your online CV. The free plan does not include PDF export; upgrade from your dashboard when you need print-ready PDFs.'
+        'answer' => 'PDF export is available on all plans. The free plan includes PDF export with the Minimal or Classic template. Pro plans add premium templates, customisable colours, selective section exports, and a QR code in the PDF that links back to your online CV.'
     ],
     [
         'question' => 'What sections can I include in my CV?',
@@ -32,7 +32,7 @@ $faqs = [
     ],
     [
         'question' => 'What\'s the difference between the free and premium plans?',
-        'answer' => 'The free plan allows you to create a basic CV with limited entries per section (e.g. one work experience, one project, three skills) and no PDF export. Pro plans offer unlimited sections and entries, PDF downloads, premium templates, and priority support. You can upgrade or downgrade your plan at any time.'
+        'answer' => 'The free plan allows you to create a CV with limited entries per section (e.g. one work experience, one project, three skills) and includes PDF export. Pro plans offer unlimited sections and entries, premium templates, selective PDF exports with QR codes, and priority support. You can upgrade or downgrade your plan at any time.'
     ],
     [
         'question' => 'How do I update my CV?',

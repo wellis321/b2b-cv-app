@@ -1,76 +1,57 @@
 <?php
-// Shared pricing section for homepage and /pricing. Expects $pricingLaunchOffer (or uses default).
-if (!isset($pricingLaunchOffer)) {
-    $pricingLaunchOffer = [
-        'active' => true,
-        'heading' => 'Try Pro free for 1 month',
-        'subtext' => 'No charge today. Cancel anytime from your billing portal.',
-    ];
-}
+// Shared pricing section. Resume.co-style: 3 plans only — Free, 7-day trial, 3-month.
 $pricingUseRegisterModal = $pricingUseRegisterModal ?? false;
-$trialActive = !empty($pricingLaunchOffer['active']);
 $pricingCards = [
     [
-        'label' => 'Free',
+        'label' => 'Basic access',
         'price' => '£0',
-        'detail' => 'Forever free',
+        'detail' => 'Free',
         'highlight' => false,
         'badge' => null,
         'features' => [
-            '1 work experience entry',
-            '1 project showcase',
-            '3 highlighted skills',
-            'Minimal template',
+            'CV & Cover Letter Builder',
+            'ATS-friendly templates',
+            'Resume sharing',
+            'PDF export',
+            'Limited job tracking & AI',
+            'Keep your account & data — no payment',
         ],
-        'button' => ['text' => 'Start for free', 'href' => '/#auth-section', 'dataOpenRegister' => true],
+        'button' => ['text' => 'Create account', 'href' => '/#auth-section', 'dataOpenRegister' => true],
     ],
     [
-        'label' => 'Pro Monthly',
-        'price' => '£4.99',
-        'detail' => 'per month',
+        'label' => '7-day unlimited access',
+        'price' => '£1.95',
+        'detail' => 'After 7 days, renews to £22/month. Cancel anytime.',
         'highlight' => true,
-        'badge' => $trialActive ? '1 month free' : null,
+        'badge' => 'Most popular',
         'features' => [
-            'Unlimited sections & entries',
-            'Professional template with colours',
-            'Download print-ready PDFs',
-            'Priority email support',
-            $trialActive ? 'First month free, then £4.99/month' : null,
+            'CV & Cover Letter Builder',
+            'ATS-friendly templates',
+            'Resume sharing',
+            'Unlimited downloads',
+            'Unlimited AI-tailoring',
+            'Unlimited AI cover letters',
         ],
-        'button' => ['text' => 'Start free trial', 'href' => '/#auth-section', 'dataOpenRegister' => true, 'requiresAccount' => true],
+        'button' => ['text' => 'Create account', 'href' => '/#auth-section', 'dataOpenRegister' => true, 'requiresAccount' => true],
     ],
     [
-        'label' => 'Pro Annual',
-        'price' => '£29.99',
-        'detail' => 'per year',
+        'label' => '3-month unlimited access',
+        'price' => '£27.88',
+        'detail' => 'One-time payment today — save 66%',
         'highlight' => false,
-        'badge' => $trialActive ? '1 month free' : 'Best value',
+        'badge' => 'Best value',
         'features' => [
-            'Everything in Pro Monthly',
-            'Best value for serious job seekers',
-            'Annual billing with Stripe',
-            'Priority email support',
-            $trialActive ? 'First month free, then £29.99/year' : null,
+            'CV & Cover Letter Builder',
+            'ATS-friendly templates',
+            'Resume sharing',
+            'Unlimited downloads',
+            'Unlimited AI-tailoring',
+            'Unlimited AI cover letters',
         ],
-        'button' => ['text' => 'Start free trial', 'href' => '/#auth-section', 'dataOpenRegister' => true, 'requiresAccount' => true],
-    ],
-    [
-        'label' => 'Lifetime',
-        'price' => '£39.99',
-        'detail' => 'one-time payment',
-        'highlight' => false,
-        'badge' => null,
-        'features' => [
-            'Unlimited sections & entries',
-            'Professional template with colours',
-            'Download print-ready PDFs',
-            'Priority email support',
-            'Lifetime access — no recurring fees',
-        ],
-        'button' => ['text' => 'Create account to purchase', 'href' => '/#auth-section', 'dataOpenRegister' => true, 'requiresAccount' => true],
+        'button' => ['text' => 'Create account', 'href' => '/#auth-section', 'dataOpenRegister' => true, 'requiresAccount' => true],
     ],
 ];
-// Remove null feature lines (e.g. when trial inactive)
+// Remove null feature lines
 foreach ($pricingCards as &$card) {
     $card['features'] = array_values(array_filter($card['features']));
 }
@@ -78,19 +59,13 @@ unset($card);
 ?>
 <div class="bg-gray-900 py-16 sm:py-24" id="pricing">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <?php if (!empty($pricingLaunchOffer['active'])): ?>
-        <div class="mb-10 rounded-xl border border-amber-400/60 bg-amber-500/10 px-6 py-4 text-center">
-            <p class="text-lg font-semibold text-amber-200"><?php echo e($pricingLaunchOffer['heading']); ?></p>
-            <p class="mt-1 text-sm text-amber-200/90"><?php echo e($pricingLaunchOffer['subtext']); ?></p>
-        </div>
-        <?php endif; ?>
         <div class="max-w-2xl text-center mx-auto">
-            <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Individual plans</h2>
+            <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Find the plan that fits your job search best</h2>
             <p class="mt-4 text-lg text-gray-300">
-                Plans for job seekers and personal CV use. Free tier includes unlimited job tracking and AI-assisted CV and cover letters; the free plan has limited CV sections and no PDF export. Upgrade to Pro for unlimited sections and print-ready PDFs.
+                Free CV builder with job tracking. Upgrade for unlimited AI, templates, and PDF downloads.
             </p>
         </div>
-        <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-12 grid gap-6 sm:grid-cols-1 md:grid-cols-3 max-w-4xl mx-auto">
             <?php foreach ($pricingCards as $card):
                 $classes = $card['highlight']
                     ? 'border-blue-500 ring-1 ring-blue-200 bg-white text-gray-900'

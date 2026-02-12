@@ -163,8 +163,9 @@
                                 </a>
                             </div>
                         </div>
-                        <a href="/subscription.php" class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $isSubscription ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Plan</a>
                     <?php endif; ?>
+                    <!-- Subscription link - available to all logged-in users -->
+                    <a href="/subscription.php" class="px-1.5 py-1.5 md:px-2 md:py-2 rounded-md text-xs md:text-sm font-medium transition-colors whitespace-nowrap <?php echo $isSubscription ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'; ?>">Plan</a>
                     <div class="relative group">
                         <button type="button"
                                 aria-expanded="false"
@@ -549,11 +550,12 @@
                            class="block px-4 py-2 rounded-md text-base font-medium transition-colors pl-6 text-sm <?php echo $currentPage === 'save-job-token.php' ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
                             Get save token
                         </a>
-                        <a href="/subscription.php" 
-                           class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $isSubscription ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Subscription
-                        </a>
                     <?php endif; ?>
+                    <!-- Subscription link - available to all logged-in users -->
+                    <a href="/subscription.php" 
+                       class="block px-4 py-2 rounded-md text-base font-medium transition-colors <?php echo $isSubscription ? 'text-blue-700 bg-blue-100' : 'text-gray-700 hover:bg-blue-100 hover:text-blue-700'; ?> focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Subscription
+                    </a>
                     <div class="px-4 py-2 text-base font-semibold text-gray-900 border-t border-gray-200 mt-2 pt-4">
                         Profile
                     </div>

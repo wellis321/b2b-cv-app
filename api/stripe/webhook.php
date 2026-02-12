@@ -57,32 +57,38 @@ try {
                     error_log('Stripe webhook fetch subscription failed: ' . $inner->getMessage());
                 }
             } elseif ($mode === 'payment') {
-                // Handle one-time payment (lifetime subscription)
+                // Handle one-time payment (lifetime, 7-day trial, 3-month access)
                 $planId = $object['metadata']['plan_id'] ?? null;
                 $userId = $object['metadata']['user_id'] ?? null;
                 $customerId = $object['customer'] ?? null;
 
-                if ($planId === 'lifetime' && $userId && $customerId) {
-                    // Update user's plan to lifetime
+                if ($planId && $userId && $customerId) {
                     $profile = db()->fetchOne(
                         "SELECT id FROM profiles WHERE id = ? AND stripe_customer_id = ?",
                         [$userId, $customerId]
                     );
 
                     if ($profile) {
-                        db()->update(
-                            'profiles',
-                            [
-                                'plan' => 'lifetime',
-                                'subscription_status' => 'active',
-                                'subscription_current_period_end' => null, // Lifetime has no end date
-                                'subscription_cancel_at' => null,
-                                'stripe_subscription_id' => null, // No subscription for lifetime
-                                'updated_at' => date('Y-m-d H:i:s'),
-                            ],
-                            'id = ?',
-                            [$profile['id']]
-                        );
+                        $updateData = [
+                            'plan' => $planId,
+                            'subscription_status' => 'active',
+                            'subscription_cancel_at' => null,
+                            'stripe_subscription_id' => null,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ];
+
+                        if ($planId === 'lifetime') {
+                            $updateData['subscription_current_period_end'] = null;
+                        } elseif ($planId === 'pro_trial_7day') {
+                            $updateData['subscription_status'] = 'trialing';
+                            $updateData['subscription_current_period_end'] = date('Y-m-d H:i:s', strtotime('+7 days'));
+                        } elseif ($planId === 'pro_3month') {
+                            $updateData['subscription_current_period_end'] = date('Y-m-d H:i:s', strtotime('+90 days'));
+                        } else {
+                            $updateData['subscription_current_period_end'] = null;
+                        }
+
+                        db()->update('profiles', $updateData, 'id = ?', [$profile['id']]);
                     }
                 }
             }

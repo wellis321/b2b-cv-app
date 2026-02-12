@@ -8,6 +8,8 @@ let classicPreview = null
 let classicPdf = null
 let modernPreview = null
 let modernPdf = null
+let structuredPreview = null
+let structuredPdf = null
 
 // Dynamic imports with cache busting
 async function loadProfessionalBluePreview() {
@@ -56,6 +58,22 @@ async function loadModernPdf() {
         modernPdf = module.buildDocDefinition
     }
     return modernPdf
+}
+
+async function loadStructuredPreview() {
+    if (!structuredPreview) {
+        const module = await import(`./structured/preview.js?v=${CACHE_BUSTER}`)
+        structuredPreview = module.render
+    }
+    return structuredPreview
+}
+
+async function loadStructuredPdf() {
+    if (!structuredPdf) {
+        const module = await import(`./structured/pdf.js?v=${CACHE_BUSTER}`)
+        structuredPdf = module.buildDocDefinition
+    }
+    return structuredPdf
 }
 
 const DEFAULT_TEMPLATE_ID = 'professional'
@@ -131,6 +149,30 @@ const templateRegistry = {
         },
         pdf: {
             buildDocDefinition: loadClassicPdf
+        }
+    },
+    structured: {
+        id: 'structured',
+        name: 'Structured',
+        description: 'Clean professional layout with light blue accents, skills grouped by category, and Career Highlights.',
+        colors: {
+            header: '#1e3a8a',
+            body: '#374151',
+            accent: '#0ea5e9',
+            muted: '#64748b',
+            divider: '#7dd3fc',
+            link: '#0284c7'
+        },
+        sectionDivider: {
+            color: '#7dd3fc',
+            width: 2,
+            margin: [0, 4, 0, 8]
+        },
+        preview: {
+            render: loadStructuredPreview
+        },
+        pdf: {
+            buildDocDefinition: loadStructuredPdf
         }
     },
     modern: {

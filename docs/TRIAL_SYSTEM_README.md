@@ -1,129 +1,29 @@
-# Free Trial System
+# Subscription & Trial System (Resume.co-style)
 
-This CV Builder app now includes a free trial system that gives users 7 days of full access, then requires payment to continue.
+This app uses a **simple 3-plan model** aligned with [Resume.co](https://resume.co/pricing):
 
-## How It Works
+1. **Basic access (Free)** — CV builder, templates, limited job tracking & AI. PDF export.
+2. **7-day unlimited access** — £1.95. After 7 days, renews to £22/month. Cancel anytime.
+3. **3-month unlimited access** — £27.88 one-time. Best value. Save 66%.
 
-1. **New users** automatically get a 7-day free trial when they sign up
-2. **During the trial**, users have full access to all features
-3. **After 7 days**, if users don't pay, they lose access to their data
-4. **Payment** (£9.99/year one-time) grants lifetime access
+Pro Monthly, Pro Annual, and Lifetime exist in the backend for existing users and for trial renewals, but are **not shown** in marketing/pricing.
 
-## Current Status: DISABLED FOR DEVELOPMENT
+## How it works
 
-The trial system is currently **DISABLED** so all users have free access during development.
+1. **New users** register and start on the **free plan**.
+2. **7-day trial**: User pays £1.95 via Stripe. We set `plan` = `pro_trial_7day`, `subscription_status` = `trialing`, `subscription_current_period_end` = now + 7 days. No Stripe subscription.
+3. **When the 7 days end**: User is downgraded to free. They can subscribe to Pro Monthly (£22/month) to continue.
+4. **3-month access**: One-time payment, `plan` = `pro_3month`, `period_end` = now + 90 days.
 
-### To Enable the Trial System:
+## Implementation
 
-1. Open `src/lib/stores/subscriptionStore.ts`
+- **Marketing plans** (`getMarketingPlanIds()`): `free`, `pro_trial_7day`, `pro_3month` — only these 3 are shown on home, pricing, and subscription pages.
+- **Full plans** (`getSubscriptionPlansConfig()`): All plans for backend (existing users, trial renewals).
 
-2. Find the section in `loadUserSubscription()` that says:
-   ```typescript
-   // FOR DEVELOPMENT - Comment out this section when ready to enable trial system
-   currentSubscription.set({
-       plan: {
-           ...freePlan,
-           id: 'free_premium',
-           name: 'Free Premium (Development)',
-           // ... rest of the code
-       },
-       expiresAt: null,
-       isActive: true, // Always active during development
-       isTrial: false,
-       trialEndsAt: null,
-       hasPaid: false
-   });
-   return;
-   ```
+### Environment
 
-3. **COMMENT OUT** that entire section (lines ~254-274)
-
-4. **UNCOMMENT** the trial logic (lines ~276-322)
-
-5. Also update `canAccessFeature` in the same file:
-   ```typescript
-   export const canAccessFeature = derived(
-       currentSubscription,
-       ($currentSubscription) => (featureName: string, value?: any) => {
-           // During development: everyone gets free access to all features
-           return true; // CHANGE THIS LINE - REMOVE "return true" and uncomment below
-
-           // UNCOMMENT THIS CODE:
-           if (!$currentSubscription.isActive || !$currentSubscription.plan) {
-               return checkFeatureAccess(DEFAULT_FREE_PLAN.features, featureName, value);
-           }
-           return checkFeatureAccess($currentSubscription.plan.features, featureName, value);
-       }
-   );
-   ```
-
-6. Remove the line `return true;` and uncomment the feature checking logic
-
-## Database Migration
-
-The database migration has already been applied. It adds these columns to the `profiles` table:
-- `trial_ends_at`: When the free trial expires
-- `trial_started_at`: When the free trial started
-- `has_paid`: Whether the user has paid for full access
-
-## Features
-
-### Trial Banner
-- Shows at the top of the page for users in trial
-- Displays days remaining
-- "Upgrade" button to payment page
-
-### Subscription Page
-- Shows trial status
-- "Upgrade Now" button for trial users
-- "Pay Now to Keep Access" button for expired trial users
-- Status badges showing trial/payment status
-
-### Automatic Trial Start
-- New users get 7 days free when they sign up
-- Set in `src/routes/api/create-profile/+server.ts`
-
-## Testing
-
-To test the trial system:
-
-1. **Enable the trial system** (see steps above)
-2. **Create a new user account**
-3. Check that they see "Free trial: 7 days remaining" banner
-4. Wait for trial to expire OR manually set `trial_ends_at` to a past date in database
-5. Verify they lose access and see upgrade prompt
-
-## Stripe Integration
-
-The payment system is ready to use Stripe. Make sure you have:
-
-1. ✅ Created the product in Stripe Dashboard
-2. ✅ Set `VITE_STRIPE_PUBLISHABLE_KEY` in Vercel
-3. ✅ Set `STRIPE_SECRET_KEY` in Vercel
-4. ✅ Set `STRIPE_WEBHOOK_SECRET` in Vercel
-5. ✅ Set `STRIPE_PRICE_ID` in Vercel
-
-## User Experience Flow
-
-### Trial User (Active)
-1. User sees banner showing days remaining
-2. Can click "Upgrade Now" any time during trial
-3. Payment at any point gives lifetime access
-
-### Trial Expired User
-1. User sees "Trial Expired" message
-2. Can't access their CV sections
-3. Must pay to regain access
-4. Data is preserved for 30 days after expiry
-
-### Paid User
-1. Full access forever
-2. No ads or limitations
-3. Can use all features and templates
-
-## Notes
-
-- Users can dismiss the trial banner
-- Trial starts automatically on sign-up
-- Payment is one-time £9.99/year (not recurring)
-- Users lose access to data if trial expires and they don't pay
+```
+STRIPE_PRICE_PRO_TRIAL_7DAY=price_xxx   # £1.95 one-time
+STRIPE_PRICE_PRO_3MONTH=price_xxx      # £27.88 one-time
+STRIPE_PRICE_PRO_MONTHLY=price_xxx      # £22/month (for trial renewals)
+```

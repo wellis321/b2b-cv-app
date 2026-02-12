@@ -147,12 +147,25 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
         return false
     }
 
+    const isProfessional = template.id === 'professional'
+    const fromColor = (profile.cv_header_from_color || '#4338ca').replace(/[^#a-fA-F0-9]/g, '') || '#4338ca'
+    const toColor = (profile.cv_header_to_color || '#7e22ce').replace(/[^#a-fA-F0-9]/g, '') || '#7e22ce'
+    const headerTextColor = isProfessional ? '#ffffff' : null
+
     const headerStack = []
 
-    headerStack.push({ text: decodeHtmlEntities(profile.full_name || 'Your Name'), style: 'header' })
+    headerStack.push({
+        text: decodeHtmlEntities(profile.full_name || 'Your Name'),
+        style: 'header',
+        ...(headerTextColor && { color: headerTextColor })
+    })
 
     if (profile.bio && String(profile.bio).trim()) {
-        headerStack.push({ text: decodeHtmlEntities(profile.bio), style: 'tagline' })
+        headerStack.push({
+            text: decodeHtmlEntities(profile.bio),
+            style: 'tagline',
+            ...(headerTextColor && { color: headerTextColor })
+        })
     }
 
     const contactLines = []
@@ -167,7 +180,11 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
     }
 
     contactLines.forEach((line) => {
-        headerStack.push({ text: line, style: 'contactInfo' })
+        headerStack.push({
+            text: line,
+            style: 'contactInfo',
+            ...(headerTextColor && { color: headerTextColor })
+        })
     })
 
     const headerColumns = [
@@ -180,30 +197,27 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
     const headerImages = []
     const includePhoto = config.includePhoto !== false
     const includeQRCode = config.includeQRCode === true
-    const isValidDataUrl = (s) => typeof s === 'string' && s.length > 100 && /^data:image\//i.test(s)
+    const hasValidPhoto = (s) => typeof s === 'string' && s.length > 10 && (/^data:image\//i.test(s) || /^https?:\/\//i.test(s))
 
-    // Profile photo in header top-right when included and available
-    if (includePhoto && profile.photo_base64 && isValidDataUrl(profile.photo_base64)) {
-        headerImages.push({
-            width: 'auto',
-            image: profile.photo_base64,
-            fit: [70, 70],
-            alignment: 'right',
-            margin: [0, 0, 5, 0]
-        })
-    }
-
-    // When no photo in header: put QR code in that same top-right slot when requested
+    // Header slot: QR code when chosen, else profile photo (QR replaces image in same position)
     let qrInHeader = false
-    if (headerImages.length === 0 && includeQRCode && cvUrl && qrCodeImage && isValidDataUrl(qrCodeImage)) {
+    if (includeQRCode && cvUrl) {
         headerImages.push({
             width: 'auto',
-            image: qrCodeImage,
-            fit: [50, 50],
+            qr: cvUrl,
+            fit: 50,
             alignment: 'right',
             margin: [0, 0, 5, 0]
         })
         qrInHeader = true
+    } else if (includePhoto && profile.photo_base64 && hasValidPhoto(profile.photo_base64)) {
+        headerImages.push({
+            width: 'auto',
+            image: 'profilePhoto',
+            fit: [70, 70],
+            alignment: 'right',
+            margin: [0, 0, 5, 0]
+        })
     }
 
     if (headerImages.length) {
@@ -218,22 +232,70 @@ function buildHeader(content, profile, config, palette, template, cvUrl, qrCodeI
         headerColumns[0].width = availableWidthForHeader
     }
 
-    content.push({ columns: headerColumns })
-
-    if (profile.linkedin_url) {
-        content.push({
-            text: 'LinkedIn Profile',
-            style: 'linkedIn',
-            link: profile.linkedin_url,
-            margin: [0, 10, 0, 0]
-        })
-    }
-
     const pageMargins = template.pageMargins || [50, 50, 50, 50]
     const pageWidth = 595.28
     const availableWidth = pageWidth - (pageMargins[0] || 0) - (pageMargins[2] || 0)
     const dividerColor = palette.divider || ACCENT_COLOR
     const headerLineWidth = template.sectionHeaderLineWidth ?? 2
+
+    if (isProfessional) {
+        // Professional Blue: full-width gradient header at top of page (matches preview)
+        const headerPadding = 24 // pt - matches preview p-6/p-8 spacing
+        const gradientHeight = 140
+        const fromHex = fromColor.startsWith('#') ? fromColor.slice(1) : fromColor
+        const toHex = toColor.startsWith('#') ? toColor.slice(1) : toColor
+        const leftMargin = pageMargins[0] || 50
+        const topMargin = pageMargins[1] || 50
+        const rightMargin = pageMargins[2] || 50
+        const fullPageWidth = 595.28
+        const gradientSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(fullPageWidth)}" height="${gradientHeight}" viewBox="0 0 ${Math.round(fullPageWidth)} ${gradientHeight}">
+  <defs>
+    <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#${fromHex}"/>
+      <stop offset="100%" stop-color="#${toHex}"/>
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#hg)"/>
+</svg>`
+        const overlayContent = [
+            { columns: headerColumns, margin: [headerPadding, headerPadding, headerPadding, headerPadding] }
+        ]
+        if (profile.linkedin_url) {
+            overlayContent.push({
+                text: 'LinkedIn Profile',
+                style: 'linkedIn',
+                link: profile.linkedin_url,
+                margin: [headerPadding, 8, headerPadding, 0],
+                color: '#ffffff'
+            })
+        }
+        content.push({
+            stack: [
+                {
+                    svg: gradientSvg,
+                    width: fullPageWidth,
+                    height: gradientHeight,
+                    margin: [0, 0, 0, 0]
+                },
+                {
+                    relativePosition: { x: 0, y: -gradientHeight },
+                    stack: overlayContent,
+                    margin: [0, 0, 0, 0]
+                }
+            ],
+            margin: [-leftMargin, -topMargin, -rightMargin, 0]
+        })
+    } else {
+        content.push({ columns: headerColumns })
+        if (profile.linkedin_url) {
+            content.push({
+                text: 'LinkedIn Profile',
+                style: 'linkedIn',
+                link: profile.linkedin_url,
+                margin: [0, 10, 0, 0]
+            })
+        }
+    }
 
     content.push({
         table: {
@@ -321,6 +383,7 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
         pageSize: 'A4',
         pageMargins: template.pageMargins || [50, 50, 50, 50],
         defaultStyle: { font: 'Roboto', fontSize: 11, color: palette.body || '#374151', lineHeight: 1.3 },
+        ...(profile.photo_base64 && /^data:image\/(jpeg|png);base64,/.test(profile.photo_base64) && { images: { profilePhoto: profile.photo_base64 } }),
         footer: (currentPage, pageCount) => {
             const p = (typeof pageCount === 'number' && !Number.isNaN(pageCount)) ? pageCount : 1
             const c = (typeof currentPage === 'number' && !Number.isNaN(currentPage)) ? currentPage : 1
@@ -670,8 +733,8 @@ function buildProfessionalDocDefinition({ cvData = {}, profile = {}, config = {}
         })
     }
 
-    // When QR requested: use link-only footer (embedding the QR image causes pdfmake "unsupported number: NaN")
-    if (config.includeQRCode && cvUrl) {
+    // When QR requested but not in header: link-only footer (QR already in header when includeQRCode)
+    if (config.includeQRCode && cvUrl && !qrInHeader) {
         content.push({ text: 'View my full CV online', alignment: 'right', fontSize: 9, color: palette.muted || '#6b7280', margin: [0, 18, 0, 0], link: cvUrl })
     }
 
